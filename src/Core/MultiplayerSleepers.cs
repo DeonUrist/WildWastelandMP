@@ -212,22 +212,23 @@ namespace WildWasteland.Core
                 { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
                 bool carrying = sleeper.Carrier != Nobody;
                 bool simulate = Multiplayer.WorldReady && !MultiplayerSaving.Frozen && !SaveBus.Busy && GameRefs.WorldRunning && !WakeLocked(sleeper);
-                if (simulate && !carrying && Time.unscaledTime >= sleeper.NextGround)
+                if (simulate && Time.unscaledTime >= sleeper.NextGround)
                 {
                     sleeper.NextGround = Time.unscaledTime + .5f; ProbeGround(sleeper);
                 }
-                simulate &= carrying || sleeper.Supported && GroundReady(sleeper);
+                simulate &= sleeper.Supported && GroundReady(sleeper);
                 for (int i = 0; i < bones.Length; i++)
                 {
-                    bool kinematic = !simulate || carrying;
+                    bool kinematic = !simulate || carrying && i == 0;
                     if (bones[i].isKinematic != kinematic)
                     { bones[i].isKinematic = kinematic; if (!kinematic) { bones[i].velocity = Vector3.zero; bones[i].angularVelocity = Vector3.zero; } }
                 }
                 if (simulate && carrying)
                 {
-                    var target = carrier.transform.position + carrier.transform.forward * 1.4f + Vector3.up * .3f;
+                    var target = carrier.transform.position + carrier.transform.forward * 1.4f + Vector3.up * .6f;
                     var delta = Vector3.ClampMagnitude(target - hip.position, .6f);
-                    for (int i = 0; i < bones.Length; i++) bones[i].MovePosition(bones[i].position + delta);
+                    // Hold the hip only; the jointed torso, head and limbs retain gravity and collisions.
+                    hip.MovePosition(hip.position + delta);
                 }
             }
         }

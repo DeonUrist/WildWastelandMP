@@ -35,14 +35,23 @@ namespace WildWasteland.Modules.CleanHUD
             _map.GetWorldCorners(_playerCorners);
             var rect = new Rect(_playerCorners[0].x, Screen.height - _playerCorners[1].y, _playerCorners[2].x - _playerCorners[0].x, _playerCorners[1].y - _playerCorners[0].y);
             if (multiplayer)
-                foreach (var remote in MultiplayerNames.Players)
+                foreach (var remote in MultiplayerCompass.MapPlayers)
                 {
-                    if (remote.Peer == Multiplayer.LocalPeer || remote.Tag == null) continue;
-                    var root = remote.Tag.transform.parent;
-                    if (root != null && root.gameObject.activeInHierarchy) DrawArrow(rect, root.position, Quaternion.Euler(0, root.eulerAngles.y, 0) * Vector3.forward, remote.Color);
+                    if (remote.Peer == Multiplayer.LocalPeer) continue;
+                    Vector3 position; float yaw;
+                    if (MultiplayerSleepers.JoiningPosition(remote.Peer, out position, out yaw)) DrawArrow(rect, position, Quaternion.Euler(0, yaw, 0) * Vector3.forward, MultiplayerNames.ColorOf(remote.Peer));
+                    else
+                    {
+                        var positionNow = Origin.Scene(remote.World); var forward = Vector3.forward;
+                        foreach (var tag in MultiplayerNames.Players) if (tag.Peer == remote.Peer && tag.Tag != null && tag.Tag.transform.parent != null) { forward = tag.Tag.transform.parent.forward; break; }
+                        DrawArrow(rect, positionNow, forward, MultiplayerNames.ColorOf(remote.Peer));
+                    }
                 }
             var player = GameRefs.Player.transform;
-            DrawArrow(rect, player.position, player.forward, multiplayer ? MultiplayerNames.ColorOf(Multiplayer.LocalPeer) : new Color(.2f, 1f, .25f, 1f));
+            Vector3 selfPosition = player.position; float selfYaw = player.eulerAngles.y;
+            bool joining = multiplayer && MultiplayerSleepers.JoiningPosition(Multiplayer.LocalPeer, out selfPosition, out selfYaw);
+            if (!joining) { selfPosition = player.position; selfYaw = player.eulerAngles.y; }
+            DrawArrow(rect, selfPosition, Quaternion.Euler(0, selfYaw, 0) * Vector3.forward, multiplayer ? MultiplayerNames.ColorOf(Multiplayer.LocalPeer) : new Color(.2f, 1f, .25f, 1f));
         }
         private void DrawArrow(Rect rect, Vector3 position, Vector3 forward, Color tint)
         {

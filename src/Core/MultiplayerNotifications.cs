@@ -32,7 +32,7 @@ namespace WildWasteland.Core
         {
             if (__0 != null)
             {
-                if (__0.EndsWith(" joined the game", StringComparison.Ordinal)) __0 = __0.Substring(0, __0.Length - 16) + " connected";
+                if (__0.EndsWith(" joined the game", StringComparison.Ordinal)) __0 = __0.Substring(0, __0.Length - 16) + " is connecting";
                 else if (__0.EndsWith(" left the game", StringComparison.Ordinal)) __0 = __0.Substring(0, __0.Length - 14) + " disconnected";
             }
             return Multiplayer.WorldReady && Notice(__0);

@@ -205,7 +205,7 @@ namespace WildWasteland.Core
             if (_generation != SaveBus.Generation) Reset();
             if (kind == 56)
             {
-                if (!Multiplayer.Hosting || from == 0 || Multiplayer.PlayerFor(from) == null) return;
+                if (!Multiplayer.Hosting || from == 0 || !MultiplayerSleepers.WelcomedPeer(from)) return;
                 ulong hello = r.ReadUInt64(); if (End(r)) { MultiplayerHandshake.ClientReady(from, hello); Multiplayer.Send(57, w => { w.Write(hello); w.Write(_epoch); }, from); }
                 return;
             }
