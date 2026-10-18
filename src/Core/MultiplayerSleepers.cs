@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using HarmonyLib;
+using HutongGames.PlayMaker;
+using HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using UnityEngine.UI;
 using WildWasteland.Core.UI;
@@ -21,7 +23,7 @@ namespace WildWasteland.Core
         Collider[] Colliders { get; }
         void Apply();
     }
-    internal static class MultiplayerSleepers
+    internal static partial class MultiplayerSleepers
     {
         internal const string SleepingKey = "ww.sleeping", ChoiceKey = "ww.bodyChoice";
         const byte Full = 159, Pose = 160, Remove = 161, Carry = 162;
@@ -56,6 +58,8 @@ namespace WildWasteland.Core
         static int _nextId; static ulong _epoch;
         static float _nextFull, _nextPose, _nextCheckpoint, _nextCommand;
         static bool _loaded, _stopping;
+        static FsmGameObject _handUse, _hand;
+        static Sleeper _looked; static int _lookFrame = -1;
         internal static void Install()
         {
             var record = Multiplayer.Type("Worlds.PlayerRecord"); var session = Multiplayer.Type("Net.NetSession");
@@ -66,10 +70,15 @@ namespace WildWasteland.Core
             _closing = MultiplayerAccess.Get<bool>(Multiplayer.Type("Worlds.WorldSaver"), "<Quitting>k__BackingField");
             _localInCar = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Game.LocalPlayer"), "get_InCar", Type.EmptyTypes);
             _passenger = MultiplayerAccess.Get<Transform>(Multiplayer.Type("Net.WorldObjects"), "passengerSeat");
+            InstallWake(session, record);
             Require(Multiplayer.Type("Game.PlayerVitals"), "Capture", "CaptureChoice");
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "Stop"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "Stopping"), postfix: AccessTools.Method(typeof(MultiplayerSleepers), "Stopped")))
                 throw new InvalidOperationException("Sleeping-player session cleanup hook failed");
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Changed;
+            Hooks.GetMouseButtonDownUpdate.Prefix(Multiplayer.PatchOwner, CarryMouse);
+            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(MousePickEvent), "OnEnter"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "CarryPick"))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(MousePickEvent), "OnUpdate"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "CarryPick")))
+                throw new InvalidOperationException("Sleeping-player native pickup guard failed");
             Scheduler.Interval(Multiplayer.PatchOwner, "Sleeping players replication", .1f, Tick);
             Scheduler.EveryFrame(Multiplayer.PatchOwner, "Sleeping players physics", PhysicsTick, Phase.EarlyFixedUpdate);
             Scheduler.EveryFrame(Multiplayer.PatchOwner, "Sleeping players presentation", LateTick, Phase.LateUpdateLast);
@@ -82,7 +91,7 @@ namespace WildWasteland.Core
         static void CaptureChoice(Dictionary<string, float> __result)
         { if (Multiplayer.Active && __result != null && Services.SleepingBodies != null) __result[ChoiceKey] = Services.SleepingBodies.LocalChoice; }
         static void Stopping() { _stopping = true; StoreAll(); }
-        static void Stopped() { _stopping = false; Clear(); }
+        static void Stopped() { _stopping = false; Clear(); _restoreRecord = null; _restored = _placed = false; }
         static void Changed()
         {
             if (Multiplayer.Active && _epoch == MultiplayerParts.Epoch) return;
@@ -91,12 +100,14 @@ namespace WildWasteland.Core
         static void Clear()
         {
             foreach (var sleeper in Bodies.Values) Destroy(sleeper);
-            Bodies.Clear(); Removed.Clear(); _loaded = false; _nextId = 0; _nextFull = _nextPose = _nextCheckpoint = 0; Hint(null);
+            Bodies.Clear(); Removed.Clear(); ClearWake(); _looked = null; _lookFrame = -1; _loaded = false; _nextId = 0; _nextFull = _nextPose = _nextCheckpoint = 0; Hint(null);
         }
         static void Destroy(Sleeper sleeper)
         { if (sleeper.Label != null) MultiplayerNames.RemoveSleeper(sleeper.Label); if (sleeper.Body != null) sleeper.Body.Dispose(); sleeper.Body = null; sleeper.Label = null; }
         internal static void Left(ulong peer, object record)
         {
+            MultiplayerPlayers.Forget(peer);
+            CancelWake(peer);
             foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == peer) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
             if (!Multiplayer.Hosting || !Multiplayer.WorldReady || record == null || !_hasPosition(record) || _closing(null) || _stopping) return;
             float health; var stats = _stats(record);
@@ -110,20 +121,15 @@ namespace WildWasteland.Core
             if (Bodies.Count >= Limit) { Log.Warn("[Multiplayer] Sleeping-player limit reached (512)"); return; }
             float selected; int choice = _stats(record).TryGetValue(ChoiceKey, out selected) ? Mathf.Clamp(Mathf.RoundToInt(selected), 0, 9) : 1;
             var sleeper = new Sleeper { Id = ++_nextId, Choice = choice, Name = _name(record), Record = record };
-            sleeper.CarryHint = "Carry " + sleeper.Name + ": Use";
+            sleeper.CarryHint = "Carry " + sleeper.Name + ": LMB / Use";
             sleeper.Positions[0] = _position(record) - (restored ? Vector3.up * .8f : Vector3.zero); sleeper.Rotations[0] = Quaternion.Euler(0, _yaw(record), 0); Bodies.Add(sleeper.Id, sleeper);
         }
         internal static void Waking(object record)
         {
-            if (!Multiplayer.Hosting || record == null) return;
-            Sleeper found = null;
-            foreach (var sleeper in Bodies.Values) if (ReferenceEquals(sleeper.Record, record)) { found = sleeper; break; }
-            if (found != null)
-            {
-                Store(found); Destroy(found); Bodies.Remove(found.Id);
-                Multiplayer.Send(Remove, w => { w.Write(_epoch); w.Write(found.Id); });
-            }
-            _stats(record).Remove(SleepingKey);
+            if (!Multiplayer.Hosting || record == null || !_hasPosition(record)) return;
+            if (_epoch != MultiplayerParts.Epoch) { Clear(); _epoch = MultiplayerParts.Epoch; }
+            Add(record, _stats(record).ContainsKey(SleepingKey));
+            foreach (var sleeper in Bodies.Values) if (ReferenceEquals(sleeper.Record, record)) { Store(sleeper); break; }
         }
         // Called after native RefreshRecords, before copying records into any checkpoint/world snapshot.
         internal static void StoreAll()
@@ -131,6 +137,7 @@ namespace WildWasteland.Core
         static void Store(Sleeper sleeper)
         {
             if (sleeper.Record == null) return;
+            _stats(sleeper.Record)[SleepingKey] = 1;
             if (sleeper.Body != null) sleeper.Positions[0] = Origin.World(sleeper.Body.Bodies[0].position);
             _setPosition(sleeper.Record, sleeper.Positions[0] + Vector3.up * .8f); _setHasPosition(sleeper.Record, true);
         }
@@ -142,7 +149,8 @@ namespace WildWasteland.Core
             {
                 _loaded = true;
                 foreach (DictionaryEntry entry in _records(null))
-                { float asleep; if ((string)entry.Key != "host" && _hasPosition(entry.Value) && _stats(entry.Value).TryGetValue(SleepingKey, out asleep) && asleep == 1) Add(entry.Value, true); }
+                { if ((string)entry.Key != "host" && _hasPosition(entry.Value) && (!Online(entry.Value) || _stats(entry.Value).ContainsKey(SleepingKey))) Waking(entry.Value); }
+                foreach (DictionaryEntry entry in _connections(null)) if (_peerRecord(entry.Value) != null && _stats(_peerRecord(entry.Value)).ContainsKey(SleepingKey)) Welcomed(entry.Value);
             }
             foreach (var sleeper in Bodies.Values)
             {
@@ -165,6 +173,7 @@ namespace WildWasteland.Core
                     catch (Exception error) { Destroy(sleeper); Log.Error("[Multiplayer] Sleeping body could not be built", error); }
                 }
             }
+            TickWake();
             if (!Multiplayer.Hosting || MultiplayerSaving.Frozen || SaveBus.Busy) return;
             bool full = Time.unscaledTime >= _nextFull;
             if (full) _nextFull = Time.unscaledTime + 3f;
@@ -202,7 +211,7 @@ namespace WildWasteland.Core
                 if (sleeper.Carrier != Nobody && (carrier == null || !carrier.activeInHierarchy || (sleeper.Carrier == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(sleeper.Carrier) || MultiplayerPlayers.Car(sleeper.Carrier) != null)))
                 { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
                 bool carrying = sleeper.Carrier != Nobody;
-                bool simulate = Multiplayer.WorldReady && !MultiplayerSaving.Frozen && !SaveBus.Busy && GameRefs.WorldRunning;
+                bool simulate = Multiplayer.WorldReady && !MultiplayerSaving.Frozen && !SaveBus.Busy && GameRefs.WorldRunning && !WakeLocked(sleeper);
                 if (simulate && !carrying && Time.unscaledTime >= sleeper.NextGround)
                 {
                     sleeper.NextGround = Time.unscaledTime + .5f; ProbeGround(sleeper);
@@ -271,29 +280,63 @@ namespace WildWasteland.Core
         }
         static void Interaction()
         {
-            if (!GameRefs.InGame || !Multiplayer.LocalTargetable || Multiplayer.Typing || EditorSession.Busy || ApocasetterBridge.InputBlocked || !Application.isFocused || MultiplayerSaving.Frozen || _localInCar() || _passenger(null) != null)
+            if (!CanInteract())
             { Hint(null); return; }
-            Sleeper selected = null; bool carrying = false;
-            foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == Multiplayer.LocalPeer) { selected = sleeper; carrying = true; break; }
+            var selected = Looked(); bool carrying = selected != null && selected.Carrier == Multiplayer.LocalPeer;
+            Hint(selected == null ? null : carrying ? "Drop sleeping player: LMB / Use" : selected.CarryHint);
+            if (selected == null || !(Input.GetButtonDown("Use") || Input.GetMouseButtonDown(0) && (carrying || EmptyHands())) || Time.unscaledTime < _nextCommand) return;
+            _nextCommand = Time.unscaledTime + .3f;
+            if (Multiplayer.Hosting) Command(0, selected.Id, !carrying);
+            else { int id = selected.Id; Multiplayer.Send(Carry, w => { w.Write(_epoch); w.Write(id); w.Write(!carrying); }); }
+        }
+        static bool CanInteract()
+        { return Multiplayer.WorldReady && GameRefs.InGame && Multiplayer.LocalTargetable && !AwaitingWake && !Multiplayer.Typing && !EditorSession.Busy && !ApocasetterBridge.InputBlocked && Application.isFocused && !MultiplayerSaving.Frozen && !_localInCar() && _passenger(null) == null; }
+        static bool EmptyHands()
+        {
+            if (_handUse == null) _handUse = FsmVariables.GlobalVariables.FindFsmGameObject("HandItemUse");
+            if (_hand == null) _hand = FsmVariables.GlobalVariables.FindFsmGameObject("Hand");
+            return (_handUse == null || _handUse.Value == null || _handUse.Value.transform.childCount == 0) && (_hand == null || _hand.Value == null || _hand.Value.transform.childCount == 0);
+        }
+        static bool CarryMouse(GetMouseButtonDown action)
+        {
+            if (Bodies.Count == 0 || (int)action.button != 0 || !Input.GetMouseButtonDown(0) || !CanInteract()) return true;
+            var selected = Looked();
+            if (selected == null || selected.Carrier != Multiplayer.LocalPeer && !EmptyHands()) return true;
+            var owner = action.Fsm.GameObject; var player = GameRefs.Player; var camera = GameRefs.PlayerCameraHolder;
+            if (owner == null || !(player != null && owner.transform.IsChildOf(player.transform) || camera != null && owner.transform.IsChildOf(camera.transform))) return true;
+            if (action.storeResult != null) action.storeResult.Value = false;
+            return false;
+        }
+        static bool CarryPick(MousePickEvent __instance)
+        {
+            if (Bodies.Count == 0 || __instance.Fsm.Name != "GrabItem" || !Input.GetMouseButtonDown(0) || !CanInteract()) return true;
+            var selected = Looked(); if (selected == null || selected.Carrier != Multiplayer.LocalPeer && !EmptyHands()) return true;
+            if (!__instance.everyFrame) __instance.Finish();
+            return false;
+        }
+        static Sleeper Looked()
+        {
+            if (_lookFrame == Time.frameCount) return _looked;
+            _lookFrame = Time.frameCount; _looked = null;
+            foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == Multiplayer.LocalPeer) return _looked = sleeper;
             var camera = GameRefs.MainCamera;
-            if (selected == null && camera != null)
+            if (camera != null && GameRefs.Player != null)
             {
                 var ray = camera.ViewportPointToRay(new Vector3(.5f, .5f, 0)); float best = 8f;
                 foreach (var sleeper in Bodies.Values)
                 {
-                    if (sleeper.Body == null || sleeper.Carrier != Nobody) continue;
-                    if (GameRefs.Player == null || (sleeper.Body.Bodies[0].position - GameRefs.Player.transform.position).sqrMagnitude > 16f) continue;
-                    var delta = sleeper.Body.Bodies[0].position - ray.origin; float distance = Vector3.Dot(delta, ray.direction);
-                    if (distance < 0 || distance > best || Vector3.Cross(delta, ray.direction).sqrMagnitude > .55f * .55f) continue;
-                    if (Physics.Raycast(ray.origin, delta.normalized, delta.magnitude, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) continue;
-                    selected = sleeper; best = distance;
+                    if (sleeper.Body == null || sleeper.Carrier != Nobody || WakeLocked(sleeper)) continue;
+                    foreach (var collider in sleeper.Body.Colliders)
+                    {
+                        RaycastHit hit;
+                        if (collider == null || !collider.Raycast(ray, out hit, best) || (hit.point - GameRefs.Player.transform.position).sqrMagnitude > 16f) continue;
+                        var eye = GameRefs.Player.transform.position + Vector3.up * 1.5f; var delta = hit.point - eye;
+                        if (Physics.Raycast(eye, delta.normalized, Mathf.Max(0, delta.magnitude - .03f), (1 << 0) | (1 << 8) | (1 << 14) | (1 << 16), QueryTriggerInteraction.Ignore)) continue;
+                        _looked = sleeper; best = hit.distance;
+                    }
                 }
             }
-            Hint(selected == null ? null : carrying ? "Drop sleeping player: Use" : selected.CarryHint);
-            if (selected == null || !Input.GetButtonDown("Use") || Time.unscaledTime < _nextCommand) return;
-            _nextCommand = Time.unscaledTime + .3f;
-            if (Multiplayer.Hosting) Command(0, selected.Id, !carrying);
-            else { int id = selected.Id; Multiplayer.Send(Carry, w => { w.Write(_epoch); w.Write(id); w.Write(!carrying); }); }
+            return _looked;
         }
         static void Hint(string text)
         {
@@ -305,12 +348,17 @@ namespace WildWasteland.Core
         static void Command(ulong from, int id, bool take)
         {
             Sleeper sleeper; var player = Multiplayer.PlayerFor(from);
-            if (player == null || !Bodies.TryGetValue(id, out sleeper) || sleeper.Body == null || MultiplayerSaving.Frozen || SaveBus.Busy) return;
+            if (player == null || !Bodies.TryGetValue(id, out sleeper) || sleeper.Body == null || WakeLocked(sleeper) || MultiplayerSaving.Frozen || SaveBus.Busy) return;
             if (!take) { if (sleeper.Carrier == from) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; Store(sleeper); MultiplayerRecovery.Checkpoint(); Capture(sleeper); Publish(sleeper, true); } return; }
             if (sleeper.Carrier != Nobody || (from == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(from) || MultiplayerPlayers.Car(from) != null)) return;
             foreach (var other in Bodies.Values) if (other.Carrier == from) return;
-            var delta = sleeper.Body.Bodies[0].position - player.transform.position;
-            if (delta.sqrMagnitude > 16f || Physics.Raycast(player.transform.position, delta.normalized, delta.magnitude, (1 << 0) | (1 << 8) | (1 << 14) | (1 << 16), QueryTriggerInteraction.Ignore)) return;
+            bool reachable = false; var eye = player.transform.position + Vector3.up * 1.5f;
+            foreach (var collider in sleeper.Body.Colliders)
+            {
+                var point = collider.bounds.center; var delta = point - eye;
+                if ((point - player.transform.position).sqrMagnitude <= 16f && !Physics.Raycast(eye, delta.normalized, Mathf.Max(0, delta.magnitude - .03f), (1 << 0) | (1 << 8) | (1 << 14) | (1 << 16), QueryTriggerInteraction.Ignore)) { reachable = true; break; }
+            }
+            if (!reachable) return;
             sleeper.Carrier = from; Capture(sleeper); Publish(sleeper, true);
         }
         static bool Finite(float value) { return !float.IsNaN(value) && !float.IsInfinity(value); }
@@ -332,6 +380,7 @@ namespace WildWasteland.Core
             {
                 if (r.BaseStream.Position != r.BaseStream.Length) return;
                 Sleeper old; if (Bodies.TryGetValue(id, out old)) { Destroy(old); Bodies.Remove(id); }
+                WakeRemoved(id);
                 Removed.Add(id); return;
             }
             uint sequence = r.ReadUInt32(); ulong carrier = r.ReadUInt64(); Sleeper sleeper; bool exists = Bodies.TryGetValue(id, out sleeper);
@@ -340,7 +389,7 @@ namespace WildWasteland.Core
             if (choice >= 10 || name.Length > 48 || Removed.Contains(id) || exists && sequence <= sleeper.Sequence || !exists && kind != Full || !exists && Bodies.Count >= Limit) return;
             for (int i = 0; i < BoneCount; i++) { IncomingPositions[i] = Vector(r); IncomingRotations[i] = Rotation(r); }
             if (r.BaseStream.Position != r.BaseStream.Length) return;
-            if (!exists) { sleeper = new Sleeper { Id = id, Choice = choice, Name = name, CarryHint = "Carry " + name + ": Use" }; Bodies.Add(id, sleeper); }
+            if (!exists) { sleeper = new Sleeper { Id = id, Choice = choice, Name = name, CarryHint = "Carry " + name + ": LMB / Use" }; Bodies.Add(id, sleeper); }
             sleeper.Sequence = sequence; sleeper.Carrier = carrier; sleeper.HasPose = true;
             Array.Copy(IncomingPositions, sleeper.Positions, BoneCount); Array.Copy(IncomingRotations, sleeper.Rotations, BoneCount);
         }

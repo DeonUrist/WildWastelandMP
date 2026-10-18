@@ -102,10 +102,11 @@ namespace WildWasteland.Core
             // Native has just refreshed and detached this owner's items; retain that validated state, including offline players.
             Checkpoint();
         }
-        static void BeforeRestore(out object __state) { __state = Multiplayer.Client ? _pendingRestore(null) : null; }
+        static void BeforeRestore(out object __state) { __state = Multiplayer.Client ? _pendingRestore(null) : null; MultiplayerSleepers.RestoreStarted(__state); }
         static void AfterRestore(object __state)
         {
             if (__state == null || !Multiplayer.Client || _pendingRestore(null) != null) return;
+            MultiplayerSleepers.RestoreFinished(__state, _hasAll(__state));
             if (!_hasAll(__state))
             { _warning = "Player recovery incomplete: some carried items could not be restored. Check the log."; Log.Warn("[Multiplayer] Player restore timed out before all inventory objects arrived"); return; }
             float reason;

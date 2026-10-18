@@ -304,7 +304,8 @@ namespace WildWasteland.Core
         }
         static IEnumerator Respawn(Vector3 ignored) { return Place(Vector3.zero, true); }
         static IEnumerator Reconnect(Vector3 position) { return Place(position, false); }
-        static IEnumerator Place(Vector3 saved, bool respawn)
+        internal static IEnumerator FinishWake(Vector3 position) { return Place(position, false, true); }
+        static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false)
         {
             var player = GameRefs.Player; var body = player != null ? player.GetComponent<Rigidbody>() : null;
             if (body == null) yield break;
@@ -335,6 +336,16 @@ namespace WildWasteland.Core
                         Physics.SyncTransforms();
                         if (respawn) _notice(campOnly ? "You respawned at the initial camp." : "You respawned beside your selected spawn object.");
                         Log.Always(respawn ? campOnly ? "[Multiplayer] Respawn placed at initial camp" : "[Multiplayer] Respawn placed beside selected object " + _bedItem(null) : "[Multiplayer] Player restored on a clear surface beside the saved position");
+                        if (!respawn)
+                        {
+                            if (handoff)
+                            {
+                                body.isKinematic = true;
+                                MultiplayerSleepers.WakePlaced(Origin.World(place));
+                                while (Multiplayer.Client && MultiplayerSleepers.AwaitingWake) yield return null;
+                            }
+                            else MultiplayerSleepers.InitialPlaced();
+                        }
                         yield break;
                     }
                     if (respawn && Time.unscaledTime >= fallbackAt) campOnly = true;

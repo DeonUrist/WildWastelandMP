@@ -499,7 +499,7 @@ namespace WildWasteland.Core
         {
             if (__1 == null || __1.Length < 1) return true;
             if (__1[0] == MultiplayerReliable.Packet) { if (_ready) MultiplayerReliable.Receive(__0, __1); return false; }
-            if (__1[0] != PacketType) return MultiplayerHandshake.BeforeNative(__0, __1) && MultiplayerCombat.BeforeNative(__0, __1);
+            if (__1[0] != PacketType) return MultiplayerHandshake.BeforeNative(__0, __1) && MultiplayerCombat.BeforeNative(__0, __1) && MultiplayerSleepers.AllowReport(__0, __1);
             if (!_ready || __1.Length < 7 || __1.Length > 1200 || (!Hosting && __0 != 0)) return false;
             try
             {

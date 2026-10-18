@@ -35,6 +35,8 @@ namespace WildWasteland.Core
             state.Time = time; state.Position = position; state.Car = _car(__0); state.Downed = _downed(__0);
         }
         internal static bool Targetable(ulong peer) { State state; return States.TryGetValue(peer, out state) && !state.Downed; }
+        internal static bool At(ulong peer, Vector3 position) { State state; return States.TryGetValue(peer, out state) && (state.Position - position).sqrMagnitude < 4f; }
+        internal static void Forget(ulong peer) { States.Remove(peer); }
         internal static GameObject Car(ulong peer) { State state; return States.TryGetValue(peer, out state) ? Multiplayer.ObjectById(state.Car) : null; }
         internal static Vector3 Velocity(ulong peer) { State state; return States.TryGetValue(peer, out state) ? state.Velocity : Vector3.zero; }
     }
