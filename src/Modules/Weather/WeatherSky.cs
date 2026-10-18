@@ -85,13 +85,14 @@ namespace WildWasteland.Modules.Weather
             if (sky._fogOwnsSky) sky.Before(sky._camera);
             sky._fogDensity = Shader.GetGlobalFloat(FogDensity); sky._heightDensity = Shader.GetGlobalFloat(HeightDensity);
             // WW already supplies regional extinction. Do not add the native pale scattering layer over it.
-            Shader.SetGlobalFloat(FogDensity,sky._fogDensity*(1-sky._amount));
-            Shader.SetGlobalFloat(HeightDensity,sky._heightDensity*(1-sky._amount));
+            float nativeFog = 1-Mathf.SmoothStep(0,1,Mathf.Clamp01(sky._amount/.35f));
+            Shader.SetGlobalFloat(FogDensity,sky._fogDensity*nativeFog);
+            Shader.SetGlobalFloat(HeightDensity,sky._heightDensity*nativeFog);
             sky._fogActive = true; __state = sky;
             if (!sky._fogLogged)
             {
                 sky._fogLogged = true;
-                Log.Always("[Weather] Native Azure fog scoped: storm palette retained through image effect; separate pale distance/height haze fades under regional dust.");
+                Log.Always("[Weather] Native Azure fog scoped: storm palette retained through image effect; pale distance/height haze fully fades during approach.");
             }
         }
         internal static Exception NativeFogAfter(Exception __exception, WeatherSky __state)
