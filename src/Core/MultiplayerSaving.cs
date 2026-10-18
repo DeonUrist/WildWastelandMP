@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Emit;
 using HarmonyLib;
 using HutongGames.PlayMaker;
 using UnityEngine;
@@ -45,6 +46,8 @@ namespace WildWasteland.Core
         internal static void Install()
         {
             var saver = Multiplayer.Type("Worlds.WorldSaver");
+            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(Multiplayer.Type("Net.NetSession"), "OnPeerDisconnected"), transpiler: AccessTools.Method(typeof(MultiplayerSaving), "DisconnectCheckpointOnly")))
+                throw new InvalidOperationException("MP disconnect world-save suppression hook failed");
             _playerName = MultiplayerAccess.Call<Func<ulong, string>>(Multiplayer.Type("Net.NetSession"), "NameOf", typeof(ulong));
             _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
             _itemList = MultiplayerAccess.Call<Func<ArrayList>>(Multiplayer.Type("Net.WorldObjects"), "GameItemList", Type.EmptyTypes);
@@ -69,6 +72,17 @@ namespace WildWasteland.Core
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Changed;
             SaveBus.StateChanged += SaveState;
             Scheduler.Gui(Multiplayer.PatchOwner, "Server save fallback screen", DrawFallback, WantsFallback);
+        }
+        static IEnumerable<CodeInstruction> DisconnectCheckpointOnly(IEnumerable<CodeInstruction> instructions)
+        {
+            var request = AccessTools.Method(Multiplayer.Type("Worlds.WorldSaver"), "Request"); int count = 0;
+            foreach (var code in instructions)
+            {
+                // OnPeerLeft already captures the departing player's state and writes its checkpoint.
+                if (code.Calls(request)) { code.opcode = OpCodes.Nop; code.operand = null; count++; }
+                yield return code;
+            }
+            if (count != 1) throw new InvalidOperationException("Unexpected MP disconnect save requests: " + count);
         }
         static void SaveState(string previous, string current) { if (_serializing && current == "SaveGame") _wroteWorld = true; }
         static void Changed() { SaveRequests.Clear(); _requestAt = 0; if (!Multiplayer.Active) { Waiting.Clear(); _preparing = _serializing = false; DisposeFlush(); SetFrozen(false); RestoreSaveButton(); } }

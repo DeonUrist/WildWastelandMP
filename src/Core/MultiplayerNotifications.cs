@@ -28,7 +28,15 @@ namespace WildWasteland.Core
             if (!Hidden) for (int i = 0; i < _draw.Length; i++) _draw[i]();
             return false;
         }
-        static bool ChatNotice(string __0) { return Multiplayer.WorldReady && Notice(__0); }
+        static bool ChatNotice(ref string __0)
+        {
+            if (__0 != null)
+            {
+                if (__0.EndsWith(" joined the game", StringComparison.Ordinal)) __0 = __0.Substring(0, __0.Length - 16) + " connected";
+                else if (__0.EndsWith(" left the game", StringComparison.Ordinal)) __0 = __0.Substring(0, __0.Length - 14) + " disconnected";
+            }
+            return Multiplayer.WorldReady && Notice(__0);
+        }
         static bool Notice(string __0)
         {
             if (string.IsNullOrWhiteSpace(__0)) return true;

@@ -16,7 +16,9 @@ Inventory coverage follows the existing ApocalypterMP native loadout: three carr
 
 Existing `.players.txt` files and native save keys/formats remain untouched. **Legacy world saves have no historical embedded snapshot**: retain their existing registry on first use and log that a full world save is required to establish rollback protection. There is no way to reconstruct an old matching registry from a world file that never stored one. Snapshot read/format failures cancel hosting rather than starting with mixed player generations.
 
-The existing native full-world autosave and disconnect-save behavior remain. They can still display their existing full save presentation; the new player checkpoint itself never calls them.
+Disconnect follow-up (2026-10-18): native `NetSession.OnPeerDisconnected` called `WorldSaver.Request()` immediately after `WorldObjects.OnPeerLeft`, causing a real full-world save and its shared saving screen. Denis requested only a connection/disconnection notice. MultiplayerSaving now removes that one parameterless request call from the disconnect handler, retaining native item capture/detach, the recovery checkpoint, avatar removal and peer broadcast. Notices read `X connected` / `X disconnected` through the existing notification route. Scheduled autosaves, manual saves and host save-and-quit retain their full save presentation. No config/protocol/save-format changes.
+
+Manual check: with host and two guests, connect/cleanly disconnect one guest, then repeat with connection loss. Host and remaining guest should receive one named notice without a disconnect-triggered save or pause; the departing player's checkpoint should still update and rejoining should restore its validated state. An independently due autosave may still save normally. Check manual save and host save-and-quit separately, plus native notice fallback with CleanHUD disabled. Runtime verification belongs to Denis.
 
 ## Files and protocol
 
