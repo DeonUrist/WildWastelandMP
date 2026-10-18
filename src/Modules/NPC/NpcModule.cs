@@ -78,6 +78,7 @@ namespace WildWasteland.Modules.NPC
             DogAnimations.Initialize(this);                // bundle + its own hooks / patch (only when the bundle loads)
             DogCompanionCompat.Initialize(this);              // only when Dog Companion is installed; [NPC] DogCompanionCompat switches it live
             WomenFeature.Initialize(this);
+            InitNetworkInput();
 
             // the old NPCAI.Runner, in its order (load-bearing: Brain/Idle body hand-over, DogAnimations restore in Update / sample in LateUpdate)
             Scheduler.EveryFrame(this, "Senses", Senses.Tick);
@@ -94,6 +95,7 @@ namespace WildWasteland.Modules.NPC
             Scheduler.EveryFrame(this, "DogBite", DogBite.Tick);
             Scheduler.Interval(this, "Aim.Sweep", 10f, Aim.Sweep);
             Scheduler.Interval(this, "WeaponRanges.Sweep", 30f, WeaponRanges.Sweep);
+            Scheduler.Interval(this, "Seated perception cleanup", 1f, Senses.SweepObservers);
             Scheduler.EveryFrame(this, "Burrow.Late", Burrow.LateTick, Phase.LateUpdate);
             Scheduler.EveryFrame(this, "Pounce.Late", Pounce.LateTick, Phase.LateUpdate);
             Scheduler.EveryFrame(this, "DogBite.Late", DogBite.LateTick, Phase.LateUpdate);
@@ -112,6 +114,7 @@ namespace WildWasteland.Modules.NPC
 
         public override void Shutdown()
         {
+            StopNetworkInput();
             // first: every handler / On property sees the module off (FSM events sent below re-enter our hooks synchronously)
             Running = false;
             try { ShowNav.SettingChanged -= OnShowNavChanged; } catch (Exception) { }

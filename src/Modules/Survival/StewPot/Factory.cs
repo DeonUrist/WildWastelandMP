@@ -189,8 +189,9 @@ namespace WildWasteland.Modules.Survival
 
         static void RegisterMaterial(ES3Prefab es3, Material material, string name)
         {
+            if (material == null) return;
             es3.localRefs[material] = Id("asset:material:" + name);
-            es3.localRefs[material.mainTexture] = Id("asset:texture:" + name);
+            if (material.mainTexture != null) es3.localRefs[material.mainTexture] = Id("asset:texture:" + name);
         }
 
         static long Id(string text)

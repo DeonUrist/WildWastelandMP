@@ -24,9 +24,11 @@ namespace WildWasteland.Modules.Performance
 
         public override void Draw(ToolLayout l)
         {
+            if (Multiplayer.Client) return;
             var m = PerformanceModule.Instance;
             if (m == null) { l.Text("Performance module not loaded."); return; }
             var entry = ModuleHost.Of(m);
+            if (Multiplayer.SessionActive) l.Text("Performance optimizations are locked off during multiplayer. Measurements remain available.", Ledger.Danger);
             if (entry != null && entry.Config != null) l.Toggle(entry.Config.Enabled, "Performance optimizations");
             bool running = ModuleHost.IsRunning(m);
             l.Text(running
@@ -49,6 +51,7 @@ namespace WildWasteland.Modules.Performance
 
         internal void DrawDeveloper(ToolLayout l)
         {
+            if (Multiplayer.Client) return;
             var m = PerformanceModule.Instance;
             if (m == null) { l.Text("Performance module not loaded."); return; }
             bool running = ModuleHost.IsRunning(m);

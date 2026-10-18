@@ -74,6 +74,7 @@ namespace WildWasteland.Modules.Patrols
             pose.ConfigureTurret(standing,bike,IsWarboy(who));
             RiderAnchorGuard.Attach(go, riderGuard, anchor, true);
             MerchantGuards.Attach(car,go,slot);
+            Core.Multiplayer.RegisterActor(go, CrewAppearance.Identity(go, prefab.name), car);
             PatrolsModule.Verbose("Human turret " + (slot + 1) + ": " + go.name + (gunner ? " (gunner)" : " (Warboy)") + " on " + car.name + " at local " + anchor.localPosition.ToString("F2"));
             return go;
         }
@@ -247,7 +248,7 @@ namespace WildWasteland.Modules.Patrols
         internal static void Boom(Vector3 at)
         {
             var ex = ExplosionPrefab();
-            if (ex != null) { var go = UnityEngine.Object.Instantiate(ex, at, Quaternion.identity); go.SetActive(true); return; }
+            if (ex != null) { var go = UnityEngine.Object.Instantiate(ex, at, Quaternion.identity); go.SetActive(true); Core.MultiplayerEffects.Track(go, ex.name, true); return; }
             var prefab = Prefabs.FindAny(Projectile);
             if (prefab == null) return;
             var bomb = UnityEngine.Object.Instantiate(prefab, at, Quaternion.identity);
@@ -289,6 +290,7 @@ namespace WildWasteland.Modules.Patrols
         internal static void Kaboom(Vector3 at, string who)
         {
             try { Explode.BlastAt(at); } catch (Exception e) { Core.Log.Warn("[Patrols] " + "Rider: blast effect: " + e.Message); }
+            Ram.RemoteBlast(at, PatrolsModule.RiderBlastRadius.Value, PatrolsModule.RiderBlastDamage.Value, who);
             try
             {
                 float radius = PatrolsModule.RiderBlastRadius.Value;
@@ -698,6 +700,7 @@ namespace WildWasteland.Modules.Patrols
                 rb.velocity = launch + carVel;
                 IgnoreOwn(go);
                 go.AddComponent<LanceFuse>();   // explodes on any hit, whatever angle it lands at
+                Core.MultiplayerEffects.Track(go, prefab.name);
                 PatrolsModule.Verbose("Rider: " + name + " threw a blast lance, " + flight.ToString("0.00") + " s flight, " + Rider.Elevation(launch).ToString("0") + "° up");
             }
             catch (Exception e) { Core.Log.Warn("[Patrols] " + "Rider: throw: " + e.Message); }
@@ -865,7 +868,7 @@ namespace WildWasteland.Modules.Patrols
             string who = _gunner || !_warboyPrefab ? identity : Rider.Warboy;
             float[] local = null;
             if (_anchor != null) { var lp = _anchor.localPosition; local = new[] { lp.x, lp.y, lp.z }; }
-            CrewReturn.Dismounted(owner, mob, CrewReturn.RoleTurret, _slot, identity, who, local, _standing);
+            CrewReturn.Dismounted(owner, mob, CrewReturn.RoleTurret, _slot, identity, who, local, _standing, gameObject);
         }
 
         private void Hop()

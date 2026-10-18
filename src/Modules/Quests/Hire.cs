@@ -60,6 +60,7 @@ namespace WildWasteland.Modules.Quests
         static float lastPlayerHealth = -1f;
         static float hurtUntil;
         static float nextHealthFind;
+        static Transform watchedPlayer;
 
         // riding
         internal static bool mounted;
@@ -151,6 +152,7 @@ namespace WildWasteland.Modules.Quests
         public static void Start(GameObject go, string factionKey, string shownName)
         {
             if (go == null) return;
+            MultiplayerParty.Follow(PartyQuests.RemotePeer);
             double gh = Game.GameHours();
             book.HireName = go.name;
             book.HireUntil = gh >= 0.0 ? gh + Math.Max(0.1f, durationHours.Value) : -1.0;
@@ -192,6 +194,7 @@ namespace WildWasteland.Modules.Quests
         public static void Dismiss(string message)
         {
             if (!Active) return;
+            MultiplayerParty.Follow(0);
             if (mounted) Dismount(true);
             ReleaseNpc();
             string n = displayName.Length > 0 ? displayName : (book.HireKind ?? "your help");
@@ -347,6 +350,8 @@ namespace WildWasteland.Modules.Quests
             return best;
         }
 
+        static Transform PartyPlayer() { var player = Multiplayer.Hosting ? MultiplayerParty.FollowPlayer : null; return player != null ? player.transform : Game.Player(); }
+
         // ---- every frame ----------------------------------------------------------------------------------------
         public static void Update()
         {
@@ -355,7 +360,7 @@ namespace WildWasteland.Modules.Quests
             RestoreCollisions();                // also after the hire has ended, so a dropped-off follower stops ignoring the car
             if (!Active) return;
 
-            Transform pl = Game.Player();
+            Transform pl = PartyPlayer();
             if (pl == null) return;
 
             // after a load the saved follower has to be found again by name
@@ -450,6 +455,13 @@ namespace WildWasteland.Modules.Quests
         // ---- the player's health: something hurt them --------------------------------------------------
         static void WatchPlayerHealth(Transform pl)
         {
+            if (watchedPlayer != pl) { watchedPlayer = pl; playerHealth = null; playerHealthVar = null; lastPlayerHealth = -1f; nextHealthFind = 0; }
+            if (Multiplayer.IsRemotePlayer(pl.gameObject))
+            {
+                float health = MultiplayerParty.PlayerHealth(pl.gameObject);
+                if (!float.IsNaN(health)) { if (lastPlayerHealth >= 0f && health < lastPlayerHealth - .001f) hurtUntil = Time.time + 8f; lastPlayerHealth = health; }
+                return;
+            }
             if (playerHealthVar == null)
             {
                 if (Time.unscaledTime < nextHealthFind) return;
@@ -646,7 +658,7 @@ namespace WildWasteland.Modules.Quests
                     if (mounted && carObj != null && t.IsChildOf(carObj.transform)) continue;          // his own car
                     // what the target rides in (or sits in) only counts when the hit is at the target itself, not a hull or wall in front of him
                     if (t.IsChildOf(troot) && Vector3.Distance(h.point, to) < 0.7f) continue;
-                    Transform pl = Game.Player();
+                    Transform pl = PartyPlayer();
                     if (pl != null && t.IsChildOf(pl.root)) continue;
                     return false;
                 }
@@ -921,6 +933,8 @@ namespace WildWasteland.Modules.Quests
         static GameObject PlayerCar(Transform pl, out bool inCar)
         {
             inCar = false;
+            if (pl != null && Multiplayer.RemoteTargetable(pl.gameObject))
+            { var remote = Multiplayer.RemoteCar(pl.gameObject); inCar = remote != null; return remote; }
             if (inCarFsm == null)
             {
                 if (Time.unscaledTime < nextCarFind) return null;
@@ -1243,7 +1257,7 @@ namespace WildWasteland.Modules.Quests
             Camera cam = GameRefs.MainCamera;
             if (cam != null) arm = FindDeep(cam.transform, "WeaponsArm");
             if (arm == null) { GameObject g = GameRefs.PlayerCameraHolder != null ? GameRefs.PlayerCameraHolder : null; if (g != null) arm = g.transform; }
-            if (arm == null) { Transform pl = Game.Player(); if (pl != null) arm = FindDeep(pl, "WeaponsArm") ?? FindDeep(pl.root, "WeaponsArm"); }
+            if (arm == null) { Transform pl = PartyPlayer(); if (pl != null) arm = FindDeep(pl, "WeaponsArm") ?? FindDeep(pl.root, "WeaponsArm"); }
             Transform rack = arm != null ? (arm.Find("Parent") ?? FindDeep(arm, "Parent")) : null;
             if (rack != null) rackCache = rack;
             return rack;
@@ -1699,7 +1713,7 @@ namespace WildWasteland.Modules.Quests
             inCarSince = -1f;
             DetachGuard();
             footSince = -1f;                               // keeps the car's target: on foot he goes on shooting at it (FootWatch)
-            Transform pl = Game.Player();
+            Transform pl = PartyPlayer();
             try
             {
                 if (poseComp != null)

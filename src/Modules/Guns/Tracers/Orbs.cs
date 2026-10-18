@@ -48,6 +48,7 @@ namespace WildWasteland.Modules.Guns
             try
             {
                 if (obj == null || !GunsModule.TracersEnabled.Value || !GunsModule.OrbsHitWalls.Value) return;
+                if (Multiplayer.Client) return;
                 var fsm = action.Fsm;
                 if (fsm == null || fsm.Name != "Damage Ranged") return;
                 var owner = fsm.GameObject;
@@ -71,6 +72,7 @@ namespace WildWasteland.Modules.Guns
                     S = new Shot { Kind = Kind.Pistol, DmgMult = 1f, Alive = true, Orb = true },
                 };
                 _orbs[obj.GetInstanceID()] = o;
+                MultiplayerEffects.Track(obj, obj.name.Replace("(Clone)", "").Trim());
                 if (Core.Log.Verbose) GunsModule.Verbose("Orbs: " + owner.name + " fires " + obj.name + " (r " + o.Radius.ToString("0.00") + ")");
             }
             catch (Exception e) { Core.Log.Error("[Guns] Orbs (spawn)", e); }

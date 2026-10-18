@@ -76,6 +76,7 @@ namespace WildWasteland.Modules.Patrols
         internal float ExplodeChance=50f;
         internal bool DriverDied,DriverBailed,ExplodeRolled,ExplodeSelected;
         internal float FactionCheck;internal GameObject FactionTarget;
+        internal Core.NpcPlayerSight PlayerSight;
         // Not saved. Last time the crew shot at / detected / was hurt by the player (Time.time; awareness handover at dismount, CrewReturn),
         // and how often the crew bailed because the car was stuck for good (one return to the car is allowed after that).
         internal float PlayerContactAt = -1e6f;
@@ -245,7 +246,8 @@ namespace WildWasteland.Modules.Patrols
                 if (state == "SaveGame") Save(CurrentSaveSlot(), CurrentSeed());
                 if (state == "LoadGame") _loadSlot = CurrentSaveSlot();
                 if (state == "LoadGame" || state == "setSeed") WorldTraffic.ResetForScene();
-                if (state == "isPlay" && _pendingData != null) _flushAt = Time.unscaledTime + 1f;
+                if (state == "isPlay" && _pendingData != null)
+                { _flushAt = Time.unscaledTime + 1f; if (Core.Multiplayer.Hosting) Core.SaveBus.AfterSave(FlushPending); }
                 if ((state == "loaded" || state == "Wait for Terrain Gen" || state == "isPlay") && !string.IsNullOrEmpty(_loadSlot) && !_restoreRunning)
                 {
                     string slot = _loadSlot;
@@ -536,6 +538,7 @@ namespace WildWasteland.Modules.Patrols
         {
             path = null;
             string name = Path.GetFileName(slot ?? "");
+            if (Core.SaveBus.IsMultiplayerSlot(name)) { path = Path.Combine(SavesDir ?? Path.Combine(Paths.ConfigPath, "Apocapatrol", "Saves"), name + ".bin"); return true; }
             if (string.IsNullOrEmpty(name) || !name.StartsWith("SaveGame", StringComparison.OrdinalIgnoreCase)
                 || !name.EndsWith(".es3", StringComparison.OrdinalIgnoreCase)) return false;
             foreach (char c in name) if (!(char.IsLetterOrDigit(c) || c == '.')) return false;

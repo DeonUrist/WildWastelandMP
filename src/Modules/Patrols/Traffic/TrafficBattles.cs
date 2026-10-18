@@ -54,8 +54,8 @@ namespace WildWasteland.Modules.Patrols
             var battle=WorldTraffic.Battle(Battle);var journey=battle!=null?WorldTraffic.Find(Side==0?battle.a:battle.b):null;
             if(journey!=null&&journey.convoy&&GetComponent<PatrolMarker>()?.BodyPrefab.StartsWith("Rust",StringComparison.OrdinalIgnoreCase)==true)
             {journey.Follow(TrafficSpace.World(transform.position),22f);goal=TrafficSpace.Scene(RoadPath.Target(journey.route,journey.leg,TrafficSpace.World(transform.position),8f));speed=journey.speed;stop=journey.arrived;hunt=false;return true;}
-            var marker=GetComponent<PatrolMarker>();var target=marker!=null?TrafficFactions.Target(marker.Faction,transform.position):null;
-            goal=target!=null?target.transform.position:transform.position;speed=8f;stop=target==null;hunt=target!=null;return true;
+            var marker=GetComponent<PatrolMarker>();var target=marker!=null?(Core.Multiplayer.Hosting?TrafficFactions.ForCar(gameObject,marker):TrafficFactions.Target(marker.Faction,transform.position)):null;
+            goal=target!=null?(Core.Multiplayer.Hosting&&TrafficFactions.IsPlayer(target)?marker.PlayerSight.Position:target.transform.position):transform.position;speed=8f;stop=target==null;hunt=target!=null;return true;
         }
     }
     internal sealed partial class WorldTraffic

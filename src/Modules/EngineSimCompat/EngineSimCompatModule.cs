@@ -24,6 +24,8 @@ namespace WildWasteland.Modules.EngineSimCompat
         private static IDictionary _active;
         private static Action<object> _update, _fixed;
         private static Func<object, object> _switch;
+        private static Func<object, object> _couplingSession;
+        private static Func<object, VehicleController> _sessionVehicle;
         private static Func<object, bool> _partGone, _keyOn, _on, _cranking;
         private static Func<object, Component> _itemText;
         private static Action<object, bool> _turn, _setCranking, _setPressed;
@@ -65,16 +67,24 @@ namespace WildWasteland.Modules.EngineSimCompat
                 _active = (IDictionary)AccessTools.Field(coupling, "Active").GetValue(null);
                 _update = Call(manager, "Update"); _fixed = Call(manager, "FixedUpdate");
                 _switch = Get<object>(coupling, "_switch"); _partGone = Get<bool>(coupling, "PartGone"); _keyOn = Get<bool>(coupling, "KeyOn");
+                _couplingSession = Get<object>(coupling, "_session"); _sessionVehicle = Get<VehicleController>(asm.GetType("EngineSim.EngineSession", true), "Vc");
                 _on = Get<bool>(ignition, "On"); _cranking = Get<bool>(ignition, "Cranking");
                 _turn = Call<bool>(ignition, "Turn"); _setCranking = Set<bool>(ignition, "Cranking"); _setPressed = Set<bool>(ignition, "_pressed");
                 _itemText = Get<Component>(ignition, "_itemText"); _shown = Set<string>(ignition, "_shown");
                 EngineDiscovery.Init();
-                Patch(manager, "Update", "ScheduledOnly"); Patch(manager, "FixedUpdate", "ScheduledOnly");
+                Patch(manager, "Update", "ScheduledOnly"); Patch(manager, "FixedUpdate", "ScheduledOnly", transpiler: "OwnerTorque");
+                var session = asm.GetType("EngineSim.EngineSession", true);
+                _sessionControls = MultiplayerAccess.Call<Action<object, float, float, bool, float>>(session, "SetControls", typeof(float), typeof(float), typeof(bool), typeof(float));
+                _condition = MultiplayerAccess.Call<Func<object, float>>(manager, "ReadCondition", session);
+                _sessions = MultiplayerAccess.Get<IDictionary>(manager, "_sessions");
+                Patch(manager, "Feed", "FeedAuthority");
                 Patch(manager, "Scan", transpiler: "CachedScan"); Patch(manager, "FindListener", "FindListener");
                 Patch(asm.GetType("EngineSim.Listener", true), "get_Current", "FindListener");
                 Patch(ignition, "Update", "BeforeSwitch", "AfterSwitch", "SwitchInput");
                 Patch(ignition, "Pointed", transpiler: "CachedCamera"); Patch(ignition, "Pointed", postfix: "KeyboardPointed");
                 Patch(ignition, "SetText", "SetText"); Patch(coupling, "Release", postfix: "Released");
+                Patch(coupling, "Update", "CouplingAuthority");
+                Patch(asm.GetType("EngineSim.WheelCoupling", true), "Step", "WheelAuthority");
                 Patch(typeof(VehicleController), "OnEnable", postfix: "VehicleEnabled");
                 Patch(typeof(RealisticEngineSound), "OnEnable", postfix: "SoundEnabled");
                 Scheduler.EveryFrame(_owner, "Engine Sim frame", Frame);
@@ -103,6 +113,40 @@ namespace WildWasteland.Modules.EngineSimCompat
                 throw new InvalidOperationException("Engine Sim hook failed: " + type.Name + "." + name);
         }
         private static bool ScheduledOnly(object __instance) { return !_ready || !ReferenceEquals(__instance, _manager) || _dispatch; }
+        private static bool CouplingAuthority(object __instance)
+        {
+            if (!_ready || !Multiplayer.Active) return true;
+            var vc = _sessionVehicle(_couplingSession(__instance));
+            return !MultiplayerSaving.Frozen && vc != null && !Multiplayer.OwnedElsewhere(vc.gameObject);
+        }
+        private static bool WheelAuthority(Component __instance)
+        { return !Multiplayer.Active || !MultiplayerSaving.Frozen && __instance != null && !Multiplayer.OwnedElsewhere(__instance.gameObject); }
+        private static Func<object, IDictionary> _sessions;
+        private static Func<object, float> _condition;
+        private static Action<object, float, float, bool, float> _sessionControls;
+        private static bool FeedAuthority(object __0)
+        {
+            if (!_ready || !Multiplayer.Active) return true;
+            var vc = _sessionVehicle(__0); if (vc == null) return false;
+            if (!MultiplayerSaving.Frozen && !Multiplayer.OwnedElsewhere(vc.gameObject)) return true;
+            RealisticEngineSound sound = null;
+            foreach (DictionaryEntry entry in _sessions(_manager)) if (ReferenceEquals(entry.Value, __0)) { sound = entry.Key as RealisticEngineSound; break; }
+            float rpm = sound != null ? sound.engineCurrentRPM : 0;
+            _sessionControls(__0, rpm, MultiplayerSaving.Frozen ? 0f : vc.input.Throttle,
+                !MultiplayerSaving.Frozen && sound != null && sound.gameObject.activeSelf && rpm > 0f, _condition(__0));
+            return false;
+        }
+        private static IEnumerable<CodeInstruction> OwnerTorque(IEnumerable<CodeInstruction> instructions)
+        {
+            var target = AccessTools.Method(typeof(Rigidbody), "AddTorque", new[] { typeof(Vector3), typeof(ForceMode) });
+            foreach (var instruction in instructions)
+            {
+                if (instruction.Calls(target)) { instruction.opcode = OpCodes.Call; instruction.operand = AccessTools.Method(typeof(EngineSimCompatModule), "ApplyTorque"); }
+                yield return instruction;
+            }
+        }
+        private static void ApplyTorque(Rigidbody body, Vector3 force, ForceMode mode)
+        { if (body != null && (!Multiplayer.Active || !MultiplayerSaving.Frozen && !Multiplayer.OwnedElsewhere(body.gameObject))) body.AddTorque(force, mode); }
         private static void Run(Action<object> tick)
         {
             if (!_ready || (_manager as Component) == null) return;
@@ -239,6 +283,7 @@ namespace WildWasteland.Modules.EngineSimCompat
         }
         public bool TryStart(GameObject car)
         {
+            if (Multiplayer.OwnedElsewhere(car)) return false;
             EngineComponent engine; var coupling = Coupling(car, out engine); if (coupling == null) return false;
             var sw = _switch(coupling); if (sw == null) return false;
             if (!_on(sw)) _turn(sw, true);
@@ -247,6 +292,7 @@ namespace WildWasteland.Modules.EngineSimCompat
         }
         public bool TryStop(GameObject car)
         {
+            if (Multiplayer.OwnedElsewhere(car)) return false;
             EngineComponent engine; var coupling = Coupling(car, out engine); if (coupling == null) return false;
             var sw = _switch(coupling); if (sw == null) return false;
             Starts.Remove(sw); _setPressed(sw, false); _setCranking(sw, false);

@@ -35,7 +35,7 @@ namespace WildWasteland.Modules.PlayerBody
         internal static bool VerboseOn { get { return Core.Log.Verbose; } }
 
         // ------------------------------------------------------------------ F6 (main cfg): feature toggles + player options
-        internal enum Gender { Female, Male }
+        internal enum Gender { Female, Male, Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic, OrganicMechanic }
         internal static ConfigEntry<Gender> Character;
         internal static ConfigEntry<bool> ThirdPersonOnFoot, ToggleMiddleMouse, DynamicCrosshair, BodyFirstPerson, EmptyHandArms, FemaleArms, ReplaceDriver,
             EquipmentOnBody, PainSounds, FirstPersonSwayOn, SmoothAimDownSights, PickAssistOn;
@@ -98,7 +98,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             Instance = this;
             // ---- F6: one toggle per feature (feature order), then the player options
-            Character = cfg.Player("", "Character", Gender.Male, "Your character's body: Female or Male (the game's man). Also the first-person arm skin, the driver's seat and the TAB picture.");
+            Character = cfg.Player("", "Character", Gender.Male, "Your character's body. Native Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic and OrganicMechanic are available with or without multiplayer and use the Wild Wasteland player animations.");
             Mig(Character, "General", "Character");
             ThirdPersonOnFoot = cfg.Player("", "ThirdPerson", true, "The game's Change Camera key switches to a camera behind your character, on foot and in cars (replaces the game's own car camera).");
             ToggleMiddleMouse = cfg.Player("", "ToggleObserving", true, "Third person, observing key ([Keys] Observe). Off: hold the key to orbit the camera around the character; it returns behind the character when you let go. On: a press starts observing and the camera stays where you left it until the next press.");
@@ -319,6 +319,7 @@ namespace WildWasteland.Modules.PlayerBody
             foreach (var k in new[] { ObserveKey, ClimbKey, CassetteKey, VolumeDownKey, VolumeUpKey }) Hotkeys.Register(this, k, NoOp, Never);
 
             Services.Animation = _service;
+            MultiplayerAvatars.Init(this);
             Core.Log.Always("[PlayerBody] Player body & animation (Apocaplayer " + SourceVersion + ") ready; assets in " + Dir);
         }
 
@@ -335,6 +336,7 @@ namespace WildWasteland.Modules.PlayerBody
 
         public override void Shutdown()
         {
+            MultiplayerAvatars.Shutdown();
             ChaseCameraCompat.Clear();
             Services.Animation = null;
             if (_eof != null && _eofHost != null && _eofHost == Core.Runner.Instance) Scheduler.StopCoroutine(_eof);

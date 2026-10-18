@@ -25,6 +25,10 @@ namespace WildWasteland.Modules.Weather
                 if (source==null || force==null || damage==null || storm.Collided[column]==null) continue;
                 Vector3 origin=center+rotation*columns[column];
                 float ground;
+                // Physics cannot depend on a camera having drawn this column (dedicated hosts have none).
+                RaycastHit terrain;
+                if (Physics.Raycast(origin+Vector3.up*2500,Vector3.down,out terrain,5000,1<<14,QueryTriggerInteraction.Ignore))
+                    visuals.SetGround(regionIndex,column,terrain.point.y-center.y-2);
                 if (!visuals.TryGround(regionIndex,column,out ground)) continue;
                 origin.y+=ground;
                 float width=WeatherVortexSmoke.Width(regionIndex*80+column);
@@ -59,11 +63,13 @@ namespace WildWasteland.Modules.Weather
                         if (_bodies.Count>=4096) _bodies.Clear();
                         _bodies[hit]=body=target.GetComponent<Rigidbody>();
                     }
-                    if (body==null || body.isKinematic || !native.AllowsForce(source,target)) continue;
+                    if (!native.AllowsForce(source,target)) continue;
                     // Retain native force/mode/upwards modifier and its vertically bobbing force origin.
                     // The radial falloff covers the visible body instead of the old 150 m centre sphere.
                     Vector3 blast=origin+rotation*axis;
                     blast.y=origin.y+force.transform.position.y-storm.Root.transform.position.y;
+                    if (MultiplayerForces.Explosion(target,source.force.Value,blast,Mathf.Max(source.radius.Value,outer),source.upwardsModifier.Value,source.forceMode)) { _forces++; continue; }
+                    if (body==null || body.isKinematic) continue;
                     body.AddExplosionForce(source.force.Value,blast,Mathf.Max(source.radius.Value,outer),source.upwardsModifier.Value,source.forceMode);
                     _forces++;
                 }

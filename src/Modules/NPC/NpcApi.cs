@@ -27,5 +27,10 @@ namespace WildWasteland.Modules.NPC
         public int TravelState(GameObject npc) { return Idle.TravelState(npc); }
         public bool IsIdle(GameObject npc) { return Senses.IsIdle(npc); }
         public void Remember(GameObject npc, GameObject target, float seconds) { Senses.Remember(npc, target, seconds); }
+        public NpcPlayerSight ObservePlayers(GameObject observer, GameObject vehicle, Transform facing, bool hostile, float memorySeconds)
+        { return Senses.ObservePlayers(observer, vehicle, facing, hostile, memorySeconds); }
+        public void SetSeatedTarget(GameObject observer, GameObject target) { Senses.SetSeatedTarget(observer, target); }
+        public void TransferPlayerAwareness(GameObject source, GameObject destination, float seconds)
+        { Senses.TransferPlayerAwareness(source, destination, seconds); }
     }
 }

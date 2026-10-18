@@ -182,6 +182,8 @@ namespace WildWasteland.Core
                 var j = list[i];
                 if (j.Removed) { list.RemoveAt(i); i--; continue; }
                 if (!j.Enabled) continue;
+                if (MultiplayerSaving.Frozen && j.Owner != null && j.Owner != Multiplayer.PatchOwner
+                    && j.Owner.Id != "CleanHUD" && j.Owner.Id != "HUD") continue;
                 if (j.Wants != null)
                 {
                     bool want;

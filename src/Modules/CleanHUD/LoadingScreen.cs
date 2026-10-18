@@ -36,6 +36,7 @@ namespace WildWasteland.Modules.CleanHUD
         private bool _completed;
         private bool _saving, _autosaving, _saveFinished;
         private bool _nativeLocated;
+        private bool _serverSaving;
         internal bool Active { get; private set; }
 
         internal LoadingScreen()
@@ -152,7 +153,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         internal void Begin(bool saving = false, bool autosaving = false)
         {
-            if (Active || !CleanHudModule.Running || !CleanHudModule.MenuEnabled.Value) return;
+            if (Active || !CleanHudModule.Running || (!CleanHudModule.MenuEnabled.Value && !MultiplayerSaving.Frozen)) return;
             LoadingProgress.Begin();
             Reload();
             _saving = saving; _autosaving = autosaving; _saveFinished = false;
@@ -230,6 +231,14 @@ namespace WildWasteland.Modules.CleanHUD
         private bool NativeLoading() { return Visible(_nativeGame) || Visible(_nativeTitle) || Visible(_nativeSlots); }
         internal void Tick()
         {
+            if (MultiplayerSaving.Frozen)
+            {
+                _serverSaving = true;
+                if (!Active) Begin(true);
+                _saving = true; _saveFinished = false;
+            }
+            else if (_serverSaving) { _serverSaving = false; End(); }
+            if (_serverSaving) { DrawSaving(); return; }
             if (!CleanHudModule.Running || !CleanHudModule.MenuEnabled.Value) { End(); return; }
             FindNative();
             bool native = NativeLoading();
@@ -248,6 +257,13 @@ namespace WildWasteland.Modules.CleanHUD
                 if (screenAspect > imageAspect) { float h = imageAspect / screenAspect; _background.uvRect = new UnityEngine.Rect(0, (1 - h) / 2, 1, h); }
                 else { float w = screenAspect / imageAspect; _background.uvRect = new UnityEngine.Rect((1 - w) / 2, 0, w, 1); }
             }
+        }
+        private void DrawSaving()
+        {
+            if (_root == null) { Build(); ShowScreen(); _root.SetActive(true); }
+            _label.Set(SavingLabels[(int)(Time.unscaledTime * 2f) % SavingLabels.Length]);
+            _stage.Set("Server is saving the world");
+            _progressFill.gameObject.SetActive(false);
         }
         private void UpdateProgress()
         {

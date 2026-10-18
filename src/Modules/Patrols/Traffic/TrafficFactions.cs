@@ -78,7 +78,7 @@ namespace WildWasteland.Modules.Patrols
         {
             var best=NearestOpposed(faction,position);
             if(best!=null)return best;
-            return PlayerHostile(faction)&&!PlayerRef.GodMode&&PlayerRef.Player!=null?PlayerRef.Player.gameObject:null;
+            return !Core.Multiplayer.Hosting&&PlayerHostile(faction)?Core.Multiplayer.NearestPlayer(position):null;
         }
         // On-foot crew / foot patrols (simple bandits): faction targets as above, but the player is only offered as a goal while hostile and
         // within FootTargetRange; the NPC module then decides whether the bandit actually knows about him (senses or fought-memory).
@@ -86,9 +86,9 @@ namespace WildWasteland.Modules.Patrols
         {
             var best=NearestOpposed(faction,position);
             if(best!=null)return best;
-            var player=PlayerRef.Player;if(player==null||PlayerRef.GodMode||!PlayerHostile(faction))return null;
+            if(!PlayerHostile(faction))return null;
             float range=PatrolsModule.FootTargetRange!=null?PatrolsModule.FootTargetRange.Value:350f;
-            return (player.position-position).sqrMagnitude<=range*range?player.gameObject:null;
+            return Core.Multiplayer.NearestPlayer(position,range);
         }
         private static GameObject NearestOpposed(string faction,Vector3 position)
         {
@@ -110,7 +110,19 @@ namespace WildWasteland.Modules.Patrols
             pos=vel=Vector3.zero;targetCar=null;
             var target=marker!=null?ForCar(car,marker):null;
             if(target==null)return false;
+            if(Core.Multiplayer.Hosting&&IsPlayer(target))
+            {
+                var sight=marker.PlayerSight;if(sight.Player!=target)return false;
+                pos=sight.Position;
+                if(sight.Visible||sight.Heard)
+                {
+                    if(Core.Multiplayer.IsRemotePlayer(target)){vel=Core.Multiplayer.RemoteVelocity(target);targetCar=Core.Multiplayer.RemoteCar(target);}
+                    else{Vector3 ignored;PlayerRef.Target(out ignored,out vel,out targetCar);}
+                }
+                return true;
+            }
             if(PlayerRef.Player!=null&&target==PlayerRef.Player.gameObject)return PlayerRef.Target(out pos,out vel,out targetCar);
+            if(Core.Multiplayer.IsRemotePlayer(target)){pos=target.transform.position;vel=Core.Multiplayer.RemoteVelocity(target);targetCar=Core.Multiplayer.RemoteCar(target);return true;}
             pos=target.transform.position;var body=target.GetComponentInParent<Rigidbody>();if(body!=null){vel=body.velocity;targetCar=body.gameObject;}return true;
         }
         internal static GameObject ForCar(GameObject car)
@@ -120,7 +132,26 @@ namespace WildWasteland.Modules.Patrols
         internal static GameObject ForCar(GameObject car,PatrolMarker marker)
         {
             if(marker==null)return null;
+            if(Core.Multiplayer.Hosting)
+            {
+                if(Time.time>=marker.FactionCheck)
+                {
+                    marker.FactionCheck=Time.time+0.25f;
+                    var npc=Core.Services.Npc;var driver=marker.Driver;
+                    marker.PlayerSight=npc!=null&&driver!=null?npc.ObservePlayers(driver,car,car.transform,PlayerHostile(marker.Faction),PatrolsModule.PatrolMemorySeconds.Value):default(Core.NpcPlayerSight);
+                    marker.FactionTarget=NearestOpposed(marker.Faction,car.transform.position)??marker.PlayerSight.Player;
+                }
+                return marker.FactionTarget;
+            }
             if(Time.time>=marker.FactionCheck){marker.FactionCheck=Time.time+0.4f;marker.FactionTarget=Target(marker.Faction,car.transform.position);}return marker.FactionTarget;
+        }
+        internal static bool IsPlayer(GameObject target)
+        {return target!=null&&(target==Core.GameRefs.Player||Core.Multiplayer.IsRemotePlayer(target));}
+        internal static GameObject GunTarget(GameObject actor,GameObject car,Transform facing,PatrolMarker marker)
+        {
+            var npc=Core.Services.Npc;if(npc==null||marker==null)return null;
+            var sight=npc.ObservePlayers(actor,car,facing,PlayerHostile(marker.Faction),PatrolsModule.DismountMemorySeconds.Value);
+            return NearestOpposed(marker.Faction,actor.transform.position)??(sight.Visible?sight.Player:null);
         }
     }
 }

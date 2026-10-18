@@ -108,6 +108,7 @@ namespace WildWasteland.Core
 
         // ---- PlayMaker actions (instance = the action) ----
         public static readonly Hook<CreateObject> CreateObjectEnter = new Hook<CreateObject>("CreateObject.OnEnter");
+        public static readonly Hook<Explosion> ExplosionDo = new Hook<Explosion>("Explosion.DoExplosion");
         public static readonly Hook<SendEvent> SendEventEnter = new Hook<SendEvent>("SendEvent.OnEnter");
         public static readonly Hook<SendEvent> SendEventUpdate = new Hook<SendEvent>("SendEvent.OnUpdate");
         public static readonly Hook<SetFsmFloat> SetFsmFloatEnter = new Hook<SetFsmFloat>("SetFsmFloat.OnEnter");
@@ -232,7 +233,7 @@ namespace WildWasteland.Core
 
         public static void RemoveAll(IModule owner)
         {
-            CreateObjectEnter.Remove(owner); SendEventEnter.Remove(owner); SendEventUpdate.Remove(owner); SetFsmFloatEnter.Remove(owner); SetFsmFloatDo.Remove(owner);
+            CreateObjectEnter.Remove(owner); ExplosionDo.Remove(owner); SendEventEnter.Remove(owner); SendEventUpdate.Remove(owner); SetFsmFloatEnter.Remove(owner); SetFsmFloatDo.Remove(owner);
             SetVelocityDo.Remove(owner); GetButtonDownUpdate.Remove(owner); GetButtonDo.Remove(owner); GetButtonUpUpdate.Remove(owner); GetMouseButtonDownUpdate.Remove(owner);
             RaycastEnter.Remove(owner); RaycastDo.Remove(owner); SmoothLookAtDo.Remove(owner); ActivateGameObjectEnter.Remove(owner); ActivateGameObjectDo.Remove(owner); SetPositionDo.Remove(owner);
             SensorRayHitEnter.Remove(owner); LosEnter3D.Remove(owner); LosUpdate3D.Remove(owner); SensorDetectionsDo.Remove(owner);
@@ -247,6 +248,7 @@ namespace WildWasteland.Core
         public static void ApplyUsed()
         {
             Use(CreateObjectEnter.PrefixCount + CreateObjectEnter.PostfixCount, CreateObjectEnter.Applied, typeof(P_CreateObjectEnter), () => CreateObjectEnter.Applied = true);
+            Use(ExplosionDo.PrefixCount, ExplosionDo.Applied, typeof(P_ExplosionDo), () => ExplosionDo.Applied = true);
             Use(SendEventEnter.PrefixCount + SendEventEnter.PostfixCount, SendEventEnter.Applied, typeof(P_SendEventEnter), () => SendEventEnter.Applied = true);
             Use(SendEventUpdate.PrefixCount, SendEventUpdate.Applied, typeof(P_SendEventUpdate), () => SendEventUpdate.Applied = true);
             Use(SetFsmFloatEnter.PrefixCount + SetFsmFloatEnter.PostfixCount, SetFsmFloatEnter.Applied, typeof(P_SetFsmFloatEnter), () => SetFsmFloatEnter.Applied = true);
@@ -287,6 +289,7 @@ namespace WildWasteland.Core
             sb.Append("hooks: ");
             Add(sb, CreateObjectEnter.Target, CreateObjectEnter.Applied, CreateObjectEnter.PrefixCount, CreateObjectEnter.PostfixCount);
             Add(sb, SendEventEnter.Target, SendEventEnter.Applied, SendEventEnter.PrefixCount, SendEventEnter.PostfixCount);
+            Add(sb, ExplosionDo.Target, ExplosionDo.Applied, ExplosionDo.PrefixCount, 0);
             Add(sb, SendEventUpdate.Target, SendEventUpdate.Applied, SendEventUpdate.PrefixCount, SendEventUpdate.PostfixCount);
             Add(sb, SetFsmFloatEnter.Target, SetFsmFloatEnter.Applied, SetFsmFloatEnter.PrefixCount, SetFsmFloatEnter.PostfixCount);
             Add(sb, SetFsmFloatDo.Target, SetFsmFloatDo.Applied, SetFsmFloatDo.PrefixCount, SetFsmFloatDo.PostfixCount);
@@ -327,6 +330,7 @@ namespace WildWasteland.Core
             static void Postfix(object __result) { SpawnerCatalogEntries.RunPostfix(__result); }
         }
         [HarmonyPatch(typeof(CreateObject), "OnEnter")] static class P_CreateObjectEnter { static bool Prefix(CreateObject __instance) { return CreateObjectEnter.RunPrefix(__instance); } static void Postfix(CreateObject __instance) { CreateObjectEnter.RunPostfix(__instance); } }
+        [HarmonyPatch(typeof(Explosion), "DoExplosion")] static class P_ExplosionDo { static bool Prefix(Explosion __instance) { return ExplosionDo.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(SendEvent), "OnEnter")] static class P_SendEventEnter { static bool Prefix(SendEvent __instance) { return SendEventEnter.RunPrefix(__instance); } static void Postfix(SendEvent __instance) { SendEventEnter.RunPostfix(__instance); } }
         [HarmonyPatch(typeof(SendEvent), "OnUpdate")] static class P_SendEventUpdate { static bool Prefix(SendEvent __instance) { return SendEventUpdate.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(SetFsmFloat), "OnEnter")] static class P_SetFsmFloatEnter { static bool Prefix(SetFsmFloat __instance) { return SetFsmFloatEnter.RunPrefix(__instance); } static void Postfix(SetFsmFloat __instance) { SetFsmFloatEnter.RunPostfix(__instance); } }

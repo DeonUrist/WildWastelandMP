@@ -11,6 +11,14 @@ namespace WildWasteland.Modules.NPC
         internal const string GUID = "com.denis.apocalypter.womenofwasteland";
         internal static bool Active;
         private static WomenFeature _api;
+        internal static void InitializePresentation(NpcModule module)
+        {
+            BepInEx.PluginInfo standalone;
+            if (Chainloader.PluginInfos.TryGetValue(GUID, out standalone) && !ReferenceEquals(standalone.Instance, null)) return;
+            InstallAssets(module.Dir); Active = true; Gungirl.Initialize(false);
+            Scheduler.Sliced(module, "Female MP presentation", 500, Gungirl.Step);
+            Scheduler.Interval(module, "Female MP cache cleanup", 10f, Gungirl.Sweep);
+        }
 
         internal static void Initialize(NpcModule module)
         {

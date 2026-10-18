@@ -566,7 +566,7 @@ namespace WildWasteland.Modules.Quests
         // ------------------------------------------------------------------
         bool Pay(Quest q)
         {
-            if (!Game.AddMoney(q.Reward, moneyVar.Value))
+            if (!Game.AddPartyMoney(q.Reward, moneyVar.Value))
             {
                 AddToast("Could not pay the reward: money variable not found (see the BepInEx log).");
                 return false;
@@ -886,8 +886,10 @@ namespace WildWasteland.Modules.Quests
                 if (book.Active.Count == 0) return;
             }
             Transform pl = Game.Player();
-            if (pl == null) return;
-            if (Game.HDist(pl.position, worldPos) > killRadius.Value) return;
+            if (Core.Multiplayer.Hosting)
+            { if (Core.Multiplayer.PlayerDistance(worldPos, pl, true) > killRadius.Value) return; }
+            else
+            { if (pl == null || Game.HDist(pl.position, worldPos) > killRadius.Value) return; }
             Vector3 rel = Game.Rel(worldPos);
 
             Quest[] snapshot = book.Active.ToArray();
@@ -1173,6 +1175,7 @@ namespace WildWasteland.Modules.Quests
 
         void DismissFollower()
         {
+            if (PartyQuests.DismissRequested()) return;
             bridge.You("Thanks, I can manage from here.");
             bridge.Say("Suit yourself. I'll see myself back.");
             Hire.Dismiss("You sent {name} away.");
@@ -1936,7 +1939,7 @@ namespace WildWasteland.Modules.Quests
             bridge.Say(Format(q.Done, q, q.Count) + (brought > 0 ? " And you brought " + (brought == 1 ? "the body" : brought + " bodies") + ": that's another " + bonus + " nuts." : ""));
             if (Pay(q))
             {
-                if (bonus > 0 && Game.AddMoney(bonus, moneyVar.Value)) AddToast("Bodies brought back: +" + bonus + " nuts");
+                if (bonus > 0 && Game.AddPartyMoney(bonus, moneyVar.Value)) AddToast("Bodies brought back: +" + bonus + " nuts");
                 Complete(q);
             }
         }

@@ -153,6 +153,12 @@ namespace WildWasteland.Core
         void RemoveAll(string owner);
     }
 
+    public interface IPlayerCompassMarkers
+    {
+        bool PlayersEnabled { get; }
+        int AddPlayer(string owner, Func<Vector3> position, string name, Color color);
+    }
+
     // ------------------------------------------------------------------ Animation (PlayerBody)
 
     /// <summary>Mirror of Apocaplayer.ModAPI v1 (static part).</summary>
@@ -253,6 +259,15 @@ namespace WildWasteland.Core
         }
     }
 
+    public struct NpcPlayerSight
+    {
+        public GameObject Player;
+        public Vector3 WorldPosition;
+        public bool Visible, Heard;
+        public float Until, At;
+        public Vector3 Position { get { return Origin.Scene(WorldPosition); } }
+    }
+
     /// <summary>Mirror of NPCAI.Api v1 plus the nav structure list Apocapatrol read by reflection.</summary>
     public interface INpcApi
     {
@@ -280,6 +295,11 @@ namespace WildWasteland.Core
         /// <summary>Awareness memory: the NPC knows where <paramref name="target"/> is for <paramref name="seconds"/> (it fought it),
         /// so losing sight does not make it forget. Refreshed by the NPC module itself while they keep fighting.</summary>
         void Remember(GameObject npc, GameObject target, float seconds);
+        /// <summary>Host perception for one seated actor; hearing preserves a last-known point rather than granting vision.</summary>
+        NpcPlayerSight ObservePlayers(GameObject observer, GameObject vehicle, Transform facing, bool hostile, float memorySeconds);
+        void SetSeatedTarget(GameObject observer, GameObject target);
+        /// <summary>Copy only this actor's actual player knowledge when replacing its seated/on-foot body.</summary>
+        void TransferPlayerAwareness(GameObject source, GameObject destination, float seconds);
     }
 
     // ------------------------------------------------------------------ Guns

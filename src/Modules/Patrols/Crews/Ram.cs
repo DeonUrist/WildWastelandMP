@@ -10,7 +10,7 @@ namespace WildWasteland.Modules.Patrols
     // event "Damage" on that FSM (armor first, then health). The hurt sound, camera kick and red blood splash live in the
     // DamageEffectSound / DamageEffectSound_InCar FSMs (one of them enabled, toggled by InCar); Bodypart's own SendEvent to them
     // is disabled in the prefab - every attacker sends "Damage" to the effect FSM itself (FallDamage does), so we do too.
-    internal static class Ram
+    internal static partial class Ram
     {
         // sits on every AI car root (next to PatrolMarker); the Rigidbody is there, so every collision of the car arrives here
         internal sealed class Sensor : MonoBehaviour
@@ -18,13 +18,13 @@ namespace WildWasteland.Modules.Patrols
             private PatrolMarker _mk; private Rigidbody _rb;   // cached (a car scraping along a wall fires this many times a second)
 
             private void OnCollisionEnter(Collision col)
-            { if (!PatrolsModule.Running) return;
+            { if (!PatrolsModule.Running || Core.Multiplayer.OwnedElsewhere(gameObject)) return;
                 try
                 {
                     if (col.collider == null) return;
                     var p = PlayerRef.Player;                                   // refresh the cached player first
-                    int kind = p == null ? 0 : PlayerRef.Kind(col.collider.transform);
-                    if (kind == 0) return;
+                    int kind = p == null ? 0 : PlayerRef.LocalKind(col.collider.transform);
+                    if (kind == 0 && !Core.Multiplayer.Hosting) return;
                     if (_mk == null) _mk = GetComponent<PatrolMarker>();
                     if (_rb == null) _rb = GetComponent<Rigidbody>();
                     var mk = _mk; var rb = _rb;
@@ -35,14 +35,27 @@ namespace WildWasteland.Modules.Patrols
                     Vector3 toContact = col.contactCount > 0 ? col.GetContact(0).point - transform.position : (col.collider.transform.position - transform.position);
                     toContact.y = 0f;
                     float into = toContact.sqrMagnitude > 1e-4f ? Vector3.Dot(carVel, toContact.normalized) : 0f;
-                    Hit(gameObject, mk != null ? mk.BodyPrefab : null, kind, Mathf.Max(0f, into), col.collider, carVel);
+                    if (kind != 0) Hit(gameObject, mk != null ? mk.BodyPrefab : null, kind, Mathf.Max(0f, into), col.collider, carVel);
+                    if (Core.Multiplayer.Hosting)
+                        for (int i = 0; i < Core.Multiplayer.RemoteCount; i++)
+                        {
+                            var remote = Core.Multiplayer.RemoteAt(i); int remoteKind = RemoteKind(remote, col.collider.transform);
+                            if (remoteKind != 0) Hit(gameObject, mk != null ? mk.BodyPrefab : null, remoteKind, Mathf.Max(0f, into), col.collider, carVel, remote);
+                        }
                 }
                 catch (Exception e) { Core.Log.Error("[Patrols] " + "Ram: " + e); }
             }
         }
 
         internal const float DefaultDamage = 30f;
-        private static readonly Dictionary<int, float> _next = new Dictionary<int, float>();   // car instance id -> next allowed hit time
+        struct ImpactKey : IEquatable<ImpactKey>
+        {
+            internal int Car, Target;
+            public bool Equals(ImpactKey other) { return Car == other.Car && Target == other.Target; }
+            public override bool Equals(object other) { return other is ImpactKey && Equals((ImpactKey)other); }
+            public override int GetHashCode() { return unchecked(Car * 397 ^ Target); }
+        }
+        private static readonly Dictionary<ImpactKey, float> _next = new Dictionary<ImpactKey, float>();
         private static float _pending, _pendingAt = -1f, _healthBefore;
         private static string _pendingCar;
         private static PlayMakerFSM _pausedMovement;      // the player's Movement FSM, paused while a shove carries
@@ -63,14 +76,14 @@ namespace WildWasteland.Modules.Patrols
             if (!PatrolsModule.Running) return true;
             var fsm = action.Fsm;
             if (fsm == null || fsm.Name.Length != 9 || fsm.Name != "CarAttack") return true;
-            return !OwnCrew(fsm, fsm.GetOwnerDefaultTarget(action.gameObject));
+            return !RemoteDriven(fsm) && !OwnCrew(fsm, fsm.GetOwnerDefaultTarget(action.gameObject));
         }
         internal static bool BeforeSendEvent(HutongGames.PlayMaker.Actions.SendEvent action)
         {
             if (!PatrolsModule.Running) return true;
             var fsm = action.Fsm;
             if (fsm == null || fsm.Name.Length != 9 || fsm.Name != "CarAttack" || action.eventTarget == null) return true;
-            if (!OwnCrew(fsm, fsm.GetOwnerDefaultTarget(action.eventTarget.gameObject))) return true;
+            if (!RemoteDriven(fsm) && !OwnCrew(fsm, fsm.GetOwnerDefaultTarget(action.eventTarget.gameObject))) return true;
             action.Finish();
             return false;
         }
@@ -80,10 +93,11 @@ namespace WildWasteland.Modules.Patrols
             if (!PatrolsModule.Running) return;
             var fsm = action.Fsm;
             if (fsm == null || fsm.Name.Length != 9 || fsm.Name != "CarAttack" || fsm.GameObject == null) return;
+            if (RemoteDriven(fsm)) return;
             if (action.fsmName == null || action.fsmName.Value != "Bodypart" || action.variableName == null || action.variableName.Value != "Damage") return;
             var target = fsm.GetOwnerDefaultTarget(action.gameObject);
             var player = Core.GameRefs.Player;
-            if (target == null || (player != null && target.transform.IsChildOf(player.transform))) return;
+            if (target == null || Core.Multiplayer.IsRemotePlayer(target) || (player != null && target.transform.IsChildOf(player.transform))) return;
             if (OwnCrew(fsm, target)) return;   // BeforeSetFsmFloat skipped the write: nothing to scale
             var bodypart = Core.FsmUtil.Find(target, "Bodypart");
             var damage = bodypart != null ? bodypart.FsmVariables.FindFsmFloat("Damage") : null;
@@ -93,14 +107,16 @@ namespace WildWasteland.Modules.Patrols
         }
 
         // kind: 1 = the player on foot, 2 = the player's car. rel = the car's speed into the contact (m/s), carVel = its velocity (push direction).
-        internal static void Hit(GameObject car, string body, int kind, float rel, Collider hit, Vector3 carVel)
+        internal static void Hit(GameObject car, string body, int kind, float rel, Collider hit, Vector3 carVel, GameObject remote = null)
         {
             if (!PatrolsModule.RamDamage.Value || car == null || kind == 0) return;
             if (kind == 2 && !PatrolsModule.RamDamageInCar.Value) return;                  // in the player's car: only with the toggle
             float kmh = rel * 3.6f;
             float full = Mathf.Max(1f, PatrolsModule.RamFullSpeedKmh.Value);
             if (kmh < full * 0.5f) return;                                          // below half the full-damage speed: nothing
-            int id = car.GetInstanceID();
+            var player = remote != null ? remote.transform : PlayerRef.Player;
+            if (player == null || (remote != null && !Core.Multiplayer.RemoteTargetable(remote))) return;
+            var id = new ImpactKey { Car = car.GetInstanceID(), Target = player.GetInstanceID() };
             float next;
             if (_next.TryGetValue(id, out next) && Time.time < next) return;       // one hit per second per car (many colliders touch at once)
             _next[id] = Time.time + 1f;
@@ -110,8 +126,12 @@ namespace WildWasteland.Modules.Patrols
             if (kind == 2) amount *= PatrolsModule.RamInCarFactor.Value;
             amount = Mathf.Round(amount);
 
-            var player = PlayerRef.Player;
-            if (player == null) return;
+            if (remote != null)
+            {
+                var shove = kind == 1 ? PushVelocity(player.position, car, carVel, rel) : Vector3.zero;
+                SendImpact(remote, amount, shove, car.name);
+                return;
+            }
             PlayMakerFSM bodypart = null, health = null, movement = null;
             var effects = new List<PlayMakerFSM>();
             bool god = false;
@@ -186,15 +206,23 @@ namespace WildWasteland.Modules.Patrols
         // frame (SetVelocity from the input axes), so it is paused for PushSeconds - RestartOnEnable off, so it resumes in the same state.
         private static void Push(Transform player, PlayMakerFSM movement, GameObject car, Vector3 carVel, float rel)
         {
+            Push(player, movement, PushVelocity(player.position, car, carVel, rel));
+        }
+        private static Vector3 PushVelocity(Vector3 position, GameObject car, Vector3 carVel, float rel)
+        {
             float strength = PatrolsModule.RamPushStrength.Value;
-            if (strength <= 0f) return;
-            var rb = player.GetComponent<Rigidbody>();
-            if (rb == null || rb.isKinematic) return;
+            if (strength <= 0f) return Vector3.zero;
             Vector3 dir = carVel; dir.y = 0f;
-            if (dir.sqrMagnitude < 0.25f) { dir = player.position - car.transform.position; dir.y = 0f; }
+            if (dir.sqrMagnitude < 0.25f) { dir = position - car.transform.position; dir.y = 0f; }
             if (dir.sqrMagnitude < 1e-4f) dir = car.transform.forward;
             dir.Normalize();
-            var v = dir * (rel * strength) + Vector3.up * (5f * strength);         // 1 = the impact speed itself plus a 5 m/s hop
+            return dir * (rel * strength) + Vector3.up * (5f * strength);
+        }
+        private static void Push(Transform player, PlayMakerFSM movement, Vector3 v)
+        {
+            if (v.sqrMagnitude < 1e-6f) return;
+            var rb = player.GetComponent<Rigidbody>();
+            if (rb == null || rb.isKinematic) return;
             if (movement != null && movement.enabled)
             {
                 if (_pausedMovement != null && _pausedMovement != movement && _pausedMovement.gameObject != null) _pausedMovement.enabled = true;
@@ -204,13 +232,13 @@ namespace WildWasteland.Modules.Patrols
                 _resumeAt = Time.time + PushSeconds;
             }
             rb.velocity = v;
-            PatrolsModule.Verbose("Ram: shoved the player " + v.magnitude.ToString("0.0") + " m/s along " + dir.ToString("0.00"));
+            PatrolsModule.Verbose("Ram: shoved the player " + v.magnitude.ToString("0.0") + " m/s");
         }
 
         // Called from the runner: resumes the paused Movement FSM, and checks half a second after a hit that the health really went down.
         // an entry only matters until its time has passed; dropped every 30 s (destroyed cars left theirs behind for good)
         private static float _nextPrune;
-        private static readonly List<int> _expired = new List<int>();
+        private static readonly List<ImpactKey> _expired = new List<ImpactKey>();
         private static void PruneHitTimes()
         {
             _expired.Clear();

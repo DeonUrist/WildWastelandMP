@@ -59,8 +59,8 @@ namespace WildWasteland.Modules.Weather
             _owner=owner; _active=this;
             for (int i=0;i<Storms.Length;i++) Storms[i]=new Storm();
             AllowsForce=(Func<Explosion,GameObject,bool>)Delegate.CreateDelegate(typeof(Func<Explosion,GameObject,bool>),Core.Patches.Method(typeof(Explosion),"ShouldApplyForce"));
-            if (!Core.Patches.Patch(owner,Core.Patches.Method(typeof(Explosion),"DoExplosion"),prefix:Core.Patches.Method(typeof(WeatherNative),"ExplosionBefore")) ||
-                !Core.Patches.Patch(owner,Core.Patches.Method(typeof(TriggerEventByLayer),"DoTriggerEnter"),prefix:Core.Patches.Method(typeof(WeatherNative),"TriggerBefore")))
+            Hooks.ExplosionDo.Prefix(owner, ExplosionBefore);
+            if (!Core.Patches.Patch(owner,Core.Patches.Method(typeof(TriggerEventByLayer),"DoTriggerEnter"),prefix:Core.Patches.Method(typeof(WeatherNative),"TriggerBefore")))
                 throw new InvalidOperationException("Weather requires native storm hazard interception.");
             Hooks.FsmEnable.Postfix(owner,Enabled);
             Hooks.ProcessEvent.Prefix(owner,EventBefore);
@@ -94,7 +94,7 @@ namespace WildWasteland.Modules.Weather
                 storm.Pending.Clear(); storm.Visuals.Clear(); storm.Switches.Clear(); storm.Contacts();
                 Array.Clear(storm.Force,0,3); Array.Clear(storm.Damage,0,3); Array.Clear(storm.Explosions,0,3); Array.Clear(storm.Collided,0,3);
                 storm.Body=root.GetComponent<Rigidbody>(); storm.Gravity=storm.Body!=null && storm.Body.useGravity;
-                if (storm.Body!=null && !_saving) { storm.Body.useGravity=false; var velocity=storm.Body.velocity; velocity.y=0; storm.Body.velocity=velocity; }
+                if (storm.Body!=null && !_saving && !Multiplayer.Client) { storm.Body.useGravity=false; var velocity=storm.Body.velocity; velocity.y=0; storm.Body.velocity=velocity; }
                 var collider=root.GetComponent<Collider>();
                 if (collider!=null) { storm.Switches.Add(new Switch { Collider=collider,Enabled=collider.enabled }); if (!_saving) collider.enabled=false; }
                 storm.Pending.Add(root.transform); _roots[storm.Id]=storm;
@@ -218,7 +218,7 @@ namespace WildWasteland.Modules.Weather
         }
         private void Reconcile()
         {
-            if (!GameRefs.InPlay || _saving || WeatherDiagnostics.Frozen) return;
+            if (Multiplayer.Client || !GameRefs.InPlay || _saving || WeatherDiagnostics.Frozen) return;
             _deadFsms.Clear();
             foreach (var pair in _nativeFsms) if (pair.Key.Owner==null) _deadFsms.Add(pair.Key);
             for (int i=0;i<_deadFsms.Count;i++) _nativeFsms.Remove(_deadFsms[i]);
@@ -233,7 +233,7 @@ namespace WildWasteland.Modules.Weather
         }
         private static void Apply(Storm storm,bool restore)
         {
-            if (storm.Body!=null)
+            if (storm.Body!=null && !Multiplayer.Client)
             {
                 storm.Body.useGravity=restore && storm.Gravity;
                 if (!restore) { var velocity=storm.Body.velocity; velocity.y=0; storm.Body.velocity=velocity; }

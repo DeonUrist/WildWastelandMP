@@ -778,6 +778,7 @@ namespace WildWasteland.Modules.CleanHUD
                 if (r.Key == "MODS" && !mods) continue;
                 GlyphText t;
                 var b = Row(_main, X + 8, y, W - 16, RH, r.Key, 34, r.Value, out t);
+                if (r.Key == "SAVE GAME") SetEnabled(b, !Core.Multiplayer.Client);
                 if (r.Key == "WILD WASTELAND")
                 {
                     t.GetComponent<AccentTint>().enabled = false;
@@ -979,6 +980,8 @@ namespace WildWasteland.Modules.CleanHUD
 
         private void OpenSave()
         {
+            if (Core.Multiplayer.Client) return;
+            if (Core.Multiplayer.Hosting) { Core.MultiplayerSaving.RequestSave(); Resume(); return; }
             var incar = Fsm("Player", "InCar");
             if (incar != null && incar.ActiveStateName == "InCar") { Confirm("GET OUT OF THE CAR TO SAVE", null); return; }
             ShowSlots(false);

@@ -27,6 +27,7 @@ namespace WildWasteland.Core
         public static int Generation { get; private set; }
         /// <summary>SaveLoadGame not in isPlay (a save or load is running). Spawns should wait.</summary>
         public static bool Busy { get { return State != null && State != "isPlay"; } }
+        internal static bool PendingAfterSave { get { return _after.Count != 0; } }
 
         static bool _pendingWorldReady = true;
         static string _saveSlot;
@@ -42,10 +43,18 @@ namespace WildWasteland.Core
                 {
                     var p = ES3Settings.defaultSettings.path;
                     var n = string.IsNullOrEmpty(p) ? null : Path.GetFileName(p);
-                    return n != null && SlotRx.IsMatch(n) ? n : null;
+                    return n != null && (SlotRx.IsMatch(n) || IsMultiplayerSlot(n)) ? n : null;
                 }
                 catch { return null; }
             }
+        }
+
+        public static bool IsMultiplayerSlot(string name)
+        {
+            if (!Multiplayer.Hosting || name == null || name != Multiplayer.SaveFile || name == "MP_client.es3"
+                || !name.StartsWith("MP_", StringComparison.Ordinal) || !name.EndsWith(".es3", StringComparison.Ordinal)) return false;
+            for (int i = 3; i < name.Length - 4; i++) if (!char.IsLetterOrDigit(name[i]) && name[i] != '-') return false;
+            return name.Length > 7;
         }
 
         /// <summary>Run <paramref name="a"/> once, <paramref name="delay"/> unscaled seconds after the next isPlay following a save.</summary>

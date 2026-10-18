@@ -49,6 +49,7 @@ namespace WildWasteland.Modules.Patrols
             foreach (var m in all)
             {
                 if (m == null) continue;
+                if (Core.Multiplayer.OwnedElsewhere(m.gameObject)) { m.PlayerEntered = true; m.FarSeconds = 0f; continue; }
                 if (WarRig.PoiEncounter.Protected(m.gameObject)) continue;
                 if (WorldTraffic.Owns(m)) continue; // traffic unloads its own representations while retaining world records
                 if(WorldTraffic.IsBattleCar(m.gameObject))continue;
@@ -56,13 +57,13 @@ namespace WildWasteland.Modules.Patrols
                 // a self-destructed chassis goes as soon as the player is far enough away to not see it (regardless of the timer and the cap)
                 if (m.Exploded)
                 {
-                    if (Vector3.Distance(m.transform.position, player.position) > Explode.RemoveDistance) Remove(m, "dead chassis beyond " + Explode.RemoveDistance.ToString("0") + " m");
+                    if (Core.Multiplayer.PlayerDistance(m.transform.position, player) > Explode.RemoveDistance) Remove(m, "dead chassis beyond " + Explode.RemoveDistance.ToString("0") + " m");
                     continue;
                 }
                 if (!PatrolsModule.CleanupEnabled.Value) continue;   // only dead chassis are removed with the cleanup off
                 alive++;
                 if (m.PlayerEntered) { m.FarSeconds = 0f; continue; }
-                float d = Vector3.Distance(m.transform.position, player.position);
+                float d = Core.Multiplayer.PlayerDistance(m.transform.position, player);
                 if (d < minD) { m.FarSeconds = 0f; continue; }
                 m.FarSeconds += Interval;
                 eligible.Add(new KeyValuePair<float, PatrolMarker>(d, m));
@@ -95,6 +96,7 @@ namespace WildWasteland.Modules.Patrols
         internal static void Remove(PatrolMarker m, string why)
         {
             var car = m.gameObject;
+            if (Core.Multiplayer.OwnedElsewhere(car)) { m.PlayerEntered = true; return; }
             if (WarRig.PoiEncounter.Protected(car)) return;
             PatrolsModule.Verbose("Cleanup: removed " + car.name + " (" + why + ")");
             var trailer = TrailerSupport.Attached(car);

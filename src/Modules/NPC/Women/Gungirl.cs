@@ -101,7 +101,7 @@ namespace WildWasteland.Modules.NPC
             _pending.Enqueue(new PendingBody { Root = root, Variant = variant, Id = root.GetInstanceID() });
         }
 
-        internal static void Initialize()
+        internal static void Initialize(bool discover = true)
         {
             // Disk decoding and native skeleton warming happen at module startup, before gameplay jobs.
             foreach (var v in Variants) { Model(v); Texture(v); }
@@ -112,7 +112,7 @@ namespace WildWasteland.Modules.NPC
                     foreach (var v in Variants)
                         if (v.IsBase(t.name) || v.IsBaseCorpse(t.name)) MeshFor(v, smr);
             }
-            BeginScan();
+            if (discover) BeginScan();
         }
 
         private static string PrefabOf(GameObject go)

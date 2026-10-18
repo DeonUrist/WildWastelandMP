@@ -13,6 +13,7 @@ namespace WildWasteland
     /// The soft dependencies on the standalone mods only force them to load first, so the conflict check (5.8) sees them.
     /// </summary>
     [BepInPlugin(GUID, NAME, VERSION)]
+    [BepInDependency("ApocalypterMP", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocasetter", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocaplayer", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocaclimber", BepInDependency.DependencyFlags.SoftDependency)]
@@ -42,7 +43,7 @@ namespace WildWasteland
     public sealed class Plugin : BaseUnityPlugin
     {
         public const string GUID = "com.denis.apocalypter.wildwasteland";
-        public const string NAME = "Wild Wasteland";
+        public const string NAME = "WildWastelandMP";
         public const string VERSION = "0.1.36";
 
         public static Plugin Instance;
@@ -101,6 +102,7 @@ namespace WildWasteland
                 Core.ITweenGuard.Init();
                 Core.QuietFsm.Install();
                 Core.VistasWorldGen.Init();
+                Core.Multiplayer.Init();
                 Core.UI.ToolWindow.Init();
                 SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -108,6 +110,7 @@ namespace WildWasteland
                 var audioVoices = Modules.Patrols.PatrolsModule.AudioVoices;
                 if (audioVoices != null) ApplyAudioVoices(audioVoices.Value);
                 Core.ModuleHost.StartAll();
+                Core.MultiplayerLaunch.Install();
                 Core.Log.Always(Core.ModuleHost.Summary());
             }
             catch (Exception e)
@@ -155,6 +158,7 @@ namespace WildWasteland
 
         static void CoreFrame()
         {
+            Core.Multiplayer.Tick();
             Core.UI.EditorSession.Tick();
             Core.SaveBus.Tick();
             Core.Hotkeys.Tick();

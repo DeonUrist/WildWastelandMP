@@ -40,7 +40,7 @@ namespace WildWasteland.Modules.Patrols
         internal static bool Contains(TrafficBase camp,Vector3 point,float margin=35f)
         {return Mathf.Abs(point.x-camp.center.x)<=camp.size.x/2f+margin&&Mathf.Abs(point.z-camp.center.z)<=camp.size.z/2f+margin;}
         internal static bool PlayerAt(TrafficBase camp)
-        {var player=PlayerRef.Player;return player!=null&&Contains(camp,TrafficSpace.World(player.position));}
+        {var player=PlayerRef.Player;if(player!=null&&Contains(camp,TrafficSpace.World(player.position)))return true;for(int i=0;i<Core.Multiplayer.RemoteCount;i++){var remote=Core.Multiplayer.RemoteAt(i);if(remote!=null&&Contains(camp,TrafficSpace.World(remote.transform.position)))return true;}return false;}
         internal static bool PatrolSpawnAllowed(Vector3 point)
         {foreach(var camp in Known.Values)if(PlayerAt(camp)&&Contains(camp,point,60f))return false;return true;}
         private const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;

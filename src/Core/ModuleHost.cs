@@ -9,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace WildWasteland.Core
 {
-    public enum ModuleState { NotStarted, Running, OffByConfig, OffConflict, InitFailed, DisabledAfterErrors }
+    public enum ModuleState { NotStarted, Running, OffByConfig, OffConflict, InitFailed, DisabledAfterErrors, HostAuthority, OffMultiplayer }
 
     /// <summary>
     /// Owns every module's lifecycle (AGENTS.md 5.3): config binding, conflict check against the standalone mods it
@@ -101,6 +101,13 @@ namespace WildWasteland.Core
             var m = e.Module;
             try
             {
+                if (m.Id == "Performance" && Multiplayer.SessionActive) { e.State = ModuleState.OffMultiplayer; return; }
+                if (Multiplayer.Client && Multiplayer.HostOnly(m))
+                {
+                    var presentation = m as IMultiplayerPresentation;
+                    if (presentation != null) presentation.InitClient();
+                    e.State = ModuleState.HostAuthority; return;
+                }
                 m.Init();
                 SetActive(m, true);
                 e.State = ModuleState.Running;
@@ -121,6 +128,11 @@ namespace WildWasteland.Core
         static void Stop(Entry e, ModuleState newState)
         {
             var m = e.Module;
+            if (e.State == ModuleState.HostAuthority)
+            {
+                var presentation = m as IMultiplayerPresentation;
+                try { if (presentation != null) presentation.ShutdownClient(); } catch (Exception ex) { Log.Error("[" + m.Id + "] client Shutdown", ex); }
+            }
             if (e.State == ModuleState.Running)
             {
                 try { m.Shutdown(); } catch (Exception ex) { Log.Error("[" + m.Id + "] Shutdown", ex); }
@@ -145,13 +157,36 @@ namespace WildWasteland.Core
         {
             if (_quitting) return;
             bool want = e.Config.Enabled.Value;
-            if (want && (e.State == ModuleState.OffByConfig || e.State == ModuleState.DisabledAfterErrors || e.State == ModuleState.InitFailed))
+            if (want && (e.State == ModuleState.OffByConfig || e.State == ModuleState.OffMultiplayer || e.State == ModuleState.DisabledAfterErrors || e.State == ModuleState.InitFailed))
             {
                 Start(e);
                 Hooks.ApplyUsed();
                 if (e.State == ModuleState.Running && GameRefs.InGame) Safe(e, "OnWorldReady", () => e.Module.OnWorldReady());
             }
-            else if (!want && e.State == ModuleState.Running) Stop(e, ModuleState.OffByConfig);
+            else if (!want && (e.State == ModuleState.Running || e.State == ModuleState.HostAuthority)) Stop(e, ModuleState.OffByConfig);
+        }
+
+        internal static void MultiplayerChanged()
+        {
+            foreach (var e in _entries)
+            {
+                if (e.Module.Id == "Performance")
+                {
+                    if (Multiplayer.SessionActive && e.State == ModuleState.Running) Stop(e, ModuleState.OffMultiplayer);
+                    else if (!Multiplayer.SessionActive && e.State == ModuleState.OffMultiplayer)
+                    { e.State = ModuleState.OffByConfig; if (e.Config.Enabled.Value) Start(e); }
+                    continue;
+                }
+                if (!Multiplayer.HostOnly(e.Module)) continue;
+                if (Multiplayer.Client && e.State == ModuleState.Running) { Stop(e, ModuleState.OffByConfig); Start(e); }
+                else if (!Multiplayer.Client && e.State == ModuleState.HostAuthority)
+                {
+                    Stop(e, ModuleState.OffByConfig);
+                    if (!e.Config.Enabled.Value) { e.State = ModuleState.OffByConfig; continue; }
+                    Start(e);
+                }
+            }
+            Hooks.ApplyUsed();
         }
 
         /// <summary>Restart a running module (used by tools that change Init-time settings).</summary>
@@ -211,7 +246,7 @@ namespace WildWasteland.Core
         {
             if (_quitting) return;
             _quitting = true;
-            foreach (var e in _entries) if (e.State == ModuleState.Running) { var en = e; Safe(en, "Shutdown", () => en.Module.Shutdown()); }
+            foreach (var e in _entries) if (e.State == ModuleState.Running || e.State == ModuleState.HostAuthority) Stop(e, ModuleState.NotStarted);
         }
 
         static void Safe(Entry e, string what, Action a)

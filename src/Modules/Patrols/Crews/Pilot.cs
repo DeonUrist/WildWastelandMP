@@ -142,9 +142,10 @@ namespace WildWasteland.Modules.Patrols
         internal void Step()
         {
             if (_abandoned) return;
+            if (Core.Multiplayer.OwnedElsewhere(_car)) return;
             if (_rb != null && _rb.isKinematic) return;     // the game's DistanceKinematic froze the car (far from the player after a load): hold, don't count as stuck
             if(Time.fixedTime<_nextDecision)return;
-            var player=PlayerRef.Player;float distance2=player!=null?(_tf.position-player.position).sqrMagnitude:float.MaxValue;
+            var player=PlayerRef.Player;float playerDistance=Core.Multiplayer.PlayerDistance(_tf.position,player);float distance2=playerDistance*playerDistance;
             _nextDecision=Time.fixedTime+(distance2>80f*80f?0.1f:0.05f);
             float dt=Mathf.Clamp(Time.fixedTime-_lastDecision,Time.fixedDeltaTime,0.15f);_lastDecision=Time.fixedTime;
             _stateTime += dt;
@@ -971,9 +972,17 @@ namespace WildWasteland.Modules.Patrols
         // 0 = neither, 1 = the player on foot, 2 = the car the player is driving
         internal static int Kind(Transform t)
         {
+            int kind = LocalKind(t);
+            if (kind != 0 || !Core.Multiplayer.Hosting) return kind;
+            for (int i = 0; i < Core.Multiplayer.RemoteCount; i++)
+            { kind = Ram.RemoteKind(Core.Multiplayer.RemoteAt(i), t); if (kind != 0) return kind; }
+            return 0;
+        }
+        internal static int LocalKind(Transform t)
+        {
             if (t == null) return 0;
-            var p = _player;                       // no lookup here; a null player means nothing to ram anyway
-            var car = _playerCar;
+            var p = Player;
+            var car = PlayerCar;
             if (car != null && t.IsChildOf(car.transform)) return 2;
             // the player object may not be parented under its car: anything the player is inside of counts
             if (p != null && car == null)

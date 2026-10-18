@@ -10,7 +10,7 @@ namespace WildWasteland.Modules.PlayerBody
     //  NoHead  - head and neck-up removed (first person in a car: the camera sits in her head)
     //  NoArms  - first person (on foot, and in a car with a gun drawn): the whole body up to the collar - legs, hips, belly, chest,
     //            shoulders; head, neck and arms removed (the game draws its own first-person arms)
-    internal static class Model
+    internal static partial class Model
     {
         public static Mesh Full, NoHead, NoArms, ArmsOnly, NoHeadRightArm, LeftArmOnly;
         public static Texture2D BodyTex, ArmsTex, ArmsLeftTex;
@@ -29,6 +29,7 @@ namespace WildWasteland.Modules.PlayerBody
         public static bool Build(SkinnedMeshRenderer smr)
         {
             if (Full != null) return true;
+            if (MultiplayerModels.NativeSelection) return BuildNative(smr);
             if (_tried) return false;
             _tried = true;
             string path = PlayerBodyModule.ModPath(PlayerBodyModule.BodyModelFile);

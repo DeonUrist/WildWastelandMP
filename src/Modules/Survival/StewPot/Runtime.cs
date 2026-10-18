@@ -13,7 +13,7 @@ using Object = UnityEngine.Object;
 namespace WildWasteland.Modules.Survival
 {
     // All runtime state lives here, never on saved objects. Native saveItemVar owns the litres.
-    public sealed class Runtime
+    public sealed partial class Runtime
     {
         internal sealed class Pot
         {
@@ -32,6 +32,8 @@ namespace WildWasteland.Modules.Survival
             internal string Label;
             internal AudioSource Audio;
             internal Stew Stew;
+            internal float NetworkAt;
+            internal bool NetworkPouring;
         }
 
         static readonly List<Pot> pots = new List<Pot>();
@@ -115,6 +117,7 @@ namespace WildWasteland.Modules.Survival
             thirst = hunger = sanity = null; cameraTransform = null; interactionCamera = null;
             uiName = uiAmount = uiCapacity = uiUse = uiDetails = null;
             StewLogic.Clear();
+            NetworkReset();
             failureLogged = false;
         }
 
@@ -135,6 +138,7 @@ namespace WildWasteland.Modules.Survival
                 Stew = new Stew(Factory.Fsm(root, "saveItemVar"))
             };
             byObject.Add(root, pot); pots.Add(pot);
+            Core.Multiplayer.Register(root, false);
             if (SurvivalModule.Verbose.Value) WildWasteland.Core.Log.Always("[Survival] StewPot registered: " + root.name);
         }
 
@@ -155,6 +159,7 @@ namespace WildWasteland.Modules.Survival
             bool use = input && InputController.GetKeyActionIsActive("Use");
             float dt = live ? Time.deltaTime : 0;
             StewLogic.Clock += dt;
+            NetworkTick(dt, live);
             GameObject heldItem = grabbed != null ? grabbed.Value : null;
             if (heldItem != null && (hand == null || hand.Value == null || !heldItem.transform.IsChildOf(hand.Value.transform))) heldItem = null;
             StewLogic.Interact(heldItem, interactionCamera, input, grab);
@@ -169,12 +174,14 @@ namespace WildWasteland.Modules.Survival
                     if (collider != null) { collider.convex = true; collider.sharedMesh = Factory.ColliderMesh; }
                     pot.ColliderReady = true;
                 }
+                bool authority = Core.Multiplayer.ItemAuthority(pot.Root);
                 pot.Stew.Tick(pot, dt, live, effects);
                 if (!pot.Root.activeInHierarchy) continue;
                 bool held = hand != null && hand.Value != null && pot.Root.transform.IsChildOf(hand.Value.transform);
                 bool nativeDrink = pot.Drink.ActiveStateName == "on";
-                bool drinking = use && (held || nativeDrink) && pot.Amount.Value > .0001f;
-                if (drinking)
+                bool drinking = use && (held || nativeDrink) && pot.Amount.Value > .0001f && (Core.Multiplayer.Active || Core.Multiplayer.RequestItemAuthority(pot.Root));
+                if (Core.Multiplayer.Active) NetworkDrink(pot, drinking);
+                if (drinking && !Core.Multiplayer.Active)
                 {
                     // Match native water-can consumption: .5 L/s and 6 thirst/s, including the final partial sip.
                     float sip = Mathf.Min(pot.Amount.Value, .5f * dt);
@@ -194,8 +201,9 @@ namespace WildWasteland.Modules.Survival
                     Trace(pot, drinking ? "drinking" : "drinking stopped");
                 }
                 Pose(pot, drinking, dt);
-                bool pouring = SurvivalModule.AllowStewPotSpilling.Value && live && !drinking && pot.Pose < .001f && pot.Amount.Value > .0001f && Vector3.Dot(pot.Root.transform.up, Vector3.up) <= .0872f;
+                bool pouring = authority && SurvivalModule.AllowStewPotSpilling.Value && live && !drinking && !NetworkDrinking(pot) && pot.Pose < .001f && pot.Amount.Value > .0001f && Vector3.Dot(pot.Root.transform.up, Vector3.up) <= .0872f;
                 if (pouring) Pour(pot, dt);
+                else if (Core.Multiplayer.Client && pot.NetworkPouring && live) Pour(pot, 0, false);
                 else if (pot.Stream != null) pot.Stream.SetVisible(false);
                 if (pouring != pot.Pouring) { pot.Pouring = pouring; Trace(pot, pouring ? "pouring" : "pouring stopped"); }
                 UpdateLiquid(pot);
@@ -273,7 +281,7 @@ namespace WildWasteland.Modules.Survival
         static void UpdateLiquid(Pot pot)
         {
             pot.Amount.Value = Mathf.Clamp(pot.Amount.Value, 0, Factory.Capacity);
-            if (pot.Amount.Value <= .0001f) { pot.Stew.Empty(); pot.Content.Value = (int)Contents.Water; }
+            if (pot.Amount.Value <= .0001f && Core.Multiplayer.ItemAuthority(pot.Root)) { pot.Stew.Empty(); pot.Content.Value = (int)Contents.Water; }
             int type = Mathf.Clamp(pot.Content.Value, 1, 5);
             int materialKey = pot.Stew.MaterialKey(type);
             bool changed = Mathf.Abs(pot.Last - pot.Amount.Value) > .00001f;
@@ -304,7 +312,7 @@ namespace WildWasteland.Modules.Survival
             if (uiDetails != null) uiDetails.text = pot.Stew.Details;
         }
 
-        static void Pour(Pot source, float dt)
+        static void Pour(Pot source, float dt, bool apply = true)
         {
             var tr = source.Root.transform;
             Vector3 low = Vector3.ProjectOnPlane(Vector3.down, tr.up).normalized;
@@ -335,9 +343,10 @@ namespace WildWasteland.Modules.Survival
                 distance = t; receiver = pot;
             }
             float rate = Mathf.Lerp(2f, 8f, Mathf.Clamp01(-Vector3.Dot(tr.up, Vector3.up)));
+            if (apply && receiver != null && !Core.Multiplayer.RequestItemAuthority(receiver.Root)) return;
             float volume = Mathf.Min(source.Amount.Value, rate * dt);
             float before = source.Amount.Value, accepted = 0;
-            if (receiver != null)
+            if (apply && receiver != null)
             {
                 accepted = Mathf.Min(volume, Mathf.Max(0, Factory.Capacity - receiver.Amount.Value));
                 if (accepted > 0)
@@ -347,8 +356,8 @@ namespace WildWasteland.Modules.Survival
                 }
                 receiver.Amount.Value += accepted;
             }
-            if (volume > accepted) source.Stew.Remove((volume - accepted) / (before - accepted), null, null, null);
-            source.Amount.Value -= volume;
+            if (apply && volume > accepted) source.Stew.Remove((volume - accepted) / (before - accepted), null, null, null);
+            if (apply) source.Amount.Value -= volume;
             if (source.Stream == null)
             {
                 source.Stream = new WaterPour(effects);

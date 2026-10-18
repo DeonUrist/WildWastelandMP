@@ -85,6 +85,7 @@ namespace WildWasteland.Modules.Patrols
             Core.Hooks.SetFsmFloatEnter.Postfix(this, Ram.AfterSetFsmFloat);
             Core.Hooks.SetFsmFloatDo.Prefix(this, Ram.BeforeSetFsmFloat);   // a car never rams its own (trigger-only) crew
             Core.Hooks.SendEventEnter.Prefix(this, Ram.BeforeSendEvent);
+            Ram.StartNetwork();
             Try("Motorcycle save hook (saved motorcycles may not load)", () => MotorcycleIntegration.Install(this));
 
             Paint.Init(DataDir);
@@ -108,6 +109,8 @@ namespace WildWasteland.Modules.Patrols
 
         public override void Shutdown()
         {
+            Ram.StopNetwork();
+            WorldTraffic.StopNetwork();
             Running = false;
             LoadingProgress.Remove(this);
             Try("build queue", BuildQueue.Reset);
@@ -136,6 +139,7 @@ namespace WildWasteland.Modules.Patrols
 
         public override void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            Ram.SceneReset();
             TrafficCompass.Clear();
             PickupCatalog.Invalidate(); PatrolVisibility.Reset(); EnsureRunner(); Patrol.ResetForScene(); PlayerRef.Reset(); PatrolPersistence.ResetForScene(); Convoy.ResetForScene();
             WarRig.WarRigFeature.OnSceneLoaded();
@@ -172,6 +176,7 @@ namespace WildWasteland.Modules.Patrols
         // WorldTraffic, Cleanup (then the absorbed MerchantSpotter editor). Each job re-reads the component (recreated after a scene load).
         void RegisterJobs()
         {
+            WorldTraffic.StartNetwork(this, false);
             Scheduler.Interval(this, "Patrols.Prefab cache", .5f, Prefabs.Refresh).RunNow();
             Scheduler.Sliced(this, "Patrols.Build", 1000, BuildQueue.Step);
             Scheduler.Sliced(this, "Patrols.Vehicle build cache", 500, VehicleBuildCache.Step);

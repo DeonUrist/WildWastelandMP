@@ -17,7 +17,7 @@ namespace WildWasteland.Core
         private static readonly Dictionary<IModule, Func<Work?>> Sources = new Dictionary<IModule, Func<Work?>>();
         private static MapMagicObject _map;
         internal static bool ScreenVisible;
-        internal static bool MenusBlocked { get { return ScreenVisible || SaveBus.Busy; } }
+        internal static bool MenusBlocked { get { return ScreenVisible || SaveBus.Busy || MultiplayerSaving.Frozen; } }
         internal static void Register(IModule owner, Func<Work?> source) { Sources[owner] = source; }
         internal static void Remove(IModule owner) { Sources.Remove(owner); }
         internal static void Begin() { _map = null; ScreenVisible = true; }

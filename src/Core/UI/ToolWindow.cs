@@ -43,7 +43,7 @@ namespace WildWasteland.Core.UI
         {
             if (current == "LoadGame" || current == "generateTerrain 2") { _newGame = _openNewGame = false; }
             else if (current == "setSeed" || current == "generateTerrain") _newGame = true;
-            else if (current == "isPlay" && _newGame) { _newGame = false; _openNewGame = true; }
+            else if (current == "isPlay" && _newGame) { _newGame = false; _openNewGame = !Multiplayer.Client; }
         }
         internal static void Tick()
         {
@@ -117,6 +117,7 @@ namespace WildWasteland.Core.UI
         }
         static bool Visible(ToolPage p)
         {
+            if (Multiplayer.Client && (p.DebugOnly || p == WildWasteland.Modules.Performance.PerformancePage.Instance)) return false;
             return (!p.DebugOnly || Plugin.EnableDebug.Value) && (p != CorePages.DeveloperPage || Plugin.DeveloperMode.Value);
         }
         static int GroupIndex(string g) { int i = Array.IndexOf(ToolGroups.Order, g); return i < 0 ? ToolGroups.Order.Length : i; }
@@ -131,7 +132,7 @@ namespace WildWasteland.Core.UI
             }
             if (!_open) return;
             if (_current != null && !Visible(_current))
-            { _current = Plugin.EnableDebug.Value ? CorePages.DebugPage : CorePages.GamePage; _scroll = Vector2.zero; Ledger.ClearNumbers(); ToolLayout.CancelRebind(); _current.OnShow(); }
+            { _current = !Multiplayer.Client && Plugin.EnableDebug.Value ? CorePages.DebugPage : CorePages.GamePage; _scroll = Vector2.zero; Ledger.ClearNumbers(); ToolLayout.CancelRebind(); _current.OnShow(); }
             if (Event.current.type == EventType.Layout)
             {
                 _session.Maintain();

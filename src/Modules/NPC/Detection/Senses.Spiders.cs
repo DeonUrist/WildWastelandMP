@@ -133,7 +133,8 @@ namespace WildWasteland.Modules.NPC
             a.LightSource = source;
             if (source == null || a.Blown || a.State == State.Combat || a.State == State.Hide) return;
             a.AmbushDist = 0f;
-            if (_player != null && a.Hostile.Contains("Player") && Visible(a, eye, _player, true, _playerInStorm)) { Engage(a, _player); return; }
+            float distance; var player = NearestVisiblePlayer(a, eye, 0f, now, out distance);
+            if (player != null) { Engage(a, player); return; }
             Vector3 pos = light.transform.position;
             var g = GetOrMake(Src.Vision, OnGround(pos, pos.y), source, "a light", 0f, 1f, now);
             bool had = a.Ghost == g;

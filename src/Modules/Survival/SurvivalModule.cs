@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using BepInEx.Configuration;
 using ES3Internal;
+using HutongGames.PlayMaker;
 using HarmonyLib;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -61,6 +62,9 @@ namespace WildWasteland.Modules.Survival
             _effects = new GameObject("StewPot.Runner") { hideFlags = HideFlags.HideAndDontSave };
             _effects.transform.SetParent(Runner.Host.transform, false);
             Runtime.Init(_effects.transform);
+            Runtime.NetworkInit();
+            Multiplayer.PrefabRequested += MultiplayerPrefab;
+            MultiplayerItems.Variables += MultiplayerVariables;
             Hooks.GetPrefab.Resolver(this, ResolvePrefab);
             Hooks.GetButtonDownUpdate.Prefix(this, Runtime.DrinkInput);
             Hooks.CreateObjectEnter.Prefix(this, NaturalLoot.BeforeCreate);
@@ -78,6 +82,15 @@ namespace WildWasteland.Modules.Survival
             return id == Factory.PrefabId ? Factory.Template().GetComponent<ES3Prefab>() : null;
         }
 
+        static GameObject MultiplayerPrefab(string name) { return name == "StewPot" ? Factory.Template() : null; }
+        static void MultiplayerVariables(GameObject go, List<NamedVariable> values)
+        {
+            if (go.transform.Find("StewPot.Visual") == null) return;
+            var save = FsmUtil.Find(go, "saveItemVar"); if (save == null) return;
+            foreach (var value in save.FsmVariables.IntVariables) MultiplayerItems.Add(values, value);
+            foreach (var value in save.FsmVariables.FloatVariables) MultiplayerItems.Add(values, value);
+        }
+
         private static void PrefabAwake(ES3Prefab __instance)
         {
             if (__instance.prefabId == Factory.PrefabId) Runtime.Register(__instance.gameObject);
@@ -87,6 +100,8 @@ namespace WildWasteland.Modules.Survival
         public override void OnWorldReady() { Runtime.BeginDiscovery(); }
         public override void Shutdown()
         {
+            Multiplayer.PrefabRequested -= MultiplayerPrefab; MultiplayerItems.Variables -= MultiplayerVariables;
+            Runtime.NetworkStop();
             if (_sound != null) Scheduler.StopCoroutine(_sound);
             _sound = null;
             Runtime.Shutdown(); SpawnerBridge.Shutdown();

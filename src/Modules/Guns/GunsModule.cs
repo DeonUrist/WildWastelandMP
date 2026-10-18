@@ -192,6 +192,8 @@ namespace WildWasteland.Modules.Guns
             Instance = this;
             AssetDir = Dir;
             ResetAll();
+            Tracers.NetworkInit();
+            PerGunAmmo.StartNetworkMagazines();
             Ironsights.Init(this);
             WeaponTransition.Init(this);
             EmptyGunSound.Init(this);
@@ -256,6 +258,8 @@ namespace WildWasteland.Modules.Guns
 
         public override void Shutdown()
         {
+            Tracers.NetworkStop();
+            PerGunAmmo.StopNetworkMagazines();
             _running = false;
             Ironsights.Shutdown();
             WeaponTransition.Shutdown();

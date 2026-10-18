@@ -36,6 +36,7 @@ namespace WildWasteland.Modules.Patrols
         // and a target on the edge of the arc used to restart it every frame
         private const float FireCheckSeconds = 0.5f;
         private float _nextFireCheck; private bool _canFire;
+        private GameObject _fireTarget;
         private bool _questFollower; private GameObject _questTarget; private float _questBlockedUntil;
         internal void QuestTarget(GameObject target, float blockedUntil)
         { _questFollower = true; _questTarget = target; _questBlockedUntil = blockedUntil; }
@@ -279,12 +280,18 @@ namespace WildWasteland.Modules.Patrols
             }
 
             GameObject target = _questFollower ? _questTarget : _marker!=null?TrafficFactions.ForCar(_car,_marker):FindVanillaTarget();
+            if(Core.Multiplayer.Hosting&&!_questFollower)
+            {
+                target=TrafficFactions.GunTarget(_passenger,_car,_anchor,_marker);
+                var npc=Core.Services.Npc;if(npc!=null)npc.SetSeatedTarget(_passenger,target);
+            }
             if(_targetVars!=null)for(int i=0;i<_targetVars.Length;i++)_targetVars[i].Value=target;
-            if (_turret && target != null && PlayerRef.GodMode) target = null;   // a human turret leaves a god-mode player alone
+            if (_turret && target != null && PlayerRef.Player!=null&&target==PlayerRef.Player.gameObject&&PlayerRef.GodMode) target = null;   // a human turret leaves a god-mode player alone
             Vector3 aimPoint = Vector3.zero;
             if (target != null) { _targetAcquired = true; aimPoint = AimPoint(target); }
-            if (Time.time >= _nextFireCheck || target == null)
+            if (Time.time >= _nextFireCheck || target == null || target != _fireTarget)
             {
+                _fireTarget=target;
                 _nextFireCheck = Time.time + FireCheckSeconds;
                 bool ok = false;
                 if (target != null)
@@ -406,6 +413,7 @@ namespace WildWasteland.Modules.Patrols
         // the Head bone of the target (found once per target, not by walking its whole hierarchy every frame)
         private Vector3 AimPoint(GameObject target)
         {
+            if(Core.Multiplayer.IsRemotePlayer(target))return target.transform.position+Vector3.up;
             if (target != _aimTargetGo || (_aimHead == null && target != null))
             {
                 _aimTargetGo = target; _aimHead = null;

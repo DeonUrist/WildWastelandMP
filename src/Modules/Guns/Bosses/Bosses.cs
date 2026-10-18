@@ -98,6 +98,7 @@ namespace WildWasteland.Modules.Guns
         // (WW) scheduler job "Guns.Bosses" (Interval 0.5 s; the 3 s / 5 s / 60 s gates below are unchanged)
         public static void Tick()
         {
+            if (Core.Multiplayer.Client) return;
             if (!GunsModule.BossHealth.Value) return;
             float now = Time.unscaledTime;
             if (now >= _nextScan)

@@ -42,6 +42,14 @@ namespace WildWasteland.Modules.Guns
                 throw new InvalidOperationException("Cannot capture an unowned magazine: " + item);
             entry.Magazine = magazine;
         }
+        internal bool TryGet(string item, string type, out Magazine magazine)
+        {
+            Entry entry; magazine = new Magazine();
+            if (!_items.TryGetValue(item, out entry) || entry.Type != type) return false;
+            magazine = entry.Magazine; return true;
+        }
+        internal void Import(string item, string type, Magazine magazine)
+        { _claimed.Add(type); _items[item] = new Entry { Type = type, Magazine = magazine }; }
 
         internal string Encode()
         {

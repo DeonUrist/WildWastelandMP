@@ -34,7 +34,7 @@ namespace WildWasteland.Modules.Patrols
             var api = Core.Services.Compass;
             if (!ReferenceEquals(api, _api)) { Clear(); _api = api; }
             if (api == null && Core.Services.Map == null) { Clear(); return; }
-            if (!PatrolsModule.Running || !Core.GameRefs.InPlay) return;
+            if ((!PatrolsModule.Running && !Core.Multiplayer.Client) || !Core.GameRefs.InPlay) return;
             Seen.Clear(); Journeys.Clear(); Dead.Clear();
             var journeys = WorldTraffic.CompassJourneys;
             if (PatrolsModule.ConvoyEnabled.Value && journeys != null)
@@ -92,6 +92,12 @@ namespace WildWasteland.Modules.Patrols
         internal static bool ObserveJourney(TrafficJourney journey, Core.IMapMarkers map, string name, Color color)
         {
             if (_instance == null) return false;
+            if (Core.Multiplayer.Client)
+            {
+                int[] ids; bool observed = false;
+                if (_instance._networkMembers.TryGetValue(journey.id, out ids)) foreach (int id in ids) { var body = Core.Multiplayer.ObjectById(id); if (body != null) observed |= map.Observe(body.transform, name, color); }
+                return observed;
+            }
             bool seen = false;
             if (journey.foot)
             {
@@ -114,6 +120,7 @@ namespace WildWasteland.Modules.Patrols
         internal static IList<TrafficJourney> CompassJourneys { get { return _instance != null ? _instance._journeys : null; } }
         internal static Transform CompassTarget(TrafficJourney journey)
         {
+            if (Core.Multiplayer.Client) return NetworkTarget(journey);
             Live live;
             if (_instance != null && journey.foot) return _instance.FootLeader(journey);   // leader walker, else the virtual position
             if (_instance == null || !_instance._live.TryGetValue(journey.id, out live)) return null;

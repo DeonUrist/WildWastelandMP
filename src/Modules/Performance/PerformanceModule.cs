@@ -23,6 +23,7 @@ namespace WildWasteland.Modules.Performance
     {
         public override string Id { get { return "Performance"; } }
         public override string DisplayName { get { return "Performance & optimization"; } }
+        public override bool DefaultEnabled { get { return false; } }
 
         public static PerformanceModule Instance;
         public static PerfPreset Preset { get { return _preset != null ? _preset.Value : PerfPreset.Vanilla; } }

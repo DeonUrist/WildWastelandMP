@@ -12,12 +12,12 @@ using WildWasteland.Core.UI;
 
 namespace WildWasteland.Modules.CleanHUD
 {
-    public sealed class CleanHudModule : ModuleBase, IVehicleStatusDisplay, ICompassMarkers
+    public sealed class CleanHudModule : ModuleBase, IVehicleStatusDisplay, ICompassMarkers, IPlayerCompassMarkers
     {
         internal const string GUID = "com.denis.apocalypter.cleanhud";
         internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowHealthNumbers, ShowInsanity, MenuEnabled, CleanFont, EnableCheats;
         internal static ConfigEntry<float> Scale;
-        internal static ConfigEntry<bool> ShowConvoys, ShowLocations;
+        internal static ConfigEntry<bool> ShowConvoys, ShowLocations, ShowPlayers;
         internal static ConfigEntry<bool> AmbiguousPatrols, AmbiguousLocations;
         internal static ConfigEntry<bool> ShowCompass, MapEnabled, DrivingHudOnlyThirdPerson;
         internal static ConfigEntry<MapDetail> MapMarkers, MapRoutes, MapTrafficMarkers;
@@ -46,6 +46,7 @@ namespace WildWasteland.Modules.CleanHUD
             ShowInsanity = Bind(cfg, "HUD", "ShowInsanity", true, "Show insanity in the top right while above zero.");
             ShowConvoys = cfg.Player("HUD", "ShowConvoys", true, "Compass icons and distances for vehicle groups: merchants yellow, Coyotes green, patrols red and convoys orange.");
             ShowLocations = cfg.Player("HUD", "ShowLocations", true, "Compass icons and distances for native locations within 1 km.");
+            ShowPlayers = cfg.Player("HUD", "ShowPlayers", true, "Show multiplayer teammates, their names and distances on the Wild Wasteland compass. This is your own display preference.");
             AmbiguousPatrols = cfg.Player("HUD", "AmbiguousPatrols", true, "Show all compass vehicle groups with white vehicle icons, keeping their distances.");
             AmbiguousLocations = cfg.Player("HUD", "AmbiguousLocations", true, "Show undiscovered compass locations as neutral question marks. Approaching within 100 m or spotting through binoculars remembers their real icons and colors. Quest flags are unchanged.");
             ShowCompass = cfg.Player("HUD", "Compass", true, "Show the compass, including its direction strip and all markers.");
@@ -131,6 +132,9 @@ namespace WildWasteland.Modules.CleanHUD
             Scheduler.Interval(this, "Vantage terrain", .2f, VantageDiscovery.Tick);
             LocationMarkers.Init();
             MapFog.Init();
+            MultiplayerWorld.Ready += PersonalWorldReady; MultiplayerWorld.Leaving += SavePersonalWorld;
+            MultiplayerItems.BeforeFlush += SavePersonalWorld;
+            Scheduler.Interval(this, "MP exploration persistence", 30f, SavePersonalWorld);
             _loadingScreen = new LoadingScreen();
             ApocasaverLoading.Install(this, _loadingScreen);
             _menu = new Menu(_loadingScreen);
@@ -201,6 +205,9 @@ namespace WildWasteland.Modules.CleanHUD
         int ICompassMarkers.Add(string owner, Func<Vector3> position, string icon, Color color)
         { return Api.Compass.Add(owner, position, new Api.Marker { Icon = icon, Color = color, ShowDistance = true, MaxDistance = owner == "WildWasteland.VehicleGroups" ? 1000f : 0f }); }
         bool ICompassMarkers.Exists(int id) { return Api.Compass.Exists(id); }
+        bool IPlayerCompassMarkers.PlayersEnabled { get { return ShowPlayers.Value; } }
+        int IPlayerCompassMarkers.AddPlayer(string owner, Func<Vector3> position, string name, Color color)
+        { return Api.Compass.Add(owner, position, new Api.Marker { Icon = "player", Label = name, Color = color, ShowDistance = true, PinToEdge = true, Priority = 100 }); }
         bool ICompassMarkers.Remove(int id) { return Api.Compass.Remove(id); }
         void ICompassMarkers.Identify(int id) { foreach (var entry in Api.Compass.Entries) if (entry.Id == id) { entry.Identified = true; break; } }
         void ICompassMarkers.RemoveAll(string owner) { Api.Compass.RemoveAll(owner); }
@@ -231,9 +238,13 @@ namespace WildWasteland.Modules.CleanHUD
         public override void OnLoadBegin(string slot) { VantageDiscovery.Reset(); VistasBanners.Reset(); InventoryStyle.Restore(); LocationMarkers.Begin(false); MapFog.Reset(); QuestJournal.Hide(); _loadingScreen.Begin(); Release(); Bindings.Clear(); MessageHook.Clear(); Assets.SceneLoaded(); }
         public override void OnSaveEnd(string slot) { LocationMarkers.SaveEnded(slot); }
         public override void OnOriginShift(Vector3 delta) { MapFog.OriginShifted(); VantageDiscovery.OriginShifted(delta); }
-        public override void OnWorldReady() { LocationMarkers.WorldReady(SaveBus.Slot); MapFog.WorldReady(SaveBus.Slot); SceneCache.Reset(); SceneCache.BeginKeys(); _attach.RunNow(); }
+        void PersonalWorldReady() { LocationMarkers.WorldReady(MultiplayerWorld.PersonalSlot); MapFog.WorldReady(MultiplayerWorld.PersonalSlot); }
+        void SavePersonalWorld() { string slot = MultiplayerWorld.GuestSlot; if (slot != null) { LocationMarkers.SaveEnded(slot); MapFog.SaveEnded(slot); } }
+        public override void OnWorldReady() { PersonalWorldReady(); SceneCache.Reset(); SceneCache.BeginKeys(); _attach.RunNow(); }
         public override void Shutdown()
         {
+            SavePersonalWorld(); MultiplayerWorld.Ready -= PersonalWorldReady; MultiplayerWorld.Leaving -= SavePersonalWorld;
+            MultiplayerItems.BeforeFlush -= SavePersonalWorld;
             _weatherMap.Clear();
             Binoculars.Shutdown();
             VantageDiscovery.Reset(); VistasBanners.Shutdown();

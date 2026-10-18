@@ -57,7 +57,7 @@ namespace WildWasteland.Modules.PlayerBody
 
         internal static void Tick()
         {
-            var car = PlayerBodyModule.Running && !SaveBus.Busy && Game.Ready && Game.InCar && !Game.Dead ? Game.CarRoot : null;
+            var car = PlayerBodyModule.Running && !SaveBus.Busy && Game.Ready && Game.InCar && !Game.Dead && !CarSeat.Passenger ? Game.CarRoot : null;
             if (!ReferenceEquals(car, _car))
             {
                 Clear(); _car = car;

@@ -66,12 +66,12 @@ namespace WildWasteland.Modules.Patrols
         // ------------------------------------------------------------ dismount hooks
 
         // car = the vehicle carrying the PatrolMarker (a trailer turret passes the truck); role/slot/localPos/standing describe the seat left
-        internal static void Dismounted(GameObject car, GameObject mob, int role, int slot, string identity, string who, float[] localPos, bool standing)
+        internal static void Dismounted(GameObject car, GameObject mob, int role, int slot, string identity, string who, float[] localPos, bool standing, GameObject source = null)
         {
             if (mob == null || car == null || !PatrolsModule.Running) return;
             var marker = car.GetComponent<PatrolMarker>();
             if (marker == null) return;
-            Handover(car, marker, mob);
+            Handover(car, marker, mob, source);
             if (Native(car, marker)) return;
             var g = Find(car);
             if (g == null && Regroupable(car, marker)) g = Create(car, marker);
@@ -100,9 +100,14 @@ namespace WildWasteland.Modules.Patrols
         internal static void CarLost(Group g) { if (g != null && Groups.Contains(g)) { g.Crew = null; End(g, "car gone", false); } }   // the Crew is being destroyed: nothing to finish on it
 
         // NPC module: crew that engaged the player from the car keep him in mind on foot
-        private static void Handover(GameObject car, PatrolMarker marker, GameObject mob)
+        private static void Handover(GameObject car, PatrolMarker marker, GameObject mob, GameObject source)
         {
             var api = Core.Services.Npc; var player = PlayerRef.Player;
+            if(Core.Multiplayer.Hosting)
+            {
+                if(api!=null&&TrafficFactions.PlayerHostile(marker.Faction))api.TransferPlayerAwareness(source??mob,mob,PatrolsModule.DismountMemorySeconds.Value);
+                return;
+            }
             if (api == null || player == null || PlayerRef.GodMode || !TrafficFactions.PlayerHostile(marker.Faction)) return;
             float memory = PatrolsModule.DismountMemorySeconds.Value; if (memory <= 0f) return;
             bool aware = Time.time - marker.PlayerContactAt <= memory;
@@ -324,6 +329,7 @@ namespace WildWasteland.Modules.Patrols
             }
             if (health > 0f) { Patrol.SetHealth(seated, health); seated.AddComponent<Patrol.LateHealth>().Value = health; }
             var body = m.Body;
+            if(Core.Multiplayer.Hosting&&Core.Services.Npc!=null)Core.Services.Npc.TransferPlayerAwareness(body,seated,PatrolsModule.DismountMemorySeconds.Value);
             if (Core.Log.Verbose) PatrolsModule.Verbose("Return to car: " + body.name + " is back in " + car.name + (asDriver ? " at the wheel" : m.Role == RoleTurret ? " on turret " + (m.Slot + 1) : " in the passenger seat") + " as " + seated.name);
             Register.RemoveTree(body); Object.Destroy(body);
             m.Body = null; m.State = Aboard;

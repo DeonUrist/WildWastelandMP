@@ -578,7 +578,7 @@ namespace WildWasteland.Modules.Patrols
 
         private bool PlayerInside()
         {
-            return _drive != null && _drive.Fsm.Initialized && _drive.ActiveStateName == "inCar";
+            return Core.Multiplayer.OwnedElsewhere(_car) || (_drive != null && _drive.Fsm.Initialized && _drive.ActiveStateName == "inCar");
         }
 
         private void StartDriving()

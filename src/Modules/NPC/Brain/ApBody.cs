@@ -65,6 +65,10 @@ namespace WildWasteland.Modules.NPC
             var c = api.Attach(a);
             if (c == null) return null;
             c.TurnInPlace = true; c.WalkToStop = true;
+            if (Core.Multiplayer.Hosting)
+                for (var node = a.transform; node != null; node = node.parent)
+                    if (FsmUtil.Find(node.gameObject, "Health") != null)
+                    { Core.Multiplayer.RegisterRig(node.gameObject, a.GetComponentsInChildren<Transform>(true)); break; }
             return c;
         }
         [MethodImpl(MethodImplOptions.NoInlining)]

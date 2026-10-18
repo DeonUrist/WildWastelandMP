@@ -36,7 +36,8 @@ namespace WildWasteland.Modules.Guns
             public GameObject Impact;
             public Transform Visual;
             public string EventName, EventFsm;
-            public bool Bolt, Shotgun, Alive;
+            public bool Bolt, Shotgun, Alive, RemoteVisual;
+            public BoltKey NetworkKey;
             public int Layers, DetectLayers;
             public PlayerGun Gun;            // non-null: the player's shot (first collider it meets is hit, like the vanilla camera ray)
             public GameObject Player;
@@ -103,6 +104,7 @@ namespace WildWasteland.Modules.Guns
                 if (!GunsModule.TracersEnabled.Value) return true;
                 var fsm = __instance.Fsm;
                 if (fsm == null || fsm.Name != "Damage Ranged") return true;
+                if (Multiplayer.Client) return true;
                 var owner = fsm.GameObject;
                 if (owner == null) return true;
                 var target = __instance.targetObject != null ? __instance.targetObject.Value : null;
@@ -171,7 +173,7 @@ namespace WildWasteland.Modules.Guns
                         Target = target,
                         Head = head,
                         Cap = cap0,
-                        ShooterRoot = owner.transform.root.gameObject,
+                        ShooterRoot = Core.Multiplayer.Active ? RootOf(owner.transform).gameObject : owner.transform.root.gameObject,
                         Impact = info.Impact,
                         EventName = info.EventName, EventFsm = info.EventFsm,
                         Bolt = info.Kind == Kind.Crossbow,
@@ -182,6 +184,7 @@ namespace WildWasteland.Modules.Guns
                         DetectLayers = info.DetectLayers,
                     };
                     LaunchBolt(ref s);
+                    NetworkShot(ref s, false);
                     if (_shots.Count >= GunsModule.MaxTracers.Value) { Snapshot(); s.Speed = s.Range * 2f; Step(ref s, 1f); if (s.Visual != null) UnityEngine.Object.Destroy(s.Visual.gameObject); }   // over the cap: hitscan
                     else _shots.Add(s);
                 }
@@ -246,6 +249,7 @@ namespace WildWasteland.Modules.Guns
         internal static void OriginShift(Vector3 delta)
         {
             for (int i = 0; i < _shots.Count; i++) { var s = _shots[i]; s.Pos += delta; s.Start += delta; s.Prev += delta; _shots[i] = s; }
+            foreach (var b in _landedBolts) if (b.Visual != null && b.Visual.parent == null) b.Visual.position += delta;
             _playerLast += delta;
         }
 
@@ -360,6 +364,7 @@ namespace WildWasteland.Modules.Guns
                         ShooterRoot = ft.root.gameObject,
                     };
                     LaunchBolt(ref s);
+                    NetworkShot(ref s, true);
                     if (_shots.Count >= GunsModule.MaxTracers.Value) { Snapshot(); s.Speed = s.Range * 2f; Step(ref s, 1f); if (s.Visual != null) UnityEngine.Object.Destroy(s.Visual.gameObject); }
                     else _shots.Add(s);
                 }
@@ -523,12 +528,14 @@ namespace WildWasteland.Modules.Guns
             bool isPart = OwningPart(go.transform) != null || go.CompareTag("vehPartRemoved") || IsVehiclePart(go);   // the same test HitWorld uses (a vehPart-tagged ancestor)
             bool corpse = !isPart && IsCorpse(go);                // (1.5.2) a dead NPC's ragdoll: blood, but no number / marker / hurt
             bool creature = !isPart && !corpse && (HasBodypart(go) || HasBodypart(RootOf(go.transform).gameObject));
-            if (creature) Bridge.Hurt(go, s.Player);
+            if (!creature) ReportShotEnd(ref s, h.point);
+            if (creature && !Core.Multiplayer.Client) Bridge.Hurt(go, s.Player);
             bool feedback = creature;
             float before = Core.Log.Verbose || feedback ? HealthOf(go) : 0f;
             Replay(fsm, (go.layer == 10 || corpse) && gun.ActorHit != null ? gun.ActorHit : gun.GetLayer, falloff);   // a corpse bleeds like the living NPC did
             float headF = creature && col_isHead(go) && !IsPlayerObj(go) ? HeadFactor(go) : 1f;     // [Gunplay] HeadshotMultiplier instead of the head's own x2
-            Replay(fsm, gun.Hit, falloff * headF, GunsModule.VehicleDamage.Value && isPart, (creature || corpse) && (go.layer == 10 || corpse) && gun.ActorHit != null);
+            bool reported = creature && ReportPlayerImpact(ref s, h, falloff * headF);
+            Replay(fsm, gun.Hit, falloff * headF, reported || GunsModule.VehicleDamage.Value && isPart, (creature || corpse) && (go.layer == 10 || corpse) && gun.ActorHit != null, reported);
             float after = Core.Log.Verbose || feedback ? HealthOf(go) : 0f;
             if (feedback)
             {
@@ -596,7 +603,7 @@ namespace WildWasteland.Modules.Guns
             return part;
         }
 
-        private static void Replay(Fsm fsm, FsmStateAction[] actions, float falloff, bool skipBodypartDamage = false, bool skipDust = false)
+        private static void Replay(Fsm fsm, FsmStateAction[] actions, float falloff, bool skipBodypartDamage = false, bool skipDust = false, bool hostHit = false)
         {
             if (actions == null) return;
             foreach (var a in actions)
@@ -606,7 +613,7 @@ namespace WildWasteland.Modules.Guns
                     var sfx = a as SetFsmFloat;
                     if (sfx != null && sfx.fsmName != null && sfx.fsmName.Value == "Bodypart") continue;
                     var sex = a as SendEvent;
-                    if (sex != null && sex.sendEvent != null && sex.sendEvent.Name == "Damage") continue;
+                    if (sex != null && sex.sendEvent != null && (sex.sendEvent.Name == "Damage" || hostHit && (sex.sendEvent.Name == "DamageFlammable" || sex.sendEvent.Name == "CheckFriendly"))) continue;
                 }
                 try
                 {
@@ -655,7 +662,12 @@ namespace WildWasteland.Modules.Guns
                         continue;
                     }
                     var se = a as SendEvent;
-                    if (se != null && se.sendEvent != null) { fsm.Event(se.eventTarget, se.sendEvent); continue; }
+                    if (se != null && se.sendEvent != null)
+                    {
+                        if (se.sendEvent.Name == "Damage" && Core.Multiplayer.Client && se.eventTarget != null)
+                        { var target = fsm.GetOwnerDefaultTarget(se.eventTarget.gameObject); if (Core.Multiplayer.ClientHit(target)) continue; }
+                        fsm.Event(se.eventTarget, se.sendEvent); continue;
+                    }
                 }
                 catch (Exception e) { if (Core.Log.Verbose) GunsModule.Verbose("Tracers: replay " + a.GetType().Name + " failed: " + e.Message); }
             }
@@ -1068,6 +1080,8 @@ namespace WildWasteland.Modules.Guns
             if (wheel == null) return;
             _wDone = true;
             float mult = Mathf.Max(0f, GunsModule.WheelDamageMultiplier.Value);
+            if (Core.MultiplayerParts.HitPart(wheel.gameObject, dmg, 1, _wCam.forward))
+            { Bridge.PartHit(wheel.gameObject, at == Vector3.zero ? wheel.position : at, Mathf.Abs(dmg) * mult); return; }
             float before = PartCondition(wheel);
             foreach (var f in wheel.GetComponents<PlayMakerFSM>())
             {
@@ -1255,6 +1269,7 @@ namespace WildWasteland.Modules.Guns
         {
             float move = Mathf.Min(s.Speed * dt, s.Range - s.Travelled);
             if (move <= 0f) { s.Alive = false; return; }
+            if (s.RemoteVisual) { StepNetworkVisual(ref s, move); return; }
             // NPC bullets have a thickness: the player's body is two capsules only 0.34-0.40 m wide (head at the camera), so a
             // hairline that visibly passes through your face misses the collider by centimetres. Player bullets stay a hairline.
             float radius = s.Gun == null ? _npcRadius : 0f;
@@ -1303,6 +1318,7 @@ namespace WildWasteland.Modules.Guns
                 float dist = s.Travelled + h.distance;
                 float falloff = Falloff(ref s, dist) * s.DmgMult;
                 if (!onTarget && Penetrates(ref s, col, h, s.Damage * falloff)) continue;
+                if (!onTarget) ReportShotEnd(ref s, h.point);
                 if (s.Bolt) LandBolt(ref s, h.point, h.normal, tr, col is TerrainCollider || Creature(tr) != null || IsCorpse(col.gameObject));
                 if (onTarget) HitTarget(ref s, h.point, s.Damage * falloff, col.isTrigger ? col.gameObject : s.Target, dist);   // a head trigger: its own Bodypart (x2)
                 else if (s.Impact != null && IsCorpse(col.gameObject))     // (1.5.2) an NPC's bullet in a corpse: the shooter's own blood impact, not dust
@@ -1448,9 +1464,11 @@ namespace WildWasteland.Modules.Guns
         // exactly the vanilla attack state: impact effect at the point, <target>/Bodypart.Damage = damage, SendEvent Damage to the target
         private static void HitTarget(ref Shot s, Vector3 point, float damage, GameObject target, float dist)
         {
+            ReportShotEnd(ref s, point);
             if (s.Impact != null) UnityEngine.Object.Instantiate(s.Impact, point, Quaternion.identity);
             if (target == null || Mathf.Abs(damage) < 0.01f) return;
             if (col_isHead(target) && !IsPlayerObj(target)) damage *= HeadFactor(target);
+            if (Core.Multiplayer.DamageRemote(target, damage)) return;
             var fsms = target.GetComponents<PlayMakerFSM>();
             foreach (var f in fsms)
                 if (f.FsmName == "Bodypart")
@@ -1459,8 +1477,9 @@ namespace WildWasteland.Modules.Guns
                     if (v != null) v.Value = damage;
                 }
             float before = Core.Log.Verbose ? HealthOf(target) : 0f;
+            if (Core.Multiplayer.Hosting) Bridge.Hurt(target, s.ShooterRoot);
             foreach (var f in fsms) if (s.EventFsm == null || f.FsmName == s.EventFsm) f.SendEvent(s.EventName);
-            Bridge.Hurt(target, s.ShooterRoot);
+            if (!Core.Multiplayer.Hosting) Bridge.Hurt(target, s.ShooterRoot);
             if (Core.Log.Verbose)
                 Core.Log.Info("[Guns] Hit: " + (s.ShooterRoot != null ? s.ShooterRoot.name : "?") + " -> " + RootOf(target.transform).name + "/" + target.name + " at "
                     + dist.ToString("0.0") + " m, damage " + damage.ToString("0.0")
@@ -1550,8 +1569,8 @@ namespace WildWasteland.Modules.Guns
             for (var t = col.transform; t != null; t = t.parent)
                 if (t.CompareTag("vehPart")) { part = t; break; }
             if (part == null) return;
-
-
+            if (Core.MultiplayerParts.HitPart(part.gameObject, damage, 0, s.Dir))
+            { if (s.Gun != null) Bridge.PartHit(part.gameObject, point, PartLoss(part.gameObject, damage, 0)); return; }
             if (!GunsModule.VehicleDamage.Value) return;
             float pct = Mathf.Abs(damage) / Mathf.Max(1f, GunsModule.VehicleDamagePer1.Value);   // [Tracers] VehicleDamagePer1 bullet damage = 1 % condition
             bool wheel = IsWheel(col.transform, part);

@@ -1,6 +1,12 @@
-# AGENTS.md - Wild Wasteland
+# AGENTS.md - WildWastelandMP
 
 Instructions for every AI agent and session working in this repo. Read all of it before changing anything. Keep it current: if you learn something that would have saved you time, add it here (or to the project doc `claude/GAME_KNOWLEDGE.md` if it is about the game, not this repo).
+
+## WildWastelandMP scope
+
+This repository contains Wild Wasteland plus its ApocalypterMP bridge. The rules below also apply to host authority, client presentation, replication, and multiplayer save/lifecycle compatibility. Bridge changes may span Core and modules when required by the explicitly authorized MP work; unrelated changes remain out of scope.
+
+Use `V:\Repos\Apocalypter\WildWastelandMP`, build `WildWastelandMP.csproj`, and deploy `WildWastelandMP.dll` to `BepInEx\plugins\WildWastelandMP\`; these replace the base project's repo/build/deploy names below. Keep existing namespaces, plugin GUID, config/save keys and prefab IDs stable. Active MP progress and verification limits are in `compat/ApocalypterMP/RESUME.md`; local host/client launch instructions are in `README-MULTIPLAYER.md`.
 
 ## 0. Fixing issues: the default task (read this before anything else)
 

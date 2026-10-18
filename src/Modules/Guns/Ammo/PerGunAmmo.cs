@@ -12,7 +12,7 @@ namespace WildWasteland.Modules.Guns
     /// Save data: ES3 key "Apocaunloader.Magazines" inside the game's own save file, injected into the ES3 cache right after the
     /// game's SaveAll("global") and again right before the cache is flushed (StoreCachedFile), read before LoadAll("global").
     /// Key, format and timing are verbatim from Gunplay 1.3.0 / Apocaunloader 1.3.0 (save compatibility both ways).
-    internal static class PerGunAmmo
+    internal static partial class PerGunAmmo
     {
         internal const string SaveKey = "Apocaunloader.Magazines";
         private static MagazineLedger _ledger = new MagazineLedger();
@@ -89,6 +89,7 @@ namespace WildWasteland.Modules.Guns
         {
             if (_reload == null || _identity == null || _faulted || _loading) return;
             _ledger.Capture(_identity, _type, Read(_reload));
+            CaptureNetworkMagazine(_item, Read(_reload));
         }
 
         private static void Release()
@@ -116,6 +117,7 @@ namespace WildWasteland.Modules.Guns
             if (_item == item && _reload == reload) return;
             AmmoRunner.Unloader.CompleteForSwitch();
             Capture();
+            ReadNetworkMagazine(item, itemType.Value);
             var magazine = _ledger.Draw(item.name, itemType.Value, Read(reload));
             _item = item; _identity = item.name; _type = itemType.Value; _reload = reload; _handler = handler.FsmComponent;
             Apply(reload, magazine);
@@ -210,6 +212,7 @@ namespace WildWasteland.Modules.Guns
 
         internal static void Tick()
         {
+            if (Multiplayer.Active && On) Capture();
             if (_saveFsm == null && Time.unscaledTime >= _scanAt)
             {
                 // (WW) Core.GameRefs / SaveBus instead of a FindObjectsOfType scan per second
@@ -226,7 +229,7 @@ namespace WildWasteland.Modules.Guns
         {
             if (_loading || _faulted || _saving) return;
             AmmoRunner.Unloader.CompleteForSwitch();
-            if (On) { Capture(); _snapshot = _ledger.Encode(); }
+            if (On) { Capture(); ImportNetworkMagazines(); _snapshot = _ledger.Encode(); }
             _saving = true;
         }
 

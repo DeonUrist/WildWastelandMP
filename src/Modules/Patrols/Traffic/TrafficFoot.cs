@@ -87,6 +87,7 @@ namespace WildWasteland.Modules.Patrols
 
         private void FootStep(TrafficJourney journey, float seconds, Transform player)
         {
+            if (Core.Multiplayer.Hosting) { var nearest = Core.Multiplayer.NearestPlayer(TrafficSpace.Scene(journey.position)); if (nearest != null) player = nearest.transform; }
             var playerWorld = TrafficSpace.World(player.position);
             FootLive fl;
             _footLive.TryGetValue(journey.id, out fl);
@@ -169,6 +170,7 @@ namespace WildWasteland.Modules.Patrols
             var col = mob.GetComponent<Collider>();
             if (col != null) mob.transform.position += Vector3.up * (ground.y + 0.15f - col.bounds.min.y);
             Register.Name(mob, prefab.name); CrewAppearance.Dress(mob, w.identity, false);
+            Core.Multiplayer.RegisterActor(mob, CrewAppearance.Identity(mob, prefab.name), null);
             if (w.health > 0f) { Patrol.SetHealth(mob, w.health); mob.AddComponent<Patrol.LateHealth>().Value = w.health; }
             fl.Bodies[i] = mob; fl.Health[i] = CrewReturn.HealthVar(mob); fl.Spawned[i] = true; fl.Fails[i] = 0; fl.Ordered[i] = new Vector3(float.MaxValue, 0f, 0f);
             if (Core.Log.Verbose) PatrolsModule.Verbose("Foot patrol " + journey.name + ": walker " + mob.name + " spawned at " + mob.transform.position);

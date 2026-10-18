@@ -334,6 +334,7 @@ namespace WildWasteland.Modules.Patrols
             }
             foreach (var c in fx.GetComponentsInChildren<Collider>(true)) c.enabled = false;
             fx.SetActive(true);
+            Core.MultiplayerEffects.Track(fx, BlastPrefab, true);
             UnityEngine.Object.Destroy(fx, 8f);   // its own FSM destroys it after 2 s; this is only the safety net
             PatrolsModule.Verbose("Explode: blast effect at " + at + " (" + off + " harmful component(s) off)");
         }

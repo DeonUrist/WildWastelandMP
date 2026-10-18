@@ -27,6 +27,7 @@ namespace WildWasteland.Modules.Quests
         public int Completed { get { return book.TotalDone; } }
         public IList<QuestRow> Rows { get { return _rows; } }
         public IQuestConversation Conversation { get { return bridge; } }
+        internal object ConversationHost { get { return bridge.Instance; } }
         bool TrackerStyled { get { return Services.QuestUi != null && Services.QuestUi.Tracker; } }
         bool JournalStyled { get { return Services.QuestUi != null && Services.QuestUi.Journal; } }
         internal bool DialogueStyled { get { return Services.QuestUi != null && Services.QuestUi.Conversation; } }
@@ -82,6 +83,12 @@ namespace WildWasteland.Modules.Quests
         }
         internal void StateChanged(string previous, string state)
         {
+            if (Multiplayer.Client)
+            {
+                if (state == "LoadGame" || state == "setSeed" || state == "Start") { SceneReset(); book.Clear(); }
+                if (state == "isPlay") ready = true;
+                return;
+            }
             if (state == "LoadGame" || state == "setSeed" || state == "Start")
             {
                 bool fresh = state != "LoadGame";
@@ -125,6 +132,7 @@ namespace WildWasteland.Modules.Quests
             for (int i = 0; i < trackerLines.Count && i < book.Active.Count; i++)
                 _rows.Add(new QuestRow { Id = book.Active[i].Id, Text = trackerLines[i], Color = MapLink.QuestColor(book.Active[i].Id) });
         }
+        internal void RefreshPartyRows() { SnapshotRows(); }
         internal static bool Returning(Quest q) { return q.Type == QType.Deliver && q.Place == "WW:return-empty-delivery"; }
         bool DeliveryRecipient(Quest q, Vector3 position, float radius, bool returning)
         {

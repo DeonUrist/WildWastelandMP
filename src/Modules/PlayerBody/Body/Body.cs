@@ -212,6 +212,8 @@ namespace WildWasteland.Modules.PlayerBody
             var flexa = FlexaPrefab();
             if (flexa == null) return null;
             var animSrc = flexa.transform.Find("Anim");
+            var selected = MultiplayerModels.SelectedSource(); if (selected != null) animSrc = selected.transform;
+            if (MultiplayerModels.NativeSelection && selected == null) return null;
             if (animSrc == null) { PlayerBodyModule.Error("Flexa prefab has no Anim child"); return null; }
 
             var b = new Body();
@@ -712,6 +714,7 @@ namespace WildWasteland.Modules.PlayerBody
         private bool _fadeRootOn;
         private void CapturePose(Transform rel)
         {
+            _networkPosition = Root.transform.position; _networkRotation = Root.transform.rotation;
             BoneArrays();
             for (int i = 0; i < _boneArr.Length; i++) _shownQ[i] = _boneArr[i].localRotation;
             _shownAny = true;
@@ -937,7 +940,7 @@ namespace WildWasteland.Modules.PlayerBody
         private string _wheelArmOwner = "off";
         internal void LateWheelArms()
         {
-            if (_wheelPoseFrame == Time.frameCount) WheelArms.Solve(Bones, _wheelArmOwner);
+            if (_wheelPoseFrame == Time.frameCount && !CarSeat.Passenger) WheelArms.Solve(Bones, _wheelArmOwner);
         }
 
         public void LateCar(Transform player, bool firstPerson)

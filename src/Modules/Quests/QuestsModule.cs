@@ -48,21 +48,23 @@ namespace WildWasteland.Modules.Quests
             }
             if (Plugin.I != _engine) return;
             if (_engine.Ready && !QuestWorld.Ready) return;
+            if (Multiplayer.Client) { PartyQuests.ClientFrame(); _engine.InteractionFrame(); return; }
             _engine.Frame(); _engine.InteractionFrame(); QuestFollower.Tick();
         }
         void StartEngine()
         {
             _engine.Start(this, _hire, _voice); Services.Quests = _engine;
+            PartyQuests.Init(this, _engine, _engine.ConversationHost);
             SaveBus.StateChanged += StateChanged; Services.CrewBailedOut += CrewHistory.Bailed;
             QuestWorld.Begin(); if (SaveBus.State != null) StateChanged(null, SaveBus.State);
         }
-        void Late() { if (Plugin.I == _engine) { _engine.LateFrame(); QuestFollower.Late(); } }
+        void Late() { if (!Multiplayer.Client && Plugin.I == _engine) { _engine.LateFrame(); QuestFollower.Late(); } }
         bool Live { get { return Plugin.I == _engine && _engine.Ready && QuestWorld.Ready && GameRefs.InGame; } }
-        void Progress() { if (Live) _engine.Tick(); }
-        void Camps() { if (Live && GameRefs.Player != null) Takeover.NeutralizeTick(GameRefs.Player.transform.position); }
-        void Givers() { if (Live && GameRefs.Player != null) Takeover.GiverTick(_engine.book, GameRefs.Player.transform.position); }
+        void Progress() { if (Live && !Multiplayer.Client) { _engine.Tick(); PartyQuests.RemoteProgress(_engine.Tick); } }
+        void Camps() { if (Live && !Multiplayer.Client && GameRefs.Player != null) Takeover.NeutralizeTick(GameRefs.Player.transform.position); }
+        void Givers() { if (Live && !Multiplayer.Client && GameRefs.Player != null) Takeover.GiverTick(_engine.book, GameRefs.Player.transform.position); }
         void Map() { if (Live) _engine.SyncMapMarkers(); MapLink.Reconcile(); }
-        void Reputation() { if (Live) _engine.ReputationTick(); }
+        void Reputation() { if (Live && !Multiplayer.Client) _engine.ReputationTick(); }
         void Interaction() { if (Live) _engine.FindInteraction(); }
         bool WorldStep() { return Plugin.I == _engine && QuestWorld.Step(); }
         void Draw() { if (Plugin.I == _engine) { _engine.Draw(); _engine.DrawConversation(); } }
@@ -72,6 +74,7 @@ namespace WildWasteland.Modules.Quests
         { if (Plugin.I == _engine) { _engine.SceneReset(); QuestWorld.Begin(); } }
         public override void Shutdown()
         {
+            PartyQuests.Shutdown();
             SaveBus.StateChanged -= StateChanged; Services.CrewBailedOut -= CrewHistory.Bailed;
             if (ReferenceEquals(Services.Quests, _engine)) Services.Quests = null;
             if (Plugin.I == _engine) _engine.Stop();

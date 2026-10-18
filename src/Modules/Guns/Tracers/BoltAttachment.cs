@@ -89,6 +89,8 @@ namespace WildWasteland.Modules.Guns
 
         internal static void BoltCorpseSpawned(CreateObject action, GameObject made)
         {
+            RememberBoltCorpse(action, made);
+            if (Core.Multiplayer.Client) return;
             if (_landedBolts.Count == 0 || action.Fsm == null || action.Fsm.Name != "Health" || made == null) return;
             var owner = action.Fsm.GameObject.transform; bool attached = false;
             foreach (var b in _landedBolts) if (b.Owner == owner && b.Visual != null) { attached = true; break; }

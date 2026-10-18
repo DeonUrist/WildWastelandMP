@@ -29,7 +29,9 @@ namespace WildWasteland.Modules.Guns
 
         private static void LaunchBolt(ref Shot s)
         {
-            if (!s.Bolt || _boltMesh == null) return;
+            if (!s.Bolt) return;
+            if (_boltMesh == null) { var arm = PlayerRig.WeaponsArm; if (arm != null) CacheBoltModel(arm); }
+            if (_boltMesh == null) return;
             var go = new GameObject("WildWasteland.Guns.Bolt") { hideFlags = HideFlags.DontSave, layer = 9 };
             go.AddComponent<MeshFilter>().sharedMesh = _boltMesh;
             go.AddComponent<MeshRenderer>().sharedMaterials = _boltMaterials;
@@ -60,6 +62,8 @@ namespace WildWasteland.Modules.Guns
             else
             {
                 s.Pos = point + normal * 0.03f; MoveBolt(ref s);
+                if (!Core.Multiplayer.Client)
+                {
                 var physics = new GameObject("BoltPhysics") { layer = 2 }; physics.transform.SetParent(bolt, false);
                 var col = physics.AddComponent<CapsuleCollider>();
                 col.direction = 2; col.center = bounds.center; col.height = bounds.size.z;
@@ -68,14 +72,17 @@ namespace WildWasteland.Modules.Guns
                 rb.mass = 0.03f; rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
                 rb.velocity = Vector3.Reflect(s.Dir, normal) * Mathf.Min(s.Speed * 0.15f, 8f) + normal;
                 rb.angularVelocity = UnityEngine.Random.insideUnitSphere * 10f;
+                }
             }
             _landedBolts.Add(new LandedBolt { Visual = bolt, Owner = owner, Bone = owner != null ? BoltBonePath(anchor, owner) : null, Until = Time.time + 15f });
+            NetworkBoltLanded(ref s, bolt, anchor, soft, normal);
             s.Visual = null;
             if (Core.Log.Verbose) GunsModule.Verbose("Crossbow bolt: " + (soft ? "embedded halfway in " : "ricochet from ") + (target != null ? target.name : "world") + " (15 s)");
         }
 
         private static void TickBolts()
         {
+            TickNetworkBolts();
             for (int i = _landedBolts.Count - 1; i >= 0; i--)
             {
                 var b = _landedBolts[i];
@@ -90,6 +97,7 @@ namespace WildWasteland.Modules.Guns
             foreach (var s in _shots) if (s.Visual != null) UnityEngine.Object.Destroy(s.Visual.gameObject);
             foreach (var b in _landedBolts) if (b.Visual != null) UnityEngine.Object.Destroy(b.Visual.gameObject);
             _landedBolts.Clear(); _boltMesh = null; _boltMaterials = null;
+            ResetNetworkBolts();
             _boltSkins.Clear(); _boltVertices.Clear(); _boltTriangles.Clear(); _boltWeights.Clear();
             if (_boltSkin != null) UnityEngine.Object.Destroy(_boltSkin); _boltSkin = null;
         }

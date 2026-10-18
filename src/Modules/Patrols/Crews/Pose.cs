@@ -57,6 +57,7 @@ namespace WildWasteland.Modules.Patrols
         private void FindBones()
         {
             var all = _root.GetComponentsInChildren<Transform>(true);
+            Core.Multiplayer.RegisterRig(gameObject, all, true);
             _hips = Find(all, "Hips");
             _spine = Find(all, "Spine"); _spine1 = Find(all, "Spine1"); _spine2 = Find(all, "Spine2");
             _lUpLeg = Find(all, "LeftUpLeg"); _lLeg = Find(all, "LeftLeg");

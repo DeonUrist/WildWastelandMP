@@ -45,6 +45,9 @@ namespace WildWasteland.Modules.PlayerBody
         private static readonly List<Renderer> _hidden = new List<Renderer>();
 
         public static Transform Seat { get { return _seat; } }
+        private static Transform _player, _driverSeat;
+        private static bool _passenger;
+        internal static bool Passenger { get { return MultiplayerAvatars.LocalPassenger; } }
         private static Transform _failedCar; private static float _failedRetry;
         private static void Fail(Transform car, string why)
         {
@@ -56,8 +59,9 @@ namespace WildWasteland.Modules.PlayerBody
         public static bool Attach(Transform player)
         {
             if (player == null) { Detach(); return false; }
-            var car = player.root;
-            if (_seat != null && _seat.root == car) return true;
+            var car = Game.CarRoot;
+            if (car == null) { Detach(); return false; }
+            if (_seat != null && _seat.IsChildOf(car) && _passenger == Passenger) return true;
             Detach();
             if (car == _failedCar && Time.unscaledTime < _failedRetry) return false;      // (2.2.7) no usable seat: not searched again every frame
             var seat = Game.FindDeep(car, "PlayerModel_Sit");
@@ -69,8 +73,9 @@ namespace WildWasteland.Modules.PlayerBody
                 if (src[i] == null) { Fail(car, "seat bone " + Pairs[i].Src + " missing - the game's driver stays"); return false; }
             }
             _seat = seat; _src = src; _failedCar = null;
+            _player = player; _driverSeat = car.Find("DriveTrigger/sitPos"); _passenger = Passenger;
             PlayerBodyModule.Info("Car " + car.name + ": driver seat found");
-            if (PlayerBodyModule.ReplaceDriver.Value)
+            if (PlayerBodyModule.ReplaceDriver.Value && !Passenger)
                 foreach (var r in seat.GetComponentsInChildren<Renderer>(true))
                     if (r.enabled) { r.enabled = false; _hidden.Add(r); }
             PlayerBodyModule.Verbose("Sitting in " + car.name + ", driver model hidden (" + _hidden.Count + " renderers)");
@@ -82,6 +87,7 @@ namespace WildWasteland.Modules.PlayerBody
             foreach (var r in _hidden) if (r != null) r.enabled = true;
             _hidden.Clear();
             _seat = null; _src = null;
+            _player = _driverSeat = null;
         }
 
         // pose her skeleton from the seat's bones (her body root must not be mirrored here)
@@ -92,6 +98,7 @@ namespace WildWasteland.Modules.PlayerBody
             // a little lower than the game's man: his seat pose put her a bit high for the steering wheel
             Transform hips;
             if (PlayerBodyModule.SeatDrop.Value != 0f && bones.TryGetValue("mixamorig:Hips", out hips)) hips.position -= _seat.root.up * PlayerBodyModule.SeatDrop.Value;
+            if (Passenger && _player != null && _driverSeat != null && bones.TryGetValue("mixamorig:Hips", out hips)) hips.position += _player.position - _driverSeat.position;
         }
 
         // the bones of a Player2 man (car seat, TAB-screen model) -> her skeleton

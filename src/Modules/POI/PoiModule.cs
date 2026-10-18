@@ -70,7 +70,7 @@ namespace WildWasteland.Modules.POI
             for (int i = 0; i < _sites.Count; i++)
             {
                 var site = _sites[i]; if (site == null) continue;
-                bool inside = site.gameObject.activeInHierarchy && (p - site.transform.position).sqrMagnitude <= 500f * 500f;
+                bool inside = site.gameObject.activeInHierarchy && Multiplayer.PlayerDistance(site.transform.position, player.transform) <= 500f;
                 if (inside && !site.Inside) TrySpawn(site);
                 site.Inside = inside;
             }
@@ -211,7 +211,7 @@ namespace WildWasteland.Modules.POI
         {
             if (!_running || !_loaded || site == null || !site.gameObject.activeInHierarchy || site.Building || _spawned.Contains(site.Key) || !GameRefs.InGame || SaveBus.Busy) return;
             if (site.Definition.Enabled != null && !site.Definition.Enabled()) return;
-            var player = GameRefs.Player; if (player == null || (player.transform.position - site.transform.position).sqrMagnitude > 500f * 500f) return;
+            var player = GameRefs.Player; if (Multiplayer.PlayerDistance(site.transform.position, player != null ? player.transform : null) > 500f) return;
             site.Building = true;
             try { site.Definition.Spawn(site.transform.position, site.transform.rotation, site.Completed); }
             catch (Exception e) { site.Building = false; Log.Error("[POI] Spawn failed: " + site.Definition.Id, e); }
@@ -227,10 +227,10 @@ namespace WildWasteland.Modules.POI
             if (!_loaded || _slot != SaveBus.Slot) Load(SaveBus.Slot);
             _sites.RemoveAll(Missing); foreach (var site in _sites) TrySpawn(site);
         }
-        public override void OnSaveEnd(string slot)
+        public override void OnSaveBegin(string slot)
         {
             var snapshot = new List<string>(_spawned).ToArray();
-            SaveBus.AfterSave(() => Write(slot, snapshot));
+            Write(slot, snapshot);
         }
         private void Write(string slot, string[] snapshot)
         {

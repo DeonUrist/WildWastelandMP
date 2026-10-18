@@ -55,6 +55,7 @@ namespace WildWasteland.Modules.Patrols
 
         private static bool CanVirtualize(GameObject car, TrafficVehicle record)
         {
+            if (Core.Multiplayer.OwnedElsewhere(car)) return false;
             // Missing/looted parts or a detached trailer are left as real salvage; never rebuild them from a pristine template.
             return record.partPaths == null || record.partPaths.SequenceEqual(Parts(car));
         }

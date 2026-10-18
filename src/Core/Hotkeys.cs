@@ -46,11 +46,12 @@ namespace WildWasteland.Core
 
         internal static void Tick()
         {
-            if (_b.Count == 0 || !Application.isFocused) return;
+            if (_b.Count == 0 || !Application.isFocused || Multiplayer.Typing || MultiplayerSaving.Frozen) return;
             bool blocked = ApocasetterBridge.InputBlocked;
             for (int i = 0; i < _b.Count; i++)
             {
                 var b = _b[i];
+                if (!MultiplayerSettings.CanEdit(b.Entry)) continue;
                 var k = b.Entry.Value;
                 if (k == Key.None || !Pressed(k)) continue;
                 if (blocked && !(b.AllowWhilePaused && UI.EditorSession.Busy)) continue;

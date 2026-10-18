@@ -103,7 +103,7 @@ namespace WildWasteland.Modules.Quests
             Vector3 eye = camera.transform.position; float best = float.PositiveInfinity;
             foreach (var f in QuestWorld.People)
             {
-                if (f == null || f.FsmName != "Health" || f.ActiveStateName != "health" || !f.gameObject.activeInHierarchy) continue;
+                if (f == null || f.FsmName != "Health" || (!Multiplayer.Client && f.ActiveStateName != "health") || !f.gameObject.activeInHierarchy) continue;
                 var go = f.gameObject; if (go == GameRefs.Player || Game.IsPlayerEnemy(go) || (Services.FollowerVehicles != null && Services.FollowerVehicles.IsSeated(go))) continue;
                 string name = Game.BaseName(go.name);
                 if (!Person(name) || name.IndexOf("Dead", StringComparison.OrdinalIgnoreCase) >= 0) continue;

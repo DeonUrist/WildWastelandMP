@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
-    <AssemblyName>WildWasteland</AssemblyName>
+    <AssemblyName>WildWastelandMP</AssemblyName>
     <RootNamespace>WildWasteland</RootNamespace>
     <!-- Match old mcs (build.sh): C# 7, no local functions. -->
     <LangVersion>7.3</LangVersion>
@@ -73,7 +73,7 @@
     <Reference Include="Den.Tools"><HintPath>$(ManagedDir)\Den.Tools.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
-    <Copy SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFolder="$(GameDir)\BepInEx\plugins\WildWasteland" />
-    <Message Importance="high" Text="Deployed $(AssemblyName).dll to $(GameDir)\BepInEx\plugins\WildWasteland. md5 it and check the Loading line." />
+    <Copy SourceFiles="$(OutDir)$(AssemblyName).dll" DestinationFolder="$(GameDir)\BepInEx\plugins\WildWastelandMP" />
+    <Message Importance="high" Text="Deployed $(AssemblyName).dll to $(GameDir)\BepInEx\plugins\WildWastelandMP. md5 it and check the Loading line." />
   </Target>
 </Project>

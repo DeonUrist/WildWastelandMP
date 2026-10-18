@@ -29,15 +29,16 @@ namespace WildWasteland.Modules.NPC
             a.NextLook=now+interval;
             bool sanity=a.Tag=="MutantSanity";
             if(!sanity&&!SimpleBandits.Fighting(a.Owner))return;
-            var target=sanity?PlayerObj:SimpleBandits.Goal(a.Owner);
+            var target=sanity?null:SimpleBandits.Goal(a.Owner);
             // (crew AI) Patrols' goal is the player whenever the faction is hostile (any distance): the crew on foot take him only through the
             // senses (SimplePlayer) or while they remember fighting him (then also over a faction target Patrols picked meanwhile)
-            if(!sanity&&target!=null&&_player!=null&&(IsPlayer(target)||(a.Target==_player&&Remembers(a,_player,now))))target=SimplePlayer(a,now,interval);
+            if(sanity||target==null||IsPlayer(target)||IsPlayer(a.Target)||NearestRememberedPlayer(a,now)!=null)target=SimplePlayer(a,now,interval);
             if(target==null){Release(a);a.State=State.Idle;a.Target=null;if(a.DetectedVar!=null)a.DetectedVar.Value=null;return;}
             // Combat dismounts and insanity enemies keep their real target; no ghosts or search (the player: see SimplePlayer).
             if(a.Ghost!=null||a.State!=State.Combat||a.Target!=target)
             {Release(a);if(sanity)Log(a,"pursues the player (insanity)");}
-            a.State=State.Combat;a.Target=target;a.UnseenFor=0f;a.LastSeen=target.transform.position;
+            a.State=State.Combat;a.Target=target;
+            if(!IsPlayer(target)||a.UnseenSince<0f){a.UnseenFor=0f;a.LastSeen=target.transform.position;}
             if(a.DetectedVar!=null)a.DetectedVar.Value=target;
         }
         // (crew AI) a convoy crew member on foot and the player: noticed as any NPC notices (sight in its cone over NoticeSeconds..NoticeFar,
@@ -45,34 +46,32 @@ namespace WildWasteland.Modules.NPC
         // position), dropped LoseSeconds after the last sight once that memory is over -> idle (no ghost, no search)
         private static GameObject SimplePlayer(Agent a,float now,float interval)
         {
-            var p=_player;
-            bool fighting=(a.State==State.Combat||a.State==State.Hide)&&a.Target==p;
-            float sr=NpcModule.SightRange.Value;
-            Vector3 to=p.transform.position-a.T.position;
-            bool vis=to.sqrMagnitude<=sr*sr&&Visible(a,Eye(a),p,true,_playerInStorm);
-            if(vis)
+            float distance;var seen=NearestVisiblePlayer(a,Eye(a),interval,now,out distance);
+            if(seen!=null)
             {
-                a.SeenFor+=interval;a.UnseenSince=-1f;a.MemTrack=false;
-                if(fighting){FoughtFor(a,p,now,"fights him");return p;}
-                if(Remembers(a,p,now)){if(NpcModule.SensesLog.Value)Log(a,"sees the player it remembers fighting, fights (convoy crew on foot)");return p;}
-                if(a.SeenFor>=NoticeNeed(to.magnitude))
+                a.SeenFor=PlayerNotice(a,seen);
+                if(a.Target==seen||Remembers(a,seen,now)||PlayerReady(a,seen))
                 {
-                    if(NpcModule.SensesLog.Value)Log(a,"notices the player at "+to.magnitude.ToString("0")+" m (convoy crew on foot)");
-                    FoughtFor(a,p,now,"engages him");return p;
+                    a.UnseenSince=-1f;a.UnseenFor=0;a.MemTrack=false;
+                    FoughtFor(a,seen,now,a.Target==seen?"fights him":"independently notices him");return seen;
                 }
-                return null;
             }
-            a.SeenFor=Mathf.Max(0f,a.SeenFor-interval);
+            var p=IsPlayer(a.Target)&&PlayerAvailable(a.Target)?a.Target:NearestRememberedPlayer(a,now);
+            if(p==null)return null;
+            bool fighting=(a.State==State.Combat||a.State==State.Hide)&&a.Target==p;
+            PlayerContact contact;
+            if(a.Players.TryGetValue(p,out contact)&&contact.VisibleAt==now)
+            {a.UnseenSince=-1f;a.UnseenFor=0;a.MemTrack=false;FoughtFor(a,p,now,"fights him");return p;}
             if(fighting&&a.UnseenSince<0f)a.UnseenSince=now;
             if(Remembers(a,p,now))
             {
-                if(fighting&&!a.MemTrack){a.MemTrack=true;if(NpcModule.SensesLog.Value){a.UnseenFor=now-a.UnseenSince;Log(a,SightLossText(a,p)+" - kept: remembers fighting the player ("+(a.FoughtUntil-now).ToString("0")+" s more), follows his real position (convoy crew on foot)");}}
+                if(fighting&&!a.MemTrack){a.MemTrack=true;if(NpcModule.SensesLog.Value){a.UnseenFor=now-a.UnseenSince;Log(a,SightLossText(a,p)+" - kept: remembers fighting the player ("+(PlayerMemoryUntil(a,p)-now).ToString("0")+" s more), follows his real position (convoy crew on foot)");}}
                 else if(!fighting&&NpcModule.SensesLog.Value)Log(a,"remembers fighting the player, goes for him (convoy crew on foot)");
                 return p;
             }
             if(!fighting)return null;
             float unseen=now-a.UnseenSince;
-            if(unseen<Mathf.Max(0f,NpcModule.LoseSeconds.Value))return p;
+            if(unseen<Mathf.Max(5f,NpcModule.LoseSeconds.Value))return p;
             a.UnseenFor=unseen;
             if(NpcModule.SensesLog.Value)Log(a,SightLossText(a,p)+(a.MemTrack?" - its memory of fighting the player is over":"")+" - convoy crew on foot: drops him, idle");
             a.MemTrack=false;a.UnseenSince=-1f;a.SeenFor=0f;
@@ -81,9 +80,10 @@ namespace WildWasteland.Modules.NPC
         internal static bool SimpleSight(Transform from,GameObject owner,GameObject target)
         {
             var eye=from.position+Vector3.up*1.3f;var to=target.transform.position+Vector3.up-eye;
+            var car=PlayerVehicle(target);
             int n=Physics.RaycastNonAlloc(eye,to.normalized,SimpleHits,to.magnitude,Physics.DefaultRaycastLayers&~(1<<8),QueryTriggerInteraction.Ignore);
             if(n==SimpleHits.Length)return false;
-            for(int i=0;i<n;i++){var c=SimpleHits[i].collider;if(c!=null&&!c.transform.IsChildOf(owner.transform)&&!c.transform.IsChildOf(target.transform))return false;}
+            for(int i=0;i<n;i++){var c=SimpleHits[i].collider;if(c!=null&&!c.transform.IsChildOf(owner.transform.root)&&!c.transform.IsChildOf(target.transform.root)&&(car==null||!c.transform.IsChildOf(car.transform.root)))return false;}
             return true;
         }
         private static readonly RaycastHit[] SimpleHits=new RaycastHit[16];

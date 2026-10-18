@@ -37,7 +37,7 @@ namespace WildWasteland.Modules.CleanHUD
         {
             Clear(); _loaded = false; _fresh = fresh; Discovered.Clear();
         }
-        private static void StateChanged(string previous, string now) { if (now == "setSeed") Begin(true); }
+        private static void StateChanged(string previous, string now) { if (now == "setSeed") Begin(true); else if (now == "wait" || now == "SaveGame") SaveEnded(SaveBus.Slot); }
         private static int Seed() { var fsm = GameRefs.SaveLoadGame; var seed = fsm != null ? fsm.FsmVariables.FindFsmInt("seed") : null; return seed != null ? seed.Value : int.MinValue; }
         private static string SavePath(string slot) { return Path.Combine(Path.Combine(Core.Assets.ModuleConfigDir("CleanHUD"), "Saves"), Path.GetFileName(slot) + ".locations.txt"); }
         internal static void WorldReady(string slot)
@@ -63,12 +63,9 @@ namespace WildWasteland.Modules.CleanHUD
             _slot = slot;
             var lines = new string[Discovered.Count + 1]; lines[0] = _seed.ToString(CultureInfo.InvariantCulture); Discovered.CopyTo(lines, 1);
             string path = SavePath(slot);
-            SaveBus.AfterSave(() =>
-            {
-                Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllLines(path + ".tmp", lines);
-                if (File.Exists(path)) File.Replace(path + ".tmp", path, null); else File.Move(path + ".tmp", path);
-                if (Core.Log.Verbose) Core.Log.Info("[CleanHUD] Location discoveries saved: " + path);
-            });
+            Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllLines(path + ".tmp", lines);
+            if (File.Exists(path)) File.Replace(path + ".tmp", path, null); else File.Move(path + ".tmp", path);
+            if (Core.Log.Verbose) Core.Log.Info("[CleanHUD] Location discoveries saved: " + path);
         }
 
         internal static void Init()

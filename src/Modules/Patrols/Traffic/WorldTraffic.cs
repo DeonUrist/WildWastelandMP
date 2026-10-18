@@ -29,9 +29,20 @@ namespace WildWasteland.Modules.Patrols
             {goal=TrafficSpace.Scene(journey.arrived?journey.route[journey.route.Length-1]:RoadPath.Target(journey.route,journey.leg,TrafficSpace.World(transform.position),journey.speed));cruise=journey.speed;stop=journey.arrived||journey.waitSeconds>0f;return true;}
             Vector3 player, velocity; GameObject car;
             player=velocity=Vector3.zero;car=null;
-            bool hasPlayer = TrafficFactions.PlayerHostile(journey.faction)&&PlayerRef.Target(out player, out velocity, out car) && !PlayerRef.GodMode;
+            bool hasPlayer;
+            if(Core.Multiplayer.Hosting)
+            {
+                if(_pm==null)_pm=GetComponent<PatrolMarker>();
+                if(_pm!=null)TrafficFactions.ForCar(gameObject,_pm);
+                var sight=_pm!=null?_pm.PlayerSight:default(Core.NpcPlayerSight);
+                hasPlayer=TrafficFactions.PlayerHostile(journey.faction)&&sight.Player!=null&&(sight.Visible||sight.Heard||Time.time<sight.Until);
+                if(hasPlayer){player=sight.Position;car=Core.Multiplayer.IsRemotePlayer(sight.Player)?Core.Multiplayer.RemoteCar(sight.Player):PlayerRef.PlayerCar;}
+                _detected=hasPlayer&&(sight.Visible||sight.Heard);SeenUntil=hasPlayer?sight.Until:0;LastKnown=sight.WorldPosition;
+                Detection=!hasPlayer?"travelling":sight.Visible?"sight":sight.Heard?"engine":"last known";
+            }
+            else hasPlayer=TrafficFactions.PlayerHostile(journey.faction)&&PlayerRef.Target(out player,out velocity,out car)&&!PlayerRef.GodMode;
             float distance = hasPlayer ? TrafficLocations.FlatDistance(journey.position, TrafficSpace.World(player)) : float.MaxValue;
-            if (Time.time >= _nextSense)
+            if (!Core.Multiplayer.Hosting && Time.time >= _nextSense)
             {
                 _nextSense = Time.time + 0.5f;
                 bool saw = false, heard = false;
@@ -52,7 +63,7 @@ namespace WildWasteland.Modules.Patrols
                 Detection = saw ? "sight" : heard ? "engine" : Time.time < SeenUntil ? "last known" : "travelling";
                 _detected = saw || heard;
             }
-            hunt = hasPlayer && TrafficRules.Pursue(journey.convoy, Truck, distance, PatrolsModule.ConvoyGuardRange.Value,
+            hunt = hasPlayer && (!Core.Multiplayer.Hosting || _detected || Time.time<SeenUntil) && TrafficRules.Pursue(journey.convoy, Truck, distance, PatrolsModule.ConvoyGuardRange.Value,
                 _detected, Time.time < SeenUntil);
             if (hunt)
             {
@@ -101,7 +112,7 @@ namespace WildWasteland.Modules.Patrols
                 var hit=SightHits[i];
                 var t = hit.collider.transform;
                 if (t.IsChildOf(transform) || (playerCar != null && t.IsChildOf(playerCar.transform))
-                    || (PlayerRef.Player != null && t.IsChildOf(PlayerRef.Player))) continue;
+                    || (PlayerRef.Player != null && t.IsChildOf(PlayerRef.Player)) || Core.Multiplayer.IsRemotePlayer(t.gameObject)) continue;
                 return false;
             }
             return true;
@@ -113,6 +124,11 @@ namespace WildWasteland.Modules.Patrols
             get
             {
                 var journey = WorldTraffic.Find(Journey);
+                if(Core.Multiplayer.Hosting)
+                {
+                    if(_pm==null)_pm=GetComponent<PatrolMarker>();
+                    return _pm!=null&&(TrafficFactions.PlayerHostile(_pm.Faction)||TrafficFactions.ForCar(gameObject,_pm)!=null);
+                }
                 if(journey?.merchant==true)return TrafficFactions.ForCar(gameObject)!=null;
                 if(GetComponent<BattleCar>()!=null)return TrafficFactions.ForCar(gameObject)!=null;
                 var opposing=TrafficFactions.ForCar(gameObject);
@@ -121,8 +137,7 @@ namespace WildWasteland.Modules.Patrols
                 if (journey == null) return true;
                 if (!journey.convoy) return !PlayerRef.GodMode&&(_detected||Time.time<SeenUntil);
                 var player = PlayerRef.Player;
-                return player != null && !PlayerRef.GodMode
-                    && TrafficLocations.FlatDistance(journey.position, TrafficSpace.World(player.position)) <= PatrolsModule.ConvoyGuardRange.Value;
+                return Core.Multiplayer.PlayerDistance(TrafficSpace.Scene(journey.position),player,true) <= PatrolsModule.ConvoyGuardRange.Value;
             }
         }
     }
@@ -240,7 +255,7 @@ namespace WildWasteland.Modules.Patrols
             for (int jn = 0; jn < _tickJourneys.Count; jn++)
             {
                 var journey = _tickJourneys[jn];
-                if(journey.merchant&&journey.waitSeconds>0f)journey.waitSeconds=Mathf.Max(TrafficLocations.FlatDistance(journey.position,TrafficSpace.World(player.position))<=100f?1f:0f,journey.waitSeconds-seconds);
+                if(journey.merchant&&journey.waitSeconds>0f)journey.waitSeconds=Mathf.Max(Core.Multiplayer.PlayerDistance(TrafficSpace.Scene(journey.position),player,true)<=100f?1f:0f,journey.waitSeconds-seconds);
                 if(!string.IsNullOrEmpty(journey.battle))continue;
                 if(journey.foot){FootStep(journey,seconds,player);continue;}
                 _live.TryGetValue(journey.id, out var live);
@@ -276,8 +291,8 @@ namespace WildWasteland.Modules.Patrols
                     {
                         float reach = journey.leg == journey.route.Length - 1 ? 12f : 22f;
                         journey.Follow(TrafficSpace.World(leader.transform.position), reach);
-                        bool far = TrafficLocations.FlatDistance(journey.position, TrafficSpace.World(player.position)) > unload;
-                        if (far) foreach (var c in live.Cars.Values) if (c != null && !(Vector3.Distance(c.transform.position, player.position) > unload)) { far = false; break; }
+                        bool far = Core.Multiplayer.PlayerDistance(TrafficSpace.Scene(journey.position),player,true) > unload;
+                        if (far) foreach (var c in live.Cars.Values) if (c != null && !(Core.Multiplayer.PlayerDistance(c.transform.position,player) > unload)) { far = false; break; }
                         if (far) Unload(journey, live);
                     }
                     else
@@ -287,9 +302,9 @@ namespace WildWasteland.Modules.Patrols
                     }
                 }
                 if (!_live.ContainsKey(journey.id)&&journey.waitSeconds<=0f&&journey.TerrainRoute) journey.Advance(seconds);
-                bool nearDestination = TrafficLocations.FlatDistance(journey.position, TrafficSpace.World(player.position)) <= load;
+                bool nearDestination = Core.Multiplayer.PlayerDistance(TrafficSpace.Scene(journey.position),player,true) <= load;
                 bool nearMember = false;
-                if (live != null) foreach (var c in live.Cars.Values) if (c != null && Vector3.Distance(c.transform.position, player.position) <= load) { nearMember = true; break; }
+                if (live != null) foreach (var c in live.Cars.Values) if (c != null && Core.Multiplayer.PlayerDistance(c.transform.position,player) <= load) { nearMember = true; break; }
                 if (journey.Expire(seconds, nearDestination || nearMember, PatrolsModule.TrafficDestinationGrace.Value)) { Remove(journey); continue; }
                 if ((nearby>0||journey.roaming||journey.merchant||journey.freeRoute) && !_live.ContainsKey(journey.id) && nearDestination && !Convoy.AutosaveSoon(30f)
                     && RealCars < PatrolsModule.TrafficMaxRealCars.Value && EventBudget.Available(journey.id)>0)

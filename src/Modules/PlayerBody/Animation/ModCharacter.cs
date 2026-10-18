@@ -49,6 +49,9 @@ namespace WildWasteland.Modules.PlayerBody
                 _p.Kind = _kind == Props.Kind.Rifle ? LocoPlan.K_RIFLE : _kind == Props.Kind.Pistol ? LocoPlan.K_PISTOL : _kind == Props.Kind.Melee ? LocoPlan.K_MELEE
                         : _kind == Props.Kind.Throw ? LocoPlan.K_THROW : LocoPlan.K_NONE;
                 if (!Suspended) GrabWeapon();
+                if (Core.Multiplayer.Hosting)
+                    for (var node = _root; node != null; node = node.parent)
+                        if (Core.FsmUtil.Find(node.gameObject, "Health") != null) { Core.Multiplayer.RefreshRig(node.gameObject); break; }
             }
             public void Shoot() { _p.SetNow(Time.time); _p.Shoot(0.25f); }
             public void Shoot(float seconds) { _p.SetNow(Time.time); _p.Shoot(seconds); }

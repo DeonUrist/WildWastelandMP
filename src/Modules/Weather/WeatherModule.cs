@@ -9,7 +9,7 @@ using WildWasteland.Core.UI;
 namespace WildWasteland.Modules.Weather
 {
     // Native encounters keep their save anchors; Weather owns presentation and annular hazards.
-    public sealed class WeatherModule : ModuleBase, IWeatherRegions
+    public sealed partial class WeatherModule : ModuleBase, IWeatherRegions, IMultiplayerPresentation
     {
         private readonly WeatherRegion[] _regions = new WeatherRegion[4];
         private readonly float[] _ages = new float[4];
@@ -58,6 +58,7 @@ namespace WildWasteland.Modules.Weather
             _draw = Scheduler.EveryFrame(this, "Moving storm visuals", Tick, Phase.LateUpdateLast);
             _draw.Enabled = false;
             _native = new WeatherNative(this); _hazards = new WeatherHazards();
+            StartNetwork();
             Scheduler.EveryFrame(this,"Weather.HurricaneHazards",TickHazards,Phase.FixedUpdate);
             Scheduler.Gui(this,"Weather diagnostic label",WeatherDiagnostics.DrawOverlay,WeatherDiagnostics.WantsOverlay);
         }
@@ -324,6 +325,7 @@ namespace WildWasteland.Modules.Weather
         public override void OnSaveEnd(string slot) { if (_native!=null) _native.Save(false); }
         public override void Shutdown()
         {
+            if (_network != null) _network.Dispose(); _network = null;
             _running = false; Clear();
             if (_native!=null) _native.Dispose(); _native=null; _hazards=null;
             if (ReferenceEquals(Services.Weather, this)) Services.Weather = null;

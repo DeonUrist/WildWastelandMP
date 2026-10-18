@@ -817,6 +817,7 @@ namespace WildWasteland.Modules.Patrols
             }
             if (health >= 0f) { SetHealth(go, health); go.AddComponent<LateHealth>().Value = health; }
             PatrolsModule.Verbose(role + " " + go.name + " on " + anchor.name + " at " + pos);
+            Core.Multiplayer.RegisterActor(go, CrewAppearance.Identity(go, prefab.name), car);
             return go;
         }
 
@@ -1051,7 +1052,7 @@ namespace WildWasteland.Modules.Patrols
             Core.Services.RaiseCrewBailedOut(car, pax, mob);   // WW: the NPC module subscribes (ex its Harmony postfix on Apocapatrol.Patrol.BailOut)
             // awareness handover + return-to-car membership (pax is destroyed at the end of the frame; its name still tells the seat)
             CrewReturn.Dismounted(car, mob, pax.name.IndexOf("(Driver)", StringComparison.Ordinal) >= 0 ? CrewReturn.RoleDriver : CrewReturn.RolePassenger, -1,
-                CrewAppearance.Identity(mob, prefabName), null, null, false);
+                CrewAppearance.Identity(mob, prefabName), null, null, false, pax);
             return mob;
         }
 
@@ -1636,7 +1637,7 @@ namespace WildWasteland.Modules.Patrols
         {
             if (Registry() == null) return;
             var list = isVehicle ? _cars : _items;
-            if (list != null && list.arrayList != null) list.arrayList.Add(go);
+            if (list != null && list.arrayList != null) { list.arrayList.Add(go); Core.Multiplayer.Register(go, isVehicle); }
             else Core.Log.Warn("[Patrols] " + "NewGO_ArrayList has no '" + (isVehicle ? "car" : "item") + "' list");
         }
     }

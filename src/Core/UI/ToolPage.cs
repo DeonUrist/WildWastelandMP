@@ -135,7 +135,7 @@ namespace WildWasteland.Core.UI
             if (_pendingHeading != null) { DrawHeading(_pendingHeading); _pendingHeading = null; }
             return true;
         }
-        internal bool CanShowEntry(ConfigEntryBase e) { return e != null && (EntryFilter == null || EntryFilter(e)) && (!DeduplicateEntries || !_drawn.Contains(e)) && (Matches(e.Definition.Section) || Matches(e.Definition.Key) || Matches(PageLabel(e)) || Matches(e.Description != null ? e.Description.Description : null)); }
+        internal bool CanShowEntry(ConfigEntryBase e) { return e != null && MultiplayerSettings.CanEdit(e) && (EntryFilter == null || EntryFilter(e)) && (!DeduplicateEntries || !_drawn.Contains(e)) && (Matches(e.Definition.Section) || Matches(e.Definition.Key) || Matches(PageLabel(e)) || Matches(e.Description != null ? e.Description.Description : null)); }
         bool BeginEntry(ConfigEntryBase e) { if (!CanShowEntry(e)) return false; if (DeduplicateEntries && GUI.enabled) _drawn.Add(e); _insideEntry = true; ShowRow(null); return true; }
 
         public Rect Next(float h = Row)

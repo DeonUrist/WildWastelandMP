@@ -36,7 +36,9 @@ namespace WildWasteland.Modules.Survival
 
         internal void Tick(Runtime.Pot pot, float dt, bool live, Transform owner)
         {
-            if (live)
+            bool authority = WildWasteland.Core.Multiplayer.ItemAuthority(pot.Root);
+            if (!authority) { lastCook = StewLogic.Clock; nextCook = lastCook + 2f; nextSpoil = lastCook + 5f; coldSeconds = 0; }
+            if (live && authority)
             {
                 if (!Heating) coldSeconds += dt;
                 if (StewLogic.Clock >= nextCook)
@@ -212,6 +214,8 @@ namespace WildWasteland.Modules.Survival
                 }
             }
             if (!add || Target == null) return;
+            if (WildWasteland.Core.Multiplayer.Active) { Runtime.NetworkAdd(held, Target); return; }
+            if (!WildWasteland.Core.Multiplayer.RequestItemAuthority(Target.Root)) return;
             var stew = Target.Stew;
             if (stew.Nutrition + foodNutrition > Target.Amount.Value * 25f + .00001f)
             {
@@ -230,6 +234,8 @@ namespace WildWasteland.Modules.Survival
         }
 
         static bool ReadFood(GameObject go)
+        { return ReadIngredient(go, out foodNutrition, out foodInsanity, out foodRaw); }
+        internal static bool ReadIngredient(GameObject go, out float foodNutrition, out float foodInsanity, out bool foodRaw)
         {
             foodNutrition = foodInsanity = 0; foodRaw = false;
             if (go == null || go.name.IndexOf("rotten", StringComparison.OrdinalIgnoreCase) >= 0) return false;

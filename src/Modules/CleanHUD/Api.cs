@@ -9,6 +9,7 @@ namespace WildWasteland.Modules.CleanHUD.Api
     {
         // Built-in: diamond, dot, skull, flag, car, camp, cross, arrow; or a key given to Compass.RegisterIcon.
         public string Icon = "diamond";
+        public string Label = "";
         public Color Color = new Color(0.886f, 0.749f, 0.424f, 1f);
         public bool ShowDistance = true;   // "428 m", "1.9 km"
         public float MaxDistance = 0f;     // metres; 0 = no limit
@@ -17,7 +18,7 @@ namespace WildWasteland.Modules.CleanHUD.Api
 
         public Marker Clone()
         {
-            return new Marker { Icon = Icon, Color = Color, ShowDistance = ShowDistance, MaxDistance = MaxDistance, PinToEdge = PinToEdge, Priority = Priority };
+            return new Marker { Icon = Icon, Label = Label, Color = Color, ShowDistance = ShowDistance, MaxDistance = MaxDistance, PinToEdge = PinToEdge, Priority = Priority };
         }
     }
 

@@ -131,6 +131,8 @@ namespace WildWasteland.Modules.PlayerBody
         {
             bool allowed = PlayerBodyModule.Running && PlayerBodyModule.ThirdPersonOnFoot.Value && Game.Ready && Game.FirstPersonCameraOn;
             bool pressed = false;
+            if (WildWasteland.Core.Multiplayer.SessionActive && GameBindings.Down("Change Camera", KeyCode.C))
+                WildWasteland.Core.Log.Always("[MP camera] Change Camera: allowed=" + allowed + ", paused=" + Game.Paused + ", dead=" + Game.Dead + ", camera=" + Game.FirstPersonCameraOn + ", third=" + On + ", passenger=" + MultiplayerAvatars.LocalPassenger);
             if (allowed && !Game.Paused && !Game.Dead)
             {
                 // the game's Change Camera action (InsaneSystems InputManager: follows a rebind in the Controls screen); legacy axis only if unavailable

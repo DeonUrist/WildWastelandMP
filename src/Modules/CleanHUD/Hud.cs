@@ -826,10 +826,12 @@ namespace WildWasteland.Modules.CleanHUD
                     // takes another marker; values and format are unchanged.
                     bool km = s.Dist >= 1000f;
                     int distance = Mathf.RoundToInt(km ? s.Dist / 100f : s.Dist);
-                    if ((mv.Distance != distance || mv.Km != km) && (now >= mv.NextText || !ReferenceEquals(mv.Entry, s.E)))
+                    if ((mv.Distance != distance || mv.Km != km || !ReferenceEquals(mv.Entry, s.E)) && (now >= mv.NextText || !ReferenceEquals(mv.Entry, s.E)))
                     {
                         mv.Distance = distance; mv.Km = km; mv.NextText = now + .2f;
-                        mv.Dist.text = DistanceText(distance, km);
+                        mv.Dist.text = string.IsNullOrEmpty(s.E.Style.Label) ? DistanceText(distance, km) : s.E.Style.Label + "\n" + DistanceText(distance, km);
+                        mv.Dist.fontSize = string.IsNullOrEmpty(s.E.Style.Label) ? 21 : 16;
+                        mv.Dist.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, string.IsNullOrEmpty(s.E.Style.Label) ? 30 : 48);
                     }
                 }
                 mv.Entry = s.E;

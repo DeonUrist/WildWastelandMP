@@ -494,16 +494,26 @@ namespace WildWasteland.Modules.Quests
         // The nuts you hold; -1 when the money variable can't be found.
         public static int GetMoney(string configured)
         {
+            if (PartyQuests.RemotePeer != 0) return MultiplayerParty.Balance(PartyQuests.RemotePeer, "g.Money");
             FsmInt m = MoneyVar(configured);
             return m == null ? -1 : m.Value;
         }
 
         public static bool AddMoney(int amount, string configured)
         {
+            if (PartyQuests.RemotePeer != 0) return MultiplayerParty.Adjust(PartyQuests.RemotePeer, "g.Money", amount);
             FsmInt m = MoneyVar(configured);
             if (m == null) return false;
             m.Value = m.Value + amount;
             return true;
+        }
+
+        internal static bool AddPartyMoney(int amount, string configured)
+        {
+            if (Multiplayer.Client) return false;
+            var money = MoneyVar(configured); if (money == null || (long)money.Value + amount > int.MaxValue) return false;
+            money.Value += amount;
+            MultiplayerParty.Award(amount); return true;
         }
 
         // ---- items ------------------------------------------------------------------
@@ -709,7 +719,9 @@ namespace WildWasteland.Modules.Quests
                 if (!hit) continue;
                 if (fsm == null) fsm = AmmoFsm();
                 if (fsm == null) return;
-                FsmInt counter = FindInt(fsm, AmmoTypes[i][1]);
+                FsmInt counter = PartyQuests.RemotePeer != 0
+                    ? new FsmInt { Name = AmmoTypes[i][1], Value = Math.Max(0, MultiplayerParty.Balance(PartyQuests.RemotePeer, "a." + AmmoTypes[i][1])) }
+                    : FindInt(fsm, AmmoTypes[i][1]);
                 int per = int.Parse(AmmoTypes[i][2]);
                 if (counter == null || counter.Value < per) continue;
                 var h = new ItemHit();

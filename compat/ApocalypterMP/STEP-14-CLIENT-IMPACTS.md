@@ -1,0 +1,41 @@
+# Step 14 — client aiming and host bolt state
+
+2026-10-18. Non-live source/compile checkpoint on main base `91bff52450e27a461fdbced48317910058ce5cf2`. Paused after this important step. This supersedes step 13's missing crossbow correction stream, not its other outstanding source limitations. No deployment, live config change, commit/push, game/server launch or test harness. QuestsCompat stays retired.
+
+## Required behavior and cause
+
+Denis explicitly chose shooter-side collision: hit the exact creature where the client sees it, then send that result to the host. Recasting against the host's later pose would defeat aiming under latency. Previously guest creature damage used MP's generic creature-damage message; visual relays independently collided on each peer, and landed bolts/corpse attachments had no host correction stream. A clean compile of that implementation did not establish consistent impacts.
+
+## Implemented
+
+- Each shot/pellet has a world epoch, shooter peer and sequence. Guest creature hits reliably send the exact native creature ID, collider/body-part path, target-relative point/normal and damage after existing falloff/penetration/headshot adjustment. The host checks structural bounds, live target/body-part identity and duplicate receipts, attributes hurt to that guest and dispatches native Bodypart damage once. It does **not** raycast again, require the creature to remain in the old place, select a nearby replacement or reapply the headshot multiplier. Current host player position is also no longer used to reject a delayed visual launch.
+- Guest replay retains immediate local effects/hit feedback but skips primary and secondary gameplay hit events for reported creature hits. Native health replication remains the host's path. Melee, Guns-disabled/native shots and vehicle-part transactions retain their existing adapters; this does not replace all combat with a new protocol.
+- Crossbow launches use ordered reliable delivery. The shooter's skin intersection/bone choice supplies the embedded local position/rotation before the damage request on the same ordered stream. The host keeps that attachment, broadcasts its state and owns hard-surface ricochet physics. Guests use inert bolt meshes. The existing host corpse hook transfers the bolt to the matching corpse bone; snapshots capture that new parent/local transform. A short corpse-ID map also handles a landing arriving after the victim died.
+- First landing, parent changes and removals are reliable; ongoing poses update at 5 Hz. Guest resync requests every three seconds recover live landed bolts for late joins. Missing native roots/bones retain world-position presentation until the exact anchor exists, without attaching to another object. Parent scale compensation preserves the shaft's size.
+- Observers no longer perform their own projectile collision casts. Reliable creature-impact/world-end reports terminate the matching bullet/pellet visual; bolt snapshots terminate its flight and own the attachment. Bullet launch presentation remains unreliable, so a lost visual launch cannot discard a reliable damage result.
+- Per-shot receipts and removal tombstones reject duplicates/stale arrivals. Visual-cap exhaustion retains incoming bolt metadata so landing acceptance does not depend on available tracer slots. Launch replay checks allow unreliable bullets to overtake a reliable bolt. Session/world-generation resets clear transient records; unparented landed bolts follow floating-origin shifts.
+- WW handshake revision is **2** because visual-shot packets gained epoch fields. Every peer must use this same overlay; the supplied ApocalypterMP DLL is unchanged (protocol 21).
+
+Packets: 50/51 visual launch (updated), 125 guest bolt landing, 126 host bolt state/removal, 127 guest landed-bolt resync, 128 guest creature impact, 129 host flight termination, 130 guest non-creature flight termination. All new impact/state controls use the existing WW reliable transport except ongoing pose updates. No new Harmony targets: Guns reuses existing tracer interception and shared CreateObject/corpse observation.
+
+Source: `Guns/Tracers/NetworkBolts.cs`, `NetworkImpacts.cs`, `NetworkShots.cs`, `Tracers.cs`, `Bolts.cs`, `BoltAttachment.cs`; `Core/MultiplayerHandshake.cs`. Approximately 430 added/changed C# lines relative to step 13. No config entry or persistent save key/format added. Native 15-second bolt lifetime remains transient rather than creating saved world items.
+
+## Verification and limits
+
+Windows PowerShell `dotnet build WildWasteland.csproj -c Release -p:Deploy=false -v:minimal` succeeded with **zero warnings/errors** after resolving the explicit PlayMaker event-target overload. No source edits after the successful build; documentation/package only.
+
+DLL MD5 **7623546ED38FC56484C77AF3E188887B**; SHA256 **990FD564E4BAB61923C340CC5A164E5FA4F51082621CA2EC39D072BFBF65BDF1**. Not deployed. Complete source/patch/DLL package: external `V:\Repos\Apocalypter\_staging\ww-mp-20261018\rc33-step14\`, archive `WW-MP-RC33-step14-7623546E.zip`. The complete patch includes untracked files; `tracked.patch` alone is insufficient.
+
+This is not gameplay verification or completion of the whole MP objective. Exact weapon ownership, ammo consumption and damage authenticity still need stronger validation: these bounded reports intentionally trust the client's chosen collision and supplied shot values. There is no historical-pose reconstruction/anti-cheat claim. Accepted creature hits require a still-existing living native target; an already-dead/missing victim is ignored, never retargeted. Attachments depend on matching native roots/bone paths and the native arrow mesh; fallback world poses cover a missing anchor but do not establish matching prefab compatibility. The bounded active bolt table holds 512 records; impact receipts hold 8192 for 120 game seconds, tombstones last 30 game seconds. Tracer lines end when the accepted report arrives; this is not a separate synchronized blood/decal presentation system. Source limits for atomic item/ingredient transactions, save cleanup/lifecycle, non-bolt transient effects and optional EngineSim/runtime bridges remain in step 13.
+
+## Denis's manual test
+
+Use the same step-14 DLL/assets on host and guests, with a copied world. Enable WW global VerboseLog on the host; do not launch a server as part of this preparation.
+
+1. Shoot two nearby moving creatures with rifle and crossbow from a guest, then repeat while driving and under noticeable latency. Aim at the creature as displayed on that guest. Expect that exact creature/body part to lose health once, even after it moves on the host; the neighboring creature must not be substituted.
+2. Compare torso/head shots and shotgun pellets. Expect existing WW falloff/headshot behavior, immediate local hit feedback and one host damage application per pellet. Killing shots should retain normal party quest/reputation attribution.
+3. Embed a bolt in an animated limb, then kill the victim. Expect matching attachment on other peers and the matching corpse bone after death. Repeat with the kill landing before a delayed bolt report. Shoot terrain and metal; expect one host ricochet and guest presentation following it, with approximately 15-second cleanup.
+4. Join while bolts are embedded/ricocheting. Expect current host bolts after resync, without duplicates or new damage. Exercise tracer capacity, floating-origin shifts, pause/server save, reconnect and world load. Expect no stale bolt/damage crossing world epochs and no independent observer collision choosing another target.
+5. Logs: `[Multiplayer] Client impact: player ... shot ... -> <id>/<path>, damage ...; exact client target (no host recast)` confirms host creature dispatch; `[Multiplayer] Bolt accepted: player ... shot ..., anchor ...` confirms guest landing acceptance. Existing `Crossbow bolt: transferred to corpse bone ...` traces host corpse transfer. Missing logs require the installed DLL hash check and runtime investigation; compile success does not prove hooks ran.
+
+Next source batch: resume the remaining step-13 interaction/save lifecycle work, or correct step-14 issues from Denis's actual multiplayer logs. Keep the patch isolated and non-live unless Denis explicitly changes that scope.
