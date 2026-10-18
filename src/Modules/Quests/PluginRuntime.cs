@@ -48,6 +48,9 @@ namespace WildWasteland.Modules.Quests
             Core.Hooks.GetButtonDo.Prefix(owner, BlockButton);
             Core.Hooks.GetButtonUpUpdate.Prefix(owner, BlockButtonUp);
             Core.Hooks.GetMouseButtonDownUpdate.Prefix(owner, BlockMouse);
+            if (Core.Patches.Patch(owner, Core.Patches.Method(typeof(MouseLook), "DoMouseLook"),
+                prefix: Core.Patches.Method(typeof(Plugin), "BlockLook")))
+                Core.Log.Always("[Quests] Conversation mouse-look guard installed.");
             Hotkeys.Register(owner, logKey, ToggleJournal, CanJournal);
             Hotkeys.Register(owner, hiring.dismissKey, DismissFollower, CanDismiss);
             Hotkeys.Register(owner, dumpKey, DumpFaction, CanJournal);
@@ -69,6 +72,7 @@ namespace WildWasteland.Modules.Quests
         static bool BlockButton(GetButton action) { return I == null || !I.bridge.NativeOpen; }
         static bool BlockButtonUp(GetButtonUp action) { return I == null || !I.bridge.NativeOpen; }
         static bool BlockMouse(GetMouseButtonDown action) { return I == null || !I.bridge.NativeOpen; }
+        static bool BlockLook(MouseLook __instance) { return I == null || !I.bridge.NativeOpen || __instance.Owner != GameRefs.Player; }
         bool CanJournal() { return ready && GameRefs.InGame && !bridge.TalkingNow; }
         bool CanDismiss() { return ready && Hire.Active && GameRefs.InGame; }
         void ToggleJournal() { if (!GamePaused()) showLog = !showLog; }

@@ -229,6 +229,7 @@ Quests runs directly as a WW module; all former Quests/Hire/Takeover/Game privat
 |---|---|---|---|
 | Quests | Shared Hooks.CreateObjectEnter | Death postfix; source kill/giver-death notifications | Health FSM spawn state, ready world |
 | Quests | Shared Hooks.GetButtonDownUpdate / GetButtonDo / GetButtonUpUpdate / GetMouseButtonDownUpdate | Input prefixes | Original native quest conversation only; scoped input blocking |
+| Quests | HutongGames.PlayMaker.Actions.MouseLook.DoMouseLook | BlockLook prefix | Native conversation flag first, then player owner; skips mouse reads/rotation while open, independently of PlayerBody and CleanHUD |
 | Quests | Optional Talk.Plugin.Open / Close | Opened / Closed postfixes | Attach native quest choices/flags/voice lifecycle to original Talk content |
 | CleanHUD | Optional Talk.DialogueUI.ShowDialogue / AppendChatLine / SetChoices | Changed postfix | Invalidate mirrored dialogue; source content retained |
 

@@ -13,6 +13,7 @@ namespace WildWasteland.Modules.Quests
     // the quest and the NPC so the same person keeps the same voice through the whole quest; the first one that has the file is played.
     internal static partial class Voice
     {
+        static readonly bool PlaybackEnabled = false; // Temporary until the quest recordings are complete.
         static ConfigEntry<bool> enabled;
         static ConfigEntry<float> volume;
         static ConfigEntry<string> folderCfg;
@@ -27,6 +28,7 @@ namespace WildWasteland.Modules.Quests
         public static void Init(VoiceSettings cfg, string dllDir)
         {
             enabled = cfg.enabled;
+            Core.Log.Always("[Quests] Quest voicelines temporarily disabled (recording set incomplete).");
             volume = cfg.volume;
 
             spatial = cfg.spatial;
@@ -48,7 +50,7 @@ namespace WildWasteland.Modules.Quests
         {
             try
             {
-                if (enabled == null || !enabled.Value || q == null || string.IsNullOrEmpty(q.Id) || q.Id.StartsWith("gen:")) return false;
+                if (!PlaybackEnabled || enabled == null || !enabled.Value || q == null || string.IsNullOrEmpty(q.Id) || q.Id.StartsWith("gen:")) return false;
                 string r = Root();
                 if (r == null) return false;
                 string[] actors = Directory.GetDirectories(r);
