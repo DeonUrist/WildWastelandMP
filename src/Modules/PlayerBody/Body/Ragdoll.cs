@@ -13,6 +13,7 @@ namespace WildWasteland.Modules.PlayerBody
         private readonly List<Collider> _colliders = new List<Collider>();
         public Vector3 Focus { get { return _bodies.Count > 0 ? _bodies[0].position : _root.transform.position; } }
         internal Rigidbody[] Bodies { get { return _bodies.ToArray(); } }
+        internal Collider[] Colliders { get { return _colliders.ToArray(); } }
 
         public Ragdoll(Dictionary<string, Transform> bones, Vector3 velocity, Transform car, bool sleeping = false)
         {
@@ -37,7 +38,7 @@ namespace WildWasteland.Modules.PlayerBody
                 foreach (var c in player) if (c != null) Physics.IgnoreCollision(_colliders[i], c);
                 foreach (var c in vehicle) if (c != null) Physics.IgnoreCollision(_colliders[i], c);
             }
-            foreach (var rb in _bodies) { rb.isKinematic = false; rb.velocity = Vector3.ClampMagnitude(velocity, 25f); }
+            if (!sleeping) foreach (var rb in _bodies) { rb.isKinematic = false; rb.velocity = Vector3.ClampMagnitude(velocity, 25f); }
             // A small upper-body impulse breaks the upright balance when killed at rest.
             if (!sleeping && _bodies.Count > 1) _bodies[1].AddForce(Vector3.back * 1.2f, ForceMode.VelocityChange);
         }

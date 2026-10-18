@@ -20,9 +20,11 @@ namespace WildWasteland.Modules.PlayerBody
         readonly GameObject _root;
         readonly Ragdoll _ragdoll;
         readonly Rigidbody[] _bodies;
+        readonly Collider[] _colliders;
         readonly Material _material;
         public GameObject Root { get { return _root; } }
         public Rigidbody[] Bodies { get { return _bodies; } }
+        public Collider[] Colliders { get { return _colliders; } }
         public SleepingBody(Animator source, int choice, Vector3 position, float yaw)
         {
             _root = new GameObject("WWMP Sleeping body"); _root.SetActive(false);
@@ -30,16 +32,16 @@ namespace WildWasteland.Modules.PlayerBody
             {
                 var model = UnityEngine.Object.Instantiate(source.gameObject, _root.transform, false);
                 foreach (var component in model.GetComponentsInChildren<Component>(true))
-                    if (!(component is Transform) && !(component is Animator) && !(component is SkinnedMeshRenderer) && !(component is MeshRenderer) && !(component is MeshFilter))
+                    if (component != null && !(component is Transform) && !(component is Animator) && !(component is SkinnedMeshRenderer) && !(component is MeshRenderer) && !(component is MeshFilter))
                         UnityEngine.Object.DestroyImmediate(component);
-                foreach (var prop in model.GetComponentsInChildren<MeshFilter>(true)) UnityEngine.Object.DestroyImmediate(prop.gameObject);
+                foreach (var prop in model.GetComponentsInChildren<MeshFilter>(true)) if (prop != null) UnityEngine.Object.DestroyImmediate(prop.gameObject);
                 var bones = new Dictionary<string, Transform>(StringComparer.Ordinal);
                 foreach (var bone in model.GetComponentsInChildren<Transform>(true))
                 { bone.gameObject.layer = 2; if (bone.name.StartsWith("mixamorig:", StringComparison.Ordinal)) bones[bone.name] = bone; }
                 SkinnedMeshRenderer skin = null;
-                foreach (var candidate in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (candidate.bones.Length >= 20) { skin = candidate; break; }
+                foreach (var candidate in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (candidate != null && candidate.bones.Length >= 20) { skin = candidate; break; }
                 if (skin == null || !bones.ContainsKey("mixamorig:Hips")) throw new InvalidOperationException("Sleeper skeleton is incomplete");
-                foreach (var other in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (other != skin) UnityEngine.Object.DestroyImmediate(other.gameObject);
+                foreach (var other in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (other != null && other != skin) UnityEngine.Object.DestroyImmediate(other.gameObject);
                 if (MultiplayerModels.CustomSkin(choice)) _material = Model.RemoteSkin(skin, choice);
                 var animator = model.GetComponent<Animator>(); animator.runtimeAnimatorController = null; animator.enabled = false;
                 skin.updateWhenOffscreen = true;
@@ -47,7 +49,8 @@ namespace WildWasteland.Modules.PlayerBody
                 model.transform.position += position - bones["mixamorig:Hips"].position;
                 _root.SetActive(true);
                 _ragdoll = new Ragdoll(bones, Vector3.zero, null, true); _bodies = _ragdoll.Bodies;
-                foreach (var body in _bodies) body.isKinematic = true;
+                _colliders = _ragdoll.Colliders;
+                Physics.SyncTransforms();
             }
             catch { Dispose(); throw; }
         }

@@ -18,6 +18,7 @@ namespace WildWasteland.Core
     {
         GameObject Root { get; }
         Rigidbody[] Bodies { get; }
+        Collider[] Colliders { get; }
         void Apply();
     }
     internal static class MultiplayerSleepers
@@ -29,8 +30,10 @@ namespace WildWasteland.Core
         sealed class Sleeper
         {
             internal int Id, Choice; internal string Name, CarryHint; internal object Record; internal ulong Carrier = Nobody;
-            internal uint Sequence; internal float NextBuild, NextGround; internal bool HasPose, Supported;
+            internal uint Sequence; internal float NextBuild, NextGround; internal bool HasPose, Supported, Place = true;
             internal ISleepingBody Body; internal TextMesh Label;
+            internal readonly TerrainCollider[] Ground = new TerrainCollider[BoneCount];
+            internal readonly MapMagic.Terrains.TerrainTile[] Tiles = new MapMagic.Terrains.TerrainTile[BoneCount];
             internal readonly Vector3[] Positions = new Vector3[BoneCount];
             internal readonly Quaternion[] Rotations = new Quaternion[BoneCount];
         }
@@ -94,7 +97,7 @@ namespace WildWasteland.Core
         { if (sleeper.Label != null) MultiplayerNames.RemoveSleeper(sleeper.Label); if (sleeper.Body != null) sleeper.Body.Dispose(); sleeper.Body = null; sleeper.Label = null; }
         internal static void Left(ulong peer, object record)
         {
-            foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == peer) sleeper.Carrier = Nobody;
+            foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == peer) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
             if (!Multiplayer.Hosting || !Multiplayer.WorldReady || record == null || !_hasPosition(record) || _closing(null) || _stopping) return;
             float health; var stats = _stats(record);
             if (stats.TryGetValue("p.Health", out health) && health < 1) return;
@@ -157,6 +160,7 @@ namespace WildWasteland.Core
                         MultiplayerNames.AddSleeper(sleeper.Label);
                         if (Multiplayer.Hosting) Capture(sleeper);
                         else if (sleeper.HasPose) Apply(sleeper, 1f);
+                        Log.Always("[Multiplayer] Sleeping body ready: " + sleeper.Name);
                     }
                     catch (Exception error) { Destroy(sleeper); Log.Error("[Multiplayer] Sleeping body could not be built", error); }
                 }
@@ -190,24 +194,25 @@ namespace WildWasteland.Core
         }
         static void PhysicsTick()
         {
-            if (!Multiplayer.Hosting || !Multiplayer.WorldReady) return;
+            if (!Multiplayer.Hosting) return;
             foreach (var sleeper in Bodies.Values)
             {
                 if (sleeper.Body == null) continue;
                 var bones = sleeper.Body.Bodies; var hip = bones[0]; var carrier = sleeper.Carrier != Nobody ? Multiplayer.PlayerFor(sleeper.Carrier) : null;
-                if (sleeper.Carrier != Nobody && (carrier == null || !carrier.activeInHierarchy || (sleeper.Carrier == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(sleeper.Carrier) || MultiplayerPlayers.Car(sleeper.Carrier) != null))) sleeper.Carrier = Nobody;
+                if (sleeper.Carrier != Nobody && (carrier == null || !carrier.activeInHierarchy || (sleeper.Carrier == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(sleeper.Carrier) || MultiplayerPlayers.Car(sleeper.Carrier) != null)))
+                { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
                 bool carrying = sleeper.Carrier != Nobody;
-                bool simulate = !MultiplayerSaving.Frozen && !SaveBus.Busy && GameRefs.WorldRunning;
-                if (Time.unscaledTime >= sleeper.NextGround)
+                bool simulate = Multiplayer.WorldReady && !MultiplayerSaving.Frozen && !SaveBus.Busy && GameRefs.WorldRunning;
+                if (simulate && !carrying && Time.unscaledTime >= sleeper.NextGround)
                 {
-                    sleeper.NextGround = Time.unscaledTime + .5f; RaycastHit ground;
-                    sleeper.Supported = Physics.Raycast(hip.position + Vector3.up * 2f, Vector3.down, out ground, 8f, (1 << 14) | (1 << 0) | (1 << 8) | (1 << 16), QueryTriggerInteraction.Ignore) && ground.collider.name != "Draft Terrain";
+                    sleeper.NextGround = Time.unscaledTime + .5f; ProbeGround(sleeper);
                 }
-                simulate &= carrying || sleeper.Supported;
+                simulate &= carrying || sleeper.Supported && GroundReady(sleeper);
                 for (int i = 0; i < bones.Length; i++)
                 {
                     bool kinematic = !simulate || carrying;
-                    if (bones[i].isKinematic != kinematic) bones[i].isKinematic = kinematic;
+                    if (bones[i].isKinematic != kinematic)
+                    { bones[i].isKinematic = kinematic; if (!kinematic) { bones[i].velocity = Vector3.zero; bones[i].angularVelocity = Vector3.zero; } }
                 }
                 if (simulate && carrying)
                 {
@@ -216,6 +221,36 @@ namespace WildWasteland.Core
                     for (int i = 0; i < bones.Length; i++) bones[i].MovePosition(bones[i].position + delta);
                 }
             }
+        }
+        static bool GroundReady(Sleeper sleeper)
+        {
+            var bones = sleeper.Body.Bodies;
+            for (int i = 0; i < BoneCount; i++)
+            {
+                var ground = sleeper.Ground[i]; var tile = sleeper.Tiles[i];
+                if (ground == null || !ground.enabled || !ground.gameObject.activeInHierarchy || ground.name == "Draft Terrain"
+                    || tile != null && (tile.main == null || !tile.main.applyReady || tile.main.terrain == null || ground.gameObject != tile.main.terrain.gameObject)) return false;
+                var bounds = ground.bounds; var p = bones[i].position;
+                if (p.x < bounds.min.x || p.x > bounds.max.x || p.z < bounds.min.z || p.z > bounds.max.z) return false;
+            }
+            return true;
+        }
+        static void ProbeGround(Sleeper sleeper)
+        {
+            var bones = sleeper.Body.Bodies; float lift = 0; sleeper.Supported = false;
+            for (int i = 0; i < BoneCount; i++)
+            {
+                RaycastHit hit;
+                if (!Physics.Raycast(bones[i].position + Vector3.up * 1500f, Vector3.down, out hit, 3000f, 1 << 14, QueryTriggerInteraction.Ignore) || !(hit.collider is TerrainCollider)) return;
+                var ground = (TerrainCollider)hit.collider;
+                if (sleeper.Ground[i] != ground) { sleeper.Ground[i] = ground; sleeper.Tiles[i] = ground.GetComponentInParent<MapMagic.Terrains.TerrainTile>(); }
+                // New/dropped poses may start partly under the surface. Lift the whole body before releasing physics.
+                if (sleeper.Place || bones[i].position.y < hit.point.y - .25f) lift = Mathf.Max(lift, hit.point.y + .05f - sleeper.Body.Colliders[i].bounds.min.y);
+            }
+            if (!GroundReady(sleeper)) return;
+            if (lift > 0)
+            { foreach (var bone in bones) { bone.isKinematic = true; bone.position += Vector3.up * lift; } Physics.SyncTransforms(); }
+            sleeper.Place = false; sleeper.Supported = true;
         }
         static void Apply(Sleeper sleeper, float blend)
         {
@@ -271,7 +306,7 @@ namespace WildWasteland.Core
         {
             Sleeper sleeper; var player = Multiplayer.PlayerFor(from);
             if (player == null || !Bodies.TryGetValue(id, out sleeper) || sleeper.Body == null || MultiplayerSaving.Frozen || SaveBus.Busy) return;
-            if (!take) { if (sleeper.Carrier == from) { sleeper.Carrier = Nobody; Store(sleeper); MultiplayerRecovery.Checkpoint(); Capture(sleeper); Publish(sleeper, true); } return; }
+            if (!take) { if (sleeper.Carrier == from) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; Store(sleeper); MultiplayerRecovery.Checkpoint(); Capture(sleeper); Publish(sleeper, true); } return; }
             if (sleeper.Carrier != Nobody || (from == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(from) || MultiplayerPlayers.Car(from) != null)) return;
             foreach (var other in Bodies.Values) if (other.Carrier == from) return;
             var delta = sleeper.Body.Bodies[0].position - player.transform.position;
