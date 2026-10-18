@@ -12,8 +12,9 @@ namespace WildWasteland.Modules.PlayerBody
         private readonly List<Rigidbody> _bodies = new List<Rigidbody>();
         private readonly List<Collider> _colliders = new List<Collider>();
         public Vector3 Focus { get { return _bodies.Count > 0 ? _bodies[0].position : _root.transform.position; } }
+        internal Rigidbody[] Bodies { get { return _bodies.ToArray(); } }
 
-        public Ragdoll(Dictionary<string, Transform> bones, Vector3 velocity, Transform car)
+        public Ragdoll(Dictionary<string, Transform> bones, Vector3 velocity, Transform car, bool sleeping = false)
         {
             Add(bones, "Hips", "Spine", -1, 0.16f, 12f);
             Add(bones, "Spine2", "Neck", 0, 0.17f, 18f);
@@ -38,7 +39,7 @@ namespace WildWasteland.Modules.PlayerBody
             }
             foreach (var rb in _bodies) { rb.isKinematic = false; rb.velocity = Vector3.ClampMagnitude(velocity, 25f); }
             // A small upper-body impulse breaks the upright balance when killed at rest.
-            if (_bodies.Count > 1) _bodies[1].AddForce(Vector3.back * 1.2f, ForceMode.VelocityChange);
+            if (!sleeping && _bodies.Count > 1) _bodies[1].AddForce(Vector3.back * 1.2f, ForceMode.VelocityChange);
         }
 
         private void Add(Dictionary<string, Transform> bones, string name, string end, int parent, float radius, float mass)

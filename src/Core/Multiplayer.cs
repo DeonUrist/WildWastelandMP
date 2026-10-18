@@ -206,6 +206,8 @@ namespace WildWasteland.Core
                 MultiplayerHosting.Install();
                 MultiplayerNotifications.Install();
                 MultiplayerRecovery.Install();
+                MultiplayerSleepers.Install();
+                MultiplayerRespawn.Install();
                 MultiplayerHandshake.Install();
                 MultiplayerEffects.Install();
                 MultiplayerForces.Install();

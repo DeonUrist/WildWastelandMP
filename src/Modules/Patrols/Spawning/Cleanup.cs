@@ -49,6 +49,7 @@ namespace WildWasteland.Modules.Patrols
             foreach (var m in all)
             {
                 if (m == null) continue;
+                if (Core.MultiplayerRespawn.ProtectedObject(m.gameObject)) { m.FarSeconds = 0f; continue; }
                 if (Core.Multiplayer.OwnedElsewhere(m.gameObject)) { m.PlayerEntered = true; m.FarSeconds = 0f; continue; }
                 if (WarRig.PoiEncounter.Protected(m.gameObject)) continue;
                 if (WorldTraffic.Owns(m)) continue; // traffic unloads its own representations while retaining world records
@@ -96,6 +97,7 @@ namespace WildWasteland.Modules.Patrols
         internal static void Remove(PatrolMarker m, string why)
         {
             var car = m.gameObject;
+            if (Core.MultiplayerRespawn.ProtectedObject(car)) return;
             if (Core.Multiplayer.OwnedElsewhere(car)) { m.PlayerEntered = true; return; }
             if (WarRig.PoiEncounter.Protected(car)) return;
             PatrolsModule.Verbose("Cleanup: removed " + car.name + " (" + why + ")");

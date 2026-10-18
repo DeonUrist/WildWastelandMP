@@ -154,6 +154,7 @@ namespace WildWasteland.Core
         static string[] CaptureLines()
         {
             _refresh();
+            MultiplayerSleepers.StoreAll();
             var lines = new List<string>(); lines.Add(Header + "\t" + _snapshotId + "\t" + DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture) + "\t" + WorldSeed().ToString(CultureInfo.InvariantCulture));
             foreach (DictionaryEntry entry in _records(null)) if ((string)entry.Key != "host") AddRecord(lines, entry.Value);
             if (GameRefs.Player != null)

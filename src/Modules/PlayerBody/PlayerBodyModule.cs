@@ -98,6 +98,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             Instance = this;
             // ---- F6: one toggle per feature (feature order), then the player options
+            Services.SleepingBodies = new SleepingBodies();
             Character = cfg.Player("", "Character", Gender.Male, "Your character's body. Male, Female, Merchant, Bodyguard, Sprokka, OrganicMechanic, Gungirl and Shoota use Wild Wasteland player animations, online or offline. Legacy Pistoleer/Mechanic choices map to Bodyguard/Merchant.");
             Mig(Character, "General", "Character");
             Character.Value = (Gender)CharacterPortraits.Canonical((int)Character.Value);

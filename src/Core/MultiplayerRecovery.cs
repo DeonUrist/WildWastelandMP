@@ -87,8 +87,8 @@ namespace WildWasteland.Core
                 if (value != null && __0.TryGetValue("ww." + name, out saved) && !float.IsNaN(saved) && !float.IsInfinity(saved)) value.Value = Mathf.Max(0, saved);
             }
         }
-        static void PlayerOpened(string __0)
-        { if (Multiplayer.Hosting && __0 != "host") Dirty.Add(__0); }
+        static void PlayerOpened(string __0, object __result)
+        { if (Multiplayer.Hosting && __0 != "host") { MultiplayerSleepers.Waking(__result); Dirty.Add(__0); } }
         static void HostClosing()
         { if (Multiplayer.Hosting) foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) Clean.Add(peer); }
         static void PeerLeft(ulong __0, object __1)
@@ -98,6 +98,7 @@ namespace WildWasteland.Core
             if (clean) { Dirty.Remove(key); _stats(__1).Remove(RecoveryKey); }
             else { Dirty.Add(key); _stats(__1)[RecoveryKey] = 1; }
             Waiting.Remove(__0);
+            MultiplayerSleepers.Left(__0, __1);
             // Native has just refreshed and detached this owner's items; retain that validated state, including offline players.
             Checkpoint();
         }

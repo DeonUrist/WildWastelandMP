@@ -18,6 +18,7 @@ namespace WildWasteland.Core
         public static INpcAppearance NpcAppearance;
         // Asset paths follow bound settings even while NPC simulation is off; no runtime NPC state is retained.
         public static ICharacterAssets CharacterAssets;
+        internal static ISleepingBodies SleepingBodies;
         /// <summary>Guns (Guns module, ex Gunplay.Api). Null when Guns is off.</summary>
         public static IGunsApi Guns;
         /// <summary>Hit feedback (HUD module, ex GunplayHUD.Api). Null when HUD is off.</summary>

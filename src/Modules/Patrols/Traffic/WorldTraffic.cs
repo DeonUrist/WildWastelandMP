@@ -268,6 +268,8 @@ namespace WildWasteland.Modules.Patrols
                         var car = pair.Value;
                         var marker = car != null ? car.GetComponent<PatrolMarker>() : null;
                         var crew = car != null ? car.GetComponent<Crew>() : null;
+                        if (Core.MultiplayerRespawn.ProtectedObject(car))
+                        { journey.vehicles[pair.Key].retired = true; Detach(car); live.Cars.Remove(pair.Key); continue; }
                         if (marker == null || marker.PlayerEntered || PlayerRef.PlayerCar == car || marker.Exploded
                             || crew == null || !crew.CrewAlive || crew.Phase == CrewPhase.Released)
                         {

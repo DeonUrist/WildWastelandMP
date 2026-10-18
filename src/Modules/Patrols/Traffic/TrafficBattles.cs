@@ -192,7 +192,7 @@ namespace WildWasteland.Modules.Patrols
             // Transfer encounters into the same proportional cap before constructing missing slots.
             if(!battle.resolved)for(int side=0;side<2;side++)
             {int kept=0;foreach(var key in live.Cars.Keys.Where(k=>k.StartsWith(side+":",StringComparison.Ordinal)).ToArray())
-                {if(kept++<shares[side])continue;var car=live.Cars[key];if(car!=null){var tag=car.GetComponent<BattleCar>();CaptureState(car,(side==0?battle.sideA:battle.sideB)[tag.Slot]);Cleanup.Remove(car.GetComponent<PatrolMarker>(),"battle proportional cap");}live.Cars.Remove(key);}}
+                {if(kept++<shares[side])continue;var car=live.Cars[key];if(Core.MultiplayerRespawn.ProtectedObject(car))continue;if(car!=null){var tag=car.GetComponent<BattleCar>();CaptureState(car,(side==0?battle.sideA:battle.sideB)[tag.Slot]);Cleanup.Remove(car.GetComponent<PatrolMarker>(),"battle proportional cap");}live.Cars.Remove(key);}}
             int generation=Patrol.SceneGen;
             for(int turn=0;turn<shares.Max();turn++)for(int side=0;side<2;side++)
             {

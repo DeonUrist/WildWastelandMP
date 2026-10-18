@@ -14,6 +14,9 @@ namespace WildWasteland.Core
         static Func<object, ulong> _peer;
         static Func<ulong, Color> _color;
         static readonly Dictionary<object, Player> Tags = new Dictionary<object, Player>();
+        static readonly HashSet<TextMesh> Sleepers = new HashSet<TextMesh>();
+        internal static void AddSleeper(TextMesh tag) { Sleepers.Add(tag); }
+        internal static void RemoveSleeper(TextMesh tag) { Sleepers.Remove(tag); }
         internal static Dictionary<object, Player>.ValueCollection Players { get { return Tags.Values; } }
         internal static Color ColorOf(ulong peer) { return _color != null ? _color(peer) : Color.white; }
         internal static void Install()
@@ -39,14 +42,18 @@ namespace WildWasteland.Core
             if (tag.gameObject.activeSelf != visible) tag.gameObject.SetActive(visible);
         }
         static void Destroyed(object __instance) { Tags.Remove(__instance); }
-        static void Changed() { if (!Multiplayer.SessionActive) Tags.Clear(); }
+        static void Changed() { if (!Multiplayer.SessionActive) { Tags.Clear(); Sleepers.Clear(); } }
         static void Project(Camera camera)
         {
-            if (!Multiplayer.WorldReady || !FloatingNames.Value || camera != GameRefs.MainCamera) return;
+            if (camera != GameRefs.MainCamera) return;
+            bool visible = Multiplayer.WorldReady && FloatingNames.Value && !LoadingProgress.MenusBlocked;
+            foreach (var tag in Sleepers) if (tag != null) tag.gameObject.SetActive(visible);
+            if (!visible) return;
             // PreRender follows every PreCull camera override, including WW's virtual third-person view.
             var view = camera.cameraToWorldMatrix;
             var rotation = Quaternion.LookRotation(-view.GetColumn(2), view.GetColumn(1));
             foreach (var player in Tags.Values) if (player.Tag != null && player.Tag.gameObject.activeInHierarchy) player.Tag.transform.rotation = rotation;
+            foreach (var tag in Sleepers) if (tag != null) tag.transform.rotation = rotation;
         }
     }
 }
