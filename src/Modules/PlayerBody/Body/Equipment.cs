@@ -4,12 +4,13 @@ using UnityEngine.Rendering;
 
 namespace WildWasteland.Modules.PlayerBody
 {
-    internal sealed class Equipment
+    internal sealed partial class Equipment
     {
         internal enum Kind { None, LongGun, Sidearm, Blade, Binocular }
         internal sealed class Mount
         {
             public GameObject Item, Visual;
+            internal string Prefab = "";
             public Transform Anchor;
             public Renderer[] Renderers;
             public int Slot = -1;
@@ -25,7 +26,10 @@ namespace WildWasteland.Modules.PlayerBody
             // (WW perf) what Show last wrote to Renderers (-1 = nothing yet): written again only when it changes
             public int ShownOn = -1; public ShadowCastingMode ShownMode;
         }
-        private readonly Body _body;
+        private readonly GameObject _root;
+        private readonly System.Collections.Generic.Dictionary<string, Transform> _bones;
+        private readonly bool _remote;
+        private int _remoteHidden;
         private readonly EquipmentInventory _inventory = new EquipmentInventory();
         // Backpack; two long guns; two sidearms; two blades; binoculars; flashlight (8).
         private readonly Mount[] _mounts = new Mount[9];
@@ -41,11 +45,32 @@ namespace WildWasteland.Modules.PlayerBody
         private bool _visible, _shadow;
         private float _packDepth, _packWidth;
 
-        public Equipment(Body body)
+        public Equipment(Body body) : this(body.Root, body.Bones, false) { }
+        internal Equipment(GameObject root, System.Collections.Generic.Dictionary<string, Transform> bones, bool remote)
         {
-            _body = body;
+            _root = root; _bones = bones; _remote = remote;
             for (int i = 0; i < _mounts.Length; i++) _mounts[i] = new Mount();
         }
+
+        internal int Snapshot(string[] names)
+        {
+            int hidden = 0;
+            for (int i = 0; i < _mounts.Length; i++)
+            {
+                names[i] = _mounts[i].Item != null ? _mounts[i].Prefab : "";
+                if (Drawn(i)) hidden |= 1 << i;
+            }
+            return hidden;
+        }
+        internal void ApplyRemote(GameObject[] items, int hidden)
+        {
+            _remoteHidden = hidden;
+            for (int i = 0; i < _mounts.Length; i++) Update(i, items[i], -1);
+            for (int i = 0; i < _mounts.Length; i++) Position(i);
+            SetVisible(PlayerBodyModule.EquipmentOnBody.Value, false);
+        }
+        internal void Dispose()
+        { for (int i = 0; i < _mounts.Length; i++) Update(i, null, -1); }
 
         internal static Kind Classify(string name)
         {
@@ -133,11 +158,14 @@ namespace WildWasteland.Modules.PlayerBody
             if (ReferenceEquals(mount.Item, item) && (item == null || mount.Visual != null)) return;
             if (mount.Anchor != null) { mount.Anchor.gameObject.SetActive(false); UnityEngine.Object.Destroy(mount.Anchor.gameObject); }
             mount.Item = item; mount.Visual = null; mount.Anchor = null; mount.Renderers = null; mount.PosedValid = false; mount.ShownOn = -1;
+            mount.Prefab = item != null ? item.name : "";
+            int clone = mount.Prefab.IndexOf("(Clone)", StringComparison.Ordinal); if (clone >= 0) mount.Prefab = mount.Prefab.Substring(0, clone);
+            int suffix = mount.Prefab.LastIndexOf(" (", StringComparison.Ordinal); if (suffix > 0 && mount.Prefab.EndsWith(")", StringComparison.Ordinal)) mount.Prefab = mount.Prefab.Substring(0, suffix);
             if (i == 0) _packDepth = _packWidth = 0;
-            if (i == FlashIndex) _glow = null;   // destroyed with the old anchor
+            if (i == FlashIndex) { _glow = null; _remoteBeam = null; }   // destroyed with the old anchor
             if (item == null) return;
             mount.Anchor = new GameObject("Apocaplayer.Equipment." + i).transform;
-            mount.Anchor.SetParent(_body.Root.transform, false);
+            mount.Anchor.SetParent(_root.transform, false);
             mount.Visual = Props.CopyForMount(item, mount.Anchor);
             if (i == 0) mount.Visual.transform.localScale *= .8f;
             mount.Renderers = mount.Visual.GetComponentsInChildren<Renderer>(true);
@@ -192,6 +220,7 @@ namespace WildWasteland.Modules.PlayerBody
             _glow.color = new Color(1f, .93f, .78f);
             _glow.shadows = LightShadows.None;
             _glow.enabled = false;
+            if (_remote) CreateRemoteBeam(mount, item, g.transform);
             PlayerBodyModule.Verbose("Equipment mount " + FlashIndex + ": " + item.name + (_flashPolice ? " (police: left belt)" : " (left chest)") + " bounds=" + b.size);
         }
 
@@ -208,7 +237,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             string bone = _flashPolice ? "mixamorig:Hips" : "mixamorig:Spine2";
             Transform parent;
-            if (!_body.Bones.TryGetValue(bone, out parent)) return;
+            if (!_bones.TryGetValue(bone, out parent)) return;
             if (mount.Anchor.parent != parent) mount.Anchor.SetParent(parent, false);
             float left = mirror ? 1f : -1f;   // the character's left
             Vector3 offset = _flashPolice
@@ -222,11 +251,11 @@ namespace WildWasteland.Modules.PlayerBody
         private void Position(int i)
         {
             var mount = _mounts[i]; if (mount.Anchor == null) return;
-            bool mirror = _body.Root.transform.localScale.x < 0;
+            bool mirror = _root.transform.localScale.x < 0;
             if (i == FlashIndex) { PositionFlashlight(mount, mirror); return; }
             string bone = i <= 2 ? "mixamorig:Spine2" : i <= 4 ? ((i == 3) != mirror ? "mixamorig:RightUpLeg" : "mixamorig:LeftUpLeg") : "mixamorig:Hips";
             Transform parent;
-            if (!_body.Bones.TryGetValue(bone, out parent)) return;
+            if (!_bones.TryGetValue(bone, out parent)) return;
             if (mount.Anchor.parent != parent) mount.Anchor.SetParent(parent, false);
             float side = (i % 2 == 1 ? 1f : -1f) * (mirror ? -1f : 1f);
             bool backpack = _mounts[0].Visual != null;
@@ -283,11 +312,12 @@ namespace WildWasteland.Modules.PlayerBody
             for (int i = 0; i < _mounts.Length; i++) Show(i);
         }
 
+        private bool Drawn(int i)
+        { return _remote ? (_remoteHidden & (1 << i)) != 0 : !ModAPI.PlayerWeaponStowed && _mounts[i].Slot >= 0 && _mounts[i].Slot == _inventory.Drawn || i == 7 && Game.BinocularInUse; }
         private void Show(int i)
         {
             var mount = _mounts[i]; if (mount.Visual == null) return;
-            bool drawn = !ModAPI.PlayerWeaponStowed && mount.Slot >= 0 && mount.Slot == _inventory.Drawn
-                || i == 7 && Game.BinocularInUse;
+            bool drawn = Drawn(i);
             int on = !drawn && (_visible || _shadow) ? 1 : 0;
             var mode = _visible ? ShadowCastingMode.On : ShadowCastingMode.ShadowsOnly;
             if (on != mount.ShownOn || mode != mount.ShownMode)   // (WW perf) only on change (these copies are ours: nothing else writes them)
@@ -302,7 +332,7 @@ namespace WildWasteland.Modules.PlayerBody
             }
             if (i == FlashIndex && _glow != null)
             {
-                bool glow = _visible && FlashlightOn;
+                bool glow = _remote ? _remoteFlashlight.On : _visible && FlashlightOn;
                 if (_glow.enabled != glow) _glow.enabled = glow;
             }
         }

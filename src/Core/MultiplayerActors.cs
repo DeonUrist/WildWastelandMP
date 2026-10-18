@@ -22,7 +22,7 @@ namespace WildWasteland.Core
             internal Transform[] Candidates;
             internal float LastSeen, NextRequest;
             internal int ManifestCount;
-            internal bool Seated;
+            internal bool Seated, AllBones;
         }
         static readonly List<Rig> Sending = new List<Rig>();
         static readonly Dictionary<GameObject, Rig> ByRoot = new Dictionary<GameObject, Rig>();
@@ -56,7 +56,7 @@ namespace WildWasteland.Core
             foreach (var rig in Receiving.Values) Release(rig);
             Sending.Clear(); ByRoot.Clear(); Receiving.Clear(); Removed.Clear(); ManifestRequests.Clear(); _cursor = 0; _nextSend = _nextSweep = 0;
         }
-        internal static void Register(GameObject actor, Transform[] nodes, bool seated)
+        internal static void Register(GameObject actor, Transform[] nodes, bool seated, bool allBones = false)
         {
             if (!Multiplayer.Hosting || actor == null || nodes == null) return;
             var selected = new List<Transform>(); var paths = new List<string>();
@@ -64,18 +64,20 @@ namespace WildWasteland.Core
             {
                 if (node == null || node == actor.transform || selected.Count >= MaxNodes) continue;
                 // Bone nodes plus held model roots: render-only state stays local to this replicated actor.
-                if (!node.name.StartsWith("mixamorig:", StringComparison.Ordinal) && (node.parent == null || !node.parent.name.EndsWith("Hand", StringComparison.Ordinal))) continue;
+                if (!allBones && !node.name.StartsWith("mixamorig:", StringComparison.Ordinal) && (node.parent == null || !node.parent.name.EndsWith("Hand", StringComparison.Ordinal))) continue;
                 string path = Relative(actor.transform, node); if (Encoding.UTF8.GetByteCount(path) > MaxPath) continue;
                 selected.Add(node); paths.Add(path);
             }
             if (selected.Count == 0) return;
             Rig existing;
             if (ByRoot.TryGetValue(actor, out existing)) Sending.Remove(existing);
-            var rig = new Rig { Root = actor, Generation = ++_generation, Nodes = selected.ToArray(), Paths = paths.ToArray(), Seated = seated };
+            var rig = new Rig { Root = actor, Generation = ++_generation, Nodes = selected.ToArray(), Paths = paths.ToArray(), Seated = seated, AllBones = allBones };
             ByRoot[actor] = rig; Sending.Add(rig);
         }
         internal static void Refresh(GameObject actor)
-        { Rig rig; if (actor != null && ByRoot.TryGetValue(actor, out rig)) Register(actor, actor.GetComponentsInChildren<Transform>(true), rig.Seated); }
+        { Rig rig; if (actor != null && ByRoot.TryGetValue(actor, out rig)) Register(actor, rig.AllBones ? rig.Nodes : actor.GetComponentsInChildren<Transform>(true), rig.Seated, rig.AllBones); }
+        internal static void Unregister(GameObject actor)
+        { Rig rig; if (actor != null && ByRoot.TryGetValue(actor, out rig)) { Sending.Remove(rig); ByRoot.Remove(actor); } }
         static string Relative(Transform root, Transform node)
         {
             var path = new StringBuilder(node.name);

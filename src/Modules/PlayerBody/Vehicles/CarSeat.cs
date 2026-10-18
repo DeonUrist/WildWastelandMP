@@ -74,7 +74,7 @@ namespace WildWasteland.Modules.PlayerBody
             }
             _seat = seat; _src = src; _failedCar = null;
             _player = player; _driverSeat = car.Find("DriveTrigger/sitPos"); _passenger = Passenger;
-            PlayerBodyModule.Info("Car " + car.name + ": driver seat found");
+            PlayerBodyModule.Info("Car " + car.name + (Passenger ? ": passenger knee-rest pose" : ": driver seat found"));
             if (PlayerBodyModule.ReplaceDriver.Value && !Passenger)
                 foreach (var r in seat.GetComponentsInChildren<Renderer>(true))
                     if (r.enabled) { r.enabled = false; _hidden.Add(r); }

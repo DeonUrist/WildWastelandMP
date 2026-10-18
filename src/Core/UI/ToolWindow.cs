@@ -43,7 +43,7 @@ namespace WildWasteland.Core.UI
         {
             if (current == "LoadGame" || current == "generateTerrain 2") { _newGame = _openNewGame = false; }
             else if (current == "setSeed" || current == "generateTerrain") _newGame = true;
-            else if (current == "isPlay" && _newGame) { _newGame = false; _openNewGame = !Multiplayer.Client; }
+            else if (current == "isPlay" && _newGame) { _newGame = false; _openNewGame = !Multiplayer.Client && !MultiplayerHosting.Pending; }
         }
         internal static void Tick()
         {
@@ -63,6 +63,7 @@ namespace WildWasteland.Core.UI
         { Open(page, GameRefs.Menu != null && GameRefs.Menu.ActiveStateName == "pause"); }
 
         internal static void OpenFromMenu() { Open(CorePages.GamePage, true); }
+        internal static void OpenHostSetup(bool steam) { Open(new HostSettingsPage(steam), true); }
 
         static void Open(ToolPage page, bool fromMenu)
         {
@@ -84,6 +85,7 @@ namespace WildWasteland.Core.UI
         {
             if (!_open) return;
             _open = false; _session.Close(); Ledger.ClearNumbers(); ToolLayout.CancelRebind();
+            if (_current is HostSettingsPage) { _current = CorePages.GamePage; _scroll = Vector2.zero; }
         }
 
         /// <summary>Close the window and run <paramref name="a"/> on the next frame (after the session was released), e.g. to open another editor.</summary>
@@ -117,7 +119,7 @@ namespace WildWasteland.Core.UI
         }
         static bool Visible(ToolPage p)
         {
-            if (Multiplayer.Client && (p.DebugOnly || p == WildWasteland.Modules.Performance.PerformancePage.Instance)) return false;
+            if (Multiplayer.Client && (p == CorePages.WorldPage || p.DebugOnly || p == WildWasteland.Modules.Performance.PerformancePage.Instance)) return false;
             return (!p.DebugOnly || Plugin.EnableDebug.Value) && (p != CorePages.DeveloperPage || Plugin.DeveloperMode.Value);
         }
         static int GroupIndex(string g) { int i = Array.IndexOf(ToolGroups.Order, g); return i < 0 ? ToolGroups.Order.Length : i; }
@@ -164,13 +166,16 @@ namespace WildWasteland.Core.UI
 
         static void DrawWindow()
         {
+            var hostSetup = _current as HostSettingsPage;
+            if (hostSetup != null) hostSetup.Before();
             Ledger.Label(new Rect(120, 120, 1420, 104), "WILD WASTELAND", Ledger.Brand, Ledger.Accent);
             Ledger.Label(new Rect(126, 228, 900, 36), "CONFIGURATION  /  " + Plugin.VERSION, Ledger.Small, Ledger.Muted);
             Ledger.Window(new Rect(120, 280, 1680, 704));
-            if (Ledger.Button(new Rect(128, 900, 290, 64), "BACK", true, false, true, null, true)) { Close(); return; }
+            if (hostSetup != null) hostSetup.DrawActions(new Rect(150, 900, 1604, 64));
+            else if (Ledger.Button(new Rect(128, 900, 290, 64), "BACK", true, false, true, null, true)) { Close(); return; }
             Ledger.Label(new Rect(126, 1012, 600, 44), "CHANGES APPLY IMMEDIATELY", Ledger.Small, Ledger.Muted);
             Ledger.Label(new Rect(1340, 1012, 460, 44), Plugin.ToolWindowKey.Value + " / ESC TO CLOSE", Ledger.Small, Ledger.Muted, TextAnchor.MiddleRight);
-            if (CleanHud.CleanHudModule.Running && CleanHud.AccentTheme.Setting != null)
+            if (hostSetup == null && CleanHud.CleanHudModule.Running && CleanHud.AccentTheme.Setting != null)
                 for (int i = 0; i < CleanHud.AccentTheme.DisplayOrder.Length; i++)
                 {
                     int choice = CleanHud.AccentTheme.DisplayOrder[i];
@@ -181,6 +186,8 @@ namespace WildWasteland.Core.UI
                     if (GUI.Button(swatch, GUIContent.none, GUIStyle.none)) CleanHud.AccentTheme.Setting.Value = CleanHud.AccentTheme.Names[choice];
                 }
 
+            if (hostSetup == null)
+            {
             var pages = Sorted();
             // ---- left: groups and pages
             var nav = new Rect(128, 304, 290, 572);
@@ -207,13 +214,14 @@ namespace WildWasteland.Core.UI
                 }
                 _navHeight = y + 6;
             });
+            }
 
             // ---- right: page content
-            var body = new Rect(460, 280, 1316, 704);
-            Ledger.Fill(new Rect(438, 304, 1.5f, 656), new Color(Ledger.Accent.r, Ledger.Accent.g, Ledger.Accent.b, .35f));
+            var body = hostSetup != null ? new Rect(128, 280, 1648, 604) : new Rect(460, 280, 1316, 704);
+            if (hostSetup == null) Ledger.Fill(new Rect(438, 304, 1.5f, 656), new Color(Ledger.Accent.r, Ledger.Accent.g, Ledger.Accent.b, .35f));
             if (_current == null) return;
             Ledger.Label(new Rect(body.x + 22, body.y + 22, body.width - 44, 50), _current.Title, Ledger.DialogTitle, Ledger.Accent);
-            if (_current == CorePages.GamePage && Ledger.Button(new Rect(body.xMax - 182, body.y + 22, 160, 50), "RESET"))
+            if ((_current == CorePages.GamePage || _current == CorePages.WorldPage || _current == CorePages.HudPage) && Ledger.Button(new Rect(body.xMax - 182, body.y + 22, 160, 50), "RESET"))
             {
                 CorePages.ResetSettings();
                 _debugSearch = _developerSearch = ""; _scroll = Vector2.zero;
@@ -256,6 +264,7 @@ namespace WildWasteland.Core.UI
                 }
                 _contentHeight = _layout.Y + 12;
             });
+            if (hostSetup != null) hostSetup.DrawPopup();
         }
     }
 }

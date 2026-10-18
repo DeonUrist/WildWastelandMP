@@ -61,7 +61,7 @@ namespace WildWasteland.Modules.Weather
         internal void Tick(float clock, Camera camera)
         {
             if (clock<_lastClock) Stop(); _lastClock=clock;
-            bool paused=!GameRefs.InGame || WeatherDiagnostics.Frozen || AudioListener.pause || camera==null;
+            bool paused=!GameRefs.WorldRunning || WeatherDiagnostics.Frozen || AudioListener.pause || camera==null;
             if (paused!=_paused)
             {
                 for (int i=0;i<_voices.Length;i++) if (_voices[i]!=null) { if (paused) _voices[i].Pause(); else _voices[i].UnPause(); }

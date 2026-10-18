@@ -79,6 +79,7 @@ namespace WildWasteland.Modules.NPC
             DogCompanionCompat.Initialize(this);              // only when Dog Companion is installed; [NPC] DogCompanionCompat switches it live
             WomenFeature.Initialize(this);
             InitNetworkInput();
+            Webs.StartNetwork(this);
 
             // the old NPCAI.Runner, in its order (load-bearing: Brain/Idle body hand-over, DogAnimations restore in Update / sample in LateUpdate)
             Scheduler.EveryFrame(this, "Senses", Senses.Tick);
@@ -115,6 +116,7 @@ namespace WildWasteland.Modules.NPC
         public override void Shutdown()
         {
             StopNetworkInput();
+            Webs.StopNetwork();
             // first: every handler / On property sees the module off (FSM events sent below re-enter our hooks synchronously)
             Running = false;
             try { ShowNav.SettingChanged -= OnShowNavChanged; } catch (Exception) { }

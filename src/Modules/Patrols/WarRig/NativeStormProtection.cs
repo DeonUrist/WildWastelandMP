@@ -22,6 +22,7 @@ namespace WildWasteland.Modules.Patrols.WarRig
         }
         internal static bool Protected(GameObject target)
         {
+            if (Core.Multiplayer.IsRemotePlayer(target)) return DustStormBridge.Inside(Core.Multiplayer.PlayerFor(Core.Multiplayer.PeerFor(target)));
             var actor = Player;
             return actor != null && target != null && (target == actor || target.transform.IsChildOf(actor.transform)) && DustStormBridge.Inside(actor);
         }

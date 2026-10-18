@@ -20,6 +20,7 @@ namespace WildWasteland.Modules.NPC
             public DogCompanionCompat.Driver Companion;
             public Dictionary<string, AnimationClip> Clips;
             public Transform[] Bones; public Vector3[] NativePosition, FadePosition;
+            public Transform[] NetworkBones; public bool NetworkPose; public ulong NetworkEpoch;
             public Quaternion[] NativeRotation, FadeRotation;
             public Vector3[] DisplayPosition; public Quaternion[] DisplayRotation; public bool HasDisplay;
             public Transform[] SupportPaws; public Transform SupportMarker; public Vector3 AnimatorPosition; public bool Aligned;
@@ -185,7 +186,7 @@ namespace WildWasteland.Modules.NPC
         {
             var player = Senses.PlayerObj;
             float distance = NpcModule.MaxDistance != null ? NpcModule.MaxDistance.Value : 120f;
-            return player == null || (agent.T.position - player.transform.position).sqrMagnitude <= distance * distance;
+            return player == null || Core.Multiplayer.PlayerDistance(agent.T.position, player.transform) <= distance;
         }
         internal static bool Owns(GameObject owner)
         { Dog d; return owner != null && Dogs.TryGetValue(owner.GetInstanceID(), out d) && Eligible(d); }
@@ -232,6 +233,7 @@ namespace WildWasteland.Modules.NPC
         }
         private static void Release(Dog d)
         {
+            if (d.NetworkPose) { Core.MultiplayerActors.Unregister(d.Agent.Owner); d.NetworkPose = false; }
             Restore(d); ReleaseJump(d); ReleaseDash(d);
             if (d.Held) Hold(d, false);
             d.Held = false; d.DamageFsm = null; d.BiteTarget = null; d.Pose = Pose.Locomotion; d.Playing = null;
@@ -657,7 +659,13 @@ namespace WildWasteland.Modules.NPC
         { Dog d; if (owner != null && Dogs.TryGetValue(owner.GetInstanceID(), out d)) SampleDog(d); }
         private static void SampleDog(Dog d)
         {
-            if (!Eligible(d) || string.IsNullOrEmpty(d.Playing)) return;
+            if (!Eligible(d) || string.IsNullOrEmpty(d.Playing)) { if (d.NetworkPose) { Core.MultiplayerActors.Unregister(d.Agent.Owner); d.NetworkPose = false; } return; }
+            if (Core.Multiplayer.Hosting && (!d.NetworkPose || d.NetworkEpoch != Core.MultiplayerParts.Epoch))
+            {
+                if (d.NetworkBones == null) { d.NetworkBones = new Transform[d.Bones.Length + 1]; Array.Copy(d.Bones, d.NetworkBones, d.Bones.Length); d.NetworkBones[d.Bones.Length] = d.Animator.transform; }
+                Core.MultiplayerActors.Register(d.Agent.Owner, d.NetworkBones, false, true);
+                d.NetworkPose = true; d.NetworkEpoch = Core.MultiplayerParts.Epoch;
+            }
             if (d.Dashing) d.Agent.T.rotation = Quaternion.LookRotation(d.DashDirection);
             for (int i = 0; i < d.Bones.Length; i++) if (d.Bones[i] != null) { d.NativePosition[i] = d.Bones[i].localPosition; d.NativeRotation[i] = d.Bones[i].localRotation; }
             var clip = d.Clips[d.Playing]; bool loop = d.Pose == Pose.Locomotion || d.Pose == Pose.Rest || d.Pose == Pose.Sitting;

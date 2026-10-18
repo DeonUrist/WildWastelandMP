@@ -52,6 +52,7 @@ namespace WildWasteland.Core
         }
         internal static bool Local(ConfigEntryBase e)
         {
+            if (ReferenceEquals(e, MultiplayerNames.FloatingNames)) return true;
             if (Debug(e) || Performance(e) || ReferenceEquals(e.ConfigFile, Plugin.Tools)) return false;
             if (NavigationModule(e)) return false;
             if (NavigationWorld(e)) return false;
@@ -70,7 +71,7 @@ namespace WildWasteland.Core
             if (Module(e) != "CleanHUD") return false;
             string section = e.Definition.Section, key = e.Definition.Key;
             if (section == "CleanHUD / Map") return key != "Enabled" && key != "BinocularZoom";
-            return section == "CleanHUD / HUD" && (key == "ShowConvoys" || key == "ShowLocations" || key == "ShowPlayers"
+            return section == "CleanHUD / HUD" && (key == "ShowConvoys" || key == "ShowLocations"
                 || key == "AmbiguousPatrols" || key == "AmbiguousLocations");
         }
         static bool IsWorld(ConfigEntryBase e)

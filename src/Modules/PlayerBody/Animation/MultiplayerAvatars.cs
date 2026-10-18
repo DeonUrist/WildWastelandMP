@@ -12,7 +12,7 @@ namespace WildWasteland.Modules.PlayerBody
     // MP retains player roots, state, equipment and effects. WW supplies the selected skin and its Mixamo animation graph.
     internal static partial class MultiplayerAvatars
     {
-        sealed class BodyState { internal GameObject Model; internal IAnimatedCharacter Character; internal byte Attacks, Kicks, Jump; internal bool Counters, JumpKnown, Motion, Driver; internal string Action, ItemName; internal Transform Item; internal Material Material; internal ulong Peer; internal int Choice, Car; internal Transform[] Bones; internal object Remote; }
+        sealed class BodyState { internal GameObject Model; internal IAnimatedCharacter Character; internal byte Attacks, Kicks, Jump; internal bool Counters, JumpKnown, Motion, Driver, WeaponMotion; internal string Action, ItemName; internal Transform Item; internal Material Material; internal ulong Peer; internal int Choice, Car; internal Transform[] Bones; internal object Remote; internal Equipment Equipment; }
         static readonly Dictionary<object, BodyState> Bodies = new Dictionary<object, BodyState>();
         static readonly Dictionary<ulong, int> Choices = new Dictionary<ulong, int>();
         static Func<object, ulong> _peer;
@@ -53,6 +53,7 @@ namespace WildWasteland.Modules.PlayerBody
             _showItem = MultiplayerAccess.Call<Action<object, string>>(body, "ShowItem", typeof(string));
             _showAction = MultiplayerAccess.Call<Action<object, string, float>>(body, "ShowAction", typeof(string), typeof(float));
             _arms = MultiplayerAccess.Call<Action<object, object, bool, float, float, float>>(body, "AnimateArms", state, typeof(bool), typeof(float), typeof(float), typeof(float));
+            _equipmentPrefab = MultiplayerAccess.Call<Func<string, string, GameObject>>(Multiplayer.Type("Net.WorldObjects"), "FindPrefab", typeof(string), typeof(string));
             Patch(owner, remote, "Build", "BeforeRemote", "AfterRemote");
             Patch(owner, body, "Build", "BeforeBody", "AfterBody"); Patch(owner, body, "Animate", "Animate"); Patch(owner, body, "Destroy", "Destroyed");
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Reset;
@@ -79,10 +80,11 @@ namespace WildWasteland.Modules.PlayerBody
             SkinnedMeshRenderer skin = null;
             foreach (var candidate in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (candidate.bones.Length >= 20) { skin = candidate; break; }
             foreach (var other in model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) if (other != skin) UnityEngine.Object.DestroyImmediate(other.gameObject);
-            int choice; if (Choices.TryGetValue(_buildingPeer, out choice) && choice < 2)
+            int choice; if (Choices.TryGetValue(_buildingPeer, out choice) && MultiplayerModels.CustomSkin(choice))
             {
-                if (skin != null) entry.Material = Model.RemoteSkin(skin, choice == 0);
+                if (skin != null) entry.Material = Model.RemoteSkin(skin, choice);
             }
+            Gear gear; if (EquipmentFrames.TryGetValue(entry.Peer, out gear)) ApplyEquipment(entry, gear);
         }
         static bool Animate(object __instance, Vector3 __0, float __1, float __2, object __3, float __4)
         {
@@ -95,14 +97,18 @@ namespace WildWasteland.Modules.PlayerBody
             float stamp = body.Remote != null ? _renderTime(body.Remote) : 0;
             Frame frame, next; float blend;
             bool motion = MotionAt(body.Peer, stamp, body.Choice, out frame, out next, out blend);
-            if (!downed && motion && frame.Mode != 0 && (seated ? frame.Mode == (_passenger(__3) ? 3 : 2) : frame.Mode == 1))
+            bool weaponMotion = !downed && !seated && motion && frame.Mode == 4;
+            if (body.WeaponMotion && !weaponMotion) _showItem(__instance, "");
+            body.WeaponMotion = weaponMotion;
+            if (!downed && motion && frame.Mode != 0 && (seated ? frame.Mode == (_passenger(__3) ? 3 : 2) : frame.Mode == 1 || weaponMotion))
             {
                 if (body.Character != null) body.Character.Suspended = true;
                 if (pose != null) pose.enabled = false; if (graph.IsValid() && graph.IsPlaying()) graph.Stop();
                 body.Motion = true;
-                _showAction(__instance, frame.Mode == 1 ? "" : _action(__3) ?? "", __4);
-                _showItem(__instance, frame.Mode == 1 ? "" : _stateItem(__3) ?? "");
+                _showAction(__instance, frame.Mode == 1 || weaponMotion ? "" : _action(__3) ?? "", __4);
+                _showItem(__instance, frame.Mode == 1 ? "" : weaponMotion ? frame.Weapon : _stateItem(__3) ?? "");
                 _arms(__instance, __3, frame.Mode == 1, __1, __2, __4);
+                body.Counters = true; body.Attacks = _attacks(__3); body.Kicks = _kicks(__3); body.Jump = frame.Jump; body.JumpKnown = true;
                 return false;
             }
             if (seated || downed)
@@ -128,13 +134,12 @@ namespace WildWasteland.Modules.PlayerBody
             var item = _item(__instance); var held = item != null ? item.transform : null;
             if (body.Item != held || body.ItemName != itemName)
             { body.Item = held; body.ItemName = itemName; character.SetWeapon(held, api.WeaponKey(itemName)); }
-            character.Aiming = item != null;
+            character.Aiming = false;
             byte attacks = _attacks(__3), kicks = _kicks(__3);
             if (body.Counters)
             {
-                if (attacks != body.Attacks) { if (character.WeaponKind == "Melee") character.Strike(); else if (character.WeaponKind == "Throw") character.Throw(true); else character.Shoot(); }
+                if (attacks != body.Attacks) { if (character.WeaponKind == "None" || character.WeaponKind == "Melee") character.Strike(); else if (character.WeaponKind == "Throw") character.Throw(true); else character.Shoot(); }
                 if (kicks != body.Kicks) character.Kick();
-                if (action != body.Action && action.IndexOf("reload", StringComparison.OrdinalIgnoreCase) >= 0) character.Reload(1f);
             }
             body.Counters = true; body.Attacks = attacks; body.Kicks = kicks; body.Action = action;
             body.Model.transform.localPosition = new Vector3(0, -_height(__3) * .5f - .05f, 0); body.Model.transform.localRotation = Quaternion.identity;
@@ -143,12 +148,13 @@ namespace WildWasteland.Modules.PlayerBody
         static void Destroyed(object __instance)
         {
             BodyState body; if (!Bodies.TryGetValue(__instance, out body)) return;
-            if (body.Character != null) body.Character.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); Bodies.Remove(__instance);
+            if (body.Character != null) body.Character.Dispose(); if (body.Equipment != null) body.Equipment.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); Bodies.Remove(__instance);
         }
-        static void Reset() { Choices.Clear(); ResetMotion(); _lastChoice = -1; _next = 0; }
+        static void Reset() { Choices.Clear(); ResetMotion(); ResetEquipment(); _lastChoice = -1; _next = 0; }
         static void Tick()
         {
             if (!Multiplayer.WorldReady) return;
+            TickEquipment();
             int choice = (int)PlayerBodyModule.Character.Value;
             if (choice == _lastChoice && Time.unscaledTime < _next) return;
             _lastChoice = choice; _next = Time.unscaledTime + 3f;
@@ -162,13 +168,14 @@ namespace WildWasteland.Modules.PlayerBody
         static void Receive(ulong from, byte kind, BinaryReader reader)
         {
             if (kind == 82) { ReceiveMotion(from, reader); return; }
+            if (kind == EquipmentPacket) { ReceiveEquipment(from, reader); return; }
             if (kind == 80 && Multiplayer.Hosting)
             {
-                int choice = reader.ReadByte(); if (choice > 7 || Multiplayer.PlayerFor(from) == null) return;
+                int choice = reader.ReadByte(); if (choice >= MultiplayerModels.ChoiceCount || Multiplayer.PlayerFor(from) == null) return;
                 UpdateChoice(from, choice); Multiplayer.Send(81, w => { w.Write(from); w.Write((byte)choice); }); return;
             }
             if (kind == 81 && Multiplayer.Client && from == 0)
-            { ulong peer = reader.ReadUInt64(); int choice = reader.ReadByte(); if (choice <= 7 && peer != Multiplayer.LocalPeer) UpdateChoice(peer, choice); }
+            { ulong peer = reader.ReadUInt64(); int choice = reader.ReadByte(); if (choice < MultiplayerModels.ChoiceCount && peer != Multiplayer.LocalPeer) UpdateChoice(peer, choice); }
         }
         static void UpdateChoice(ulong peer, int choice)
         {
@@ -179,7 +186,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             Multiplayer.Message -= Receive; Multiplayer.SessionChanged -= Reset;
             foreach (var body in Bodies.Values) { if (body.Character != null) body.Character.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); }
-            Bodies.Clear(); Reset();
+            ResetEquipment(); Bodies.Clear(); Reset();
             // Rebuild native bodies after the module's patches are removed, restoring their original graph, pose and material.
             var remotes = _remotes != null ? _remotes(null) : null;
             if (remotes != null) foreach (DictionaryEntry remote in remotes) _destroy(remote.Value);

@@ -59,13 +59,13 @@ namespace WildWasteland.Modules.Quests
             QuestWorld.Begin(); if (SaveBus.State != null) StateChanged(null, SaveBus.State);
         }
         void Late() { if (!Multiplayer.Client && Plugin.I == _engine) { _engine.LateFrame(); QuestFollower.Late(); } }
-        bool Live { get { return Plugin.I == _engine && _engine.Ready && QuestWorld.Ready && GameRefs.InGame; } }
+        bool Live { get { return Plugin.I == _engine && _engine.Ready && QuestWorld.Ready && GameRefs.WorldRunning; } }
         void Progress() { if (Live && !Multiplayer.Client) { _engine.Tick(); PartyQuests.RemoteProgress(_engine.Tick); } }
         void Camps() { if (Live && !Multiplayer.Client && GameRefs.Player != null) Takeover.NeutralizeTick(GameRefs.Player.transform.position); }
         void Givers() { if (Live && !Multiplayer.Client && GameRefs.Player != null) Takeover.GiverTick(_engine.book, GameRefs.Player.transform.position); }
         void Map() { if (Live) _engine.SyncMapMarkers(); MapLink.Reconcile(); }
         void Reputation() { if (Live && !Multiplayer.Client) _engine.ReputationTick(); }
-        void Interaction() { if (Live) _engine.FindInteraction(); }
+        void Interaction() { if (Live && GameRefs.InGame) _engine.FindInteraction(); }
         bool WorldStep() { return Plugin.I == _engine && QuestWorld.Step(); }
         void Draw() { if (Plugin.I == _engine) { _engine.Draw(); _engine.DrawConversation(); } }
         bool WantsGui() { return Plugin.I == _engine && _engine.WantsGui; }

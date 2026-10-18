@@ -347,7 +347,7 @@ namespace WildWasteland.Modules.NPC
 
         private static void Think(Npc n, float now)
         {
-            if(SimpleBandits.Has(n.Owner)){SimpleThink(n,now);return;}
+            if(SimpleBandits.Has(n.Owner)&&!Senses.IsGhostTarget(n.Owner)){SimpleThink(n,now);return;}
             var target = n.Target.Value;
             if (target == null) { if (n.Mode != Mode.Off) SetMode(n, Mode.Off, "no target"); return; }
             Vector3 tp = target.transform.position;

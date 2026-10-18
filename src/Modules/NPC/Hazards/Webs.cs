@@ -15,9 +15,9 @@ namespace WildWasteland.Modules.NPC
     //    spiral with gaps and uneven spacing, a tangled hub;
     //  * a sheet web on the ground: an irregular net of strands following the bumps of the terrain, denser in the middle, fraying at the edge.
     // Used by the spider nests (Nests.cs). (WW) The old test webs (a web where you look, on a key) were removed.
-    internal static class Webs
+    internal static partial class Webs
     {
-        internal sealed class Web { public GameObject Go; public Mesh Mesh; public bool Orb; public Vector3 Center, N; public float R; public Renderer Rend; public float Sky = 1f, Shown = -1f; }
+        internal sealed class Web { public GameObject Go; public Mesh Mesh; public bool Orb; public Vector3 Center, N; public float R; public Renderer Rend; public float Sky = 1f, Shown = -1f; internal uint NetworkId; internal byte[] NetworkData; }
 
         private static readonly List<Web> _all = new List<Web>();        // (1.7.3) every web (nests): lit each second / by the flashlight
         private static MaterialPropertyBlock _mpb; private static float _k = 0.88f; private static Light _flLight; private static Transform _flOf;
@@ -289,6 +289,8 @@ namespace WildWasteland.Modules.NPC
             r.lightProbeUsage = LightProbeUsage.Off; r.reflectionProbeUsage = ReflectionProbeUsage.Off;
             r.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
             var web = new Web { Go = go, Mesh = mesh, Rend = r, Sky = SkyOpen(_origin + Vector3.up * 0.3f) };
+            web.NetworkId = ++_networkId;
+            if (Core.Multiplayer.Present && !Core.Multiplayer.Client) web.NetworkData = EncodeMesh();
             _all.Add(web);
             Apply(web, Level(web), true);
             return web;

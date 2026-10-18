@@ -16,6 +16,11 @@ namespace WildWasteland.Modules.PlayerBody
         private Transform _anim;         // clone of Flexa/Anim
         private Ragdoll _ragdoll;
         private Equipment _equipment;
+        internal int NetworkEquipment(string[] names)
+        {
+            if (_equipment != null && PlayerBodyModule.EquipmentOnBody.Value && !Game.Dead) return _equipment.Snapshot(names);
+            Array.Clear(names, 0, names.Length); return 0;
+        }
         public void LateEquipment(bool on)
         {
             // (WW) [PlayerBody] EquipmentOnBody off: the mounts are hidden (and not updated) until it is on again
@@ -241,8 +246,9 @@ namespace WildWasteland.Modules.PlayerBody
             if (b._smr == null) { PlayerBodyModule.Error("Flexa's body renderer not found"); UnityEngine.Object.Destroy(b.Root); return null; }
             foreach (var t in clone.GetComponentsInChildren<Transform>(true)) { t.gameObject.layer = 0; if (t.name.StartsWith("mixamorig:")) b.Bones[t.name] = t; }
 
-            if (!Model.Build(b._smr)) { UnityEngine.Object.Destroy(b.Root); return null; }
-            b._mat = new Material(b._smr.sharedMaterial) { name = "Apocaplayer body" };
+            var characterMaterial = (int)PlayerBodyModule.Character.Value >= 8 ? Model.RemoteSkin(b._smr, (int)PlayerBodyModule.Character.Value) : null;
+            if (!Model.Build(b._smr)) { if (characterMaterial != null) UnityEngine.Object.Destroy(characterMaterial); UnityEngine.Object.Destroy(b.Root); return null; }
+            b._mat = characterMaterial ?? new Material(b._smr.sharedMaterial) { name = "Apocaplayer body" };
             var tex = Model.Body();
             if (tex != null) b._mat.mainTexture = tex;
             b._smr.sharedMesh = Model.NoArms;
@@ -861,6 +867,7 @@ namespace WildWasteland.Modules.PlayerBody
         // looking down you see her whole body up to the collar, wherever the animation puts her head (crouch lean, walk bob)
         private void FitFirstPerson(View view, Quaternion yaw, float camPitch)
         {
+            MultiplayerAvatars.CaptureWeaponMotion(this, _anim);
             if (view != View.FirstPerson || _prone > 0.01f || Game.PlayerCamera == null) return;
             Transform head;
             if (!Bones.TryGetValue("mixamorig:Head", out head)) return;
@@ -940,7 +947,9 @@ namespace WildWasteland.Modules.PlayerBody
         private string _wheelArmOwner = "off";
         internal void LateWheelArms()
         {
-            if (_wheelPoseFrame == Time.frameCount && !CarSeat.Passenger) WheelArms.Solve(Bones, _wheelArmOwner);
+            if (_wheelPoseFrame != Time.frameCount) return;
+            if (CarSeat.Passenger || WheelArms.MissingWheel) WheelArms.RestPassengerArms(Bones, _wheelArmOwner);
+            else WheelArms.Solve(Bones, _wheelArmOwner);
         }
 
         public void LateCar(Transform player, bool firstPerson)

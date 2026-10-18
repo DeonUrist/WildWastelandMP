@@ -13,8 +13,8 @@ namespace WildWasteland.Modules.PlayerBody
     internal static partial class Model
     {
         public static Mesh Full, NoHead, NoArms, ArmsOnly, NoHeadRightArm, LeftArmOnly;
-        public static Texture2D BodyTex, ArmsTex, ArmsLeftTex;
-        private static bool _tried, _texTried, _armsTried, _armsLeftTried;
+        public static Texture2D BodyTex, ArmsTex, ArmsLeftTex, KickTex;
+        private static bool _tried, _texTried, _armsTried, _armsLeftTried, _kickTried;
 
         private static readonly HashSet<string> HeadBones = new HashSet<string> { "mixamorig:Head" };
         private static readonly HashSet<string> HeadNeckBones = new HashSet<string> { "mixamorig:Head", "mixamorig:Neck" };
@@ -304,7 +304,7 @@ namespace WildWasteland.Modules.PlayerBody
         private static void AddW(Dictionary<int, float> d, int bone, float w) { if (w <= 0f) return; float o; d.TryGetValue(bone, out o); d[bone] = o + w; }
 
         // Character switched: the next body is built from the other model
-        public static void Reset() { _inside.Clear(); Full = NoHead = NoArms = ArmsOnly = NoHeadRightArm = LeftArmOnly = null; BodyTex = ArmsTex = ArmsLeftTex = null; _tried = _texTried = _armsTried = _armsLeftTried = false; }
+        public static void Reset() { _inside.Clear(); Full = NoHead = NoArms = ArmsOnly = NoHeadRightArm = LeftArmOnly = null; BodyTex = ArmsTex = ArmsLeftTex = KickTex = null; _tried = _texTried = _armsTried = _armsLeftTried = _kickTried = false; }
 
         public static Texture2D Body()
         {
@@ -316,6 +316,24 @@ namespace WildWasteland.Modules.PlayerBody
         {
             if (!_armsTried) { _armsTried = true; ArmsTex = Load(PlayerBodyModule.ArmsTextureFile.Value, "Apocaplayer_arms"); }
             return ArmsTex;
+        }
+
+        public static Texture2D Kick()
+        {
+            if (PlayerBodyModule.ArmsTextureFile.Value != "Models/Player2_female_arms.png") return Arms();
+            if (_kickTried) return KickTex;
+            _kickTried = true;
+            const string file = "Models/Player2_female_kick.png";
+            string path = PlayerBodyModule.ModPath(file);
+            try
+            {
+                if (!File.Exists(path))
+                    using (var source = typeof(Model).Assembly.GetManifestResourceStream("PlayerBody.Textures.female_kick.png"))
+                        if (source != null) { Directory.CreateDirectory(Path.GetDirectoryName(path)); using (var output = File.Create(path)) source.CopyTo(output); }
+                KickTex = Load(file, "Apocaplayer_kick");
+            }
+            catch (Exception e) { PlayerBodyModule.Warn("Kick texture " + path + ": " + e.Message); }
+            return KickTex;
         }
 
         // Max only: his left arm (armoured sleeve) differs from the right; null = both arms use Arms()

@@ -58,7 +58,7 @@ namespace WildWasteland.Modules.Quests
         }
         internal static bool Step()
         {
-            if (!GameRefs.InPlay) return false;
+            if (!(Multiplayer.Active ? GameRefs.WorldRunning : GameRefs.InPlay)) return false;
             for (int n = 0; n < 4 && Objects.Count > 0; n++)
             {
                 if (_sweep >= Objects.Count) _sweep = 0;

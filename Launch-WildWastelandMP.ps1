@@ -49,7 +49,6 @@ if ($roles -contains 'client') {
     }
 }
 [IO.Directory]::CreateDirectory((Join-Path $mpDir 'Logs')) | Out-Null
-$token = if ($Mode -eq 'both') { [Guid]::NewGuid().ToString('N') } else { '' }
 $records = @()
 foreach ($role in $roles) {
     $root = if ($role -eq 'host') { $GameDir } else { $clientDir }
@@ -57,12 +56,10 @@ foreach ($role in $roles) {
     $info.FileName = Join-Path $root 'Apocalypter.exe'; $info.WorkingDirectory = $root
     $info.UseShellExecute = $false; $info.CreateNoWindow = $false
     $info.Arguments = '-screen-fullscreen 0 -screen-width 960 -screen-height 720 -logFile "' + (Join-Path $mpDir ('Logs\' + $role + '.log')) + '"'
-    foreach ($key in @('APOCMP_TEST','APOCMP_PROBE_FULL','APOCMP_LAG','APOCMP_SEEDS','WW_MP_SUITE','WW_MP_STRESS','WW_MP_FLAT_RAM','WW_MP_FAULT_SAVE','WW_MP_MANUAL','WW_MP_WORLD')) { $info.EnvironmentVariables.Remove($key) }
+    foreach ($key in @('APOCMP_TEST','APOCMP_PROBE_FULL','APOCMP_LAG','APOCMP_SEEDS','WW_MP_SUITE','WW_MP_STRESS','WW_MP_FLAT_RAM','WW_MP_FAULT_SAVE','WW_MP_MANUAL','WW_MP_WORLD','WWMP_READY','WWMP_TOKEN')) { $info.EnvironmentVariables.Remove($key) }
     $info.EnvironmentVariables['WWMP_ROLE'] = $role
     $info.EnvironmentVariables['WWMP_SAVES'] = Join-Path $mpDir ('Saves\' + $role)
     $info.EnvironmentVariables['WWMP_WORLD'] = $World
-    $info.EnvironmentVariables['WWMP_READY'] = Join-Path $mpDir 'host-ready.txt'
-    $info.EnvironmentVariables['WWMP_TOKEN'] = $token
     $info.EnvironmentVariables['WWMP_ADDRESS'] = $Address
     $info.EnvironmentVariables['WWMP_PORT'] = [string]$Port
     $process = [Diagnostics.Process]::Start($info)
@@ -93,5 +90,5 @@ do {
     }
     if ($titled.Count -lt $records.Count) { Start-Sleep -Milliseconds 250 }
 } while ($titled.Count -lt $records.Count -and [DateTime]::UtcNow -lt $deadline)
-Write-Host 'Host/client started with graphics. Saves: ' (Join-Path $mpDir 'Saves')
+Write-Host 'Host/client open at the title menu. Choose HOST or JOIN manually. Saves: ' (Join-Path $mpDir 'Saves')
 $records | Format-Table Role,Pid,World

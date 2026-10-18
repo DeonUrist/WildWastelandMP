@@ -35,7 +35,7 @@ namespace WildWasteland.Modules.PlayerBody
         internal static bool VerboseOn { get { return Core.Log.Verbose; } }
 
         // ------------------------------------------------------------------ F6 (main cfg): feature toggles + player options
-        internal enum Gender { Female, Male, Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic, OrganicMechanic }
+        internal enum Gender { Female, Male, Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic, OrganicMechanic, Gungirl, Shoota }
         internal static ConfigEntry<Gender> Character;
         internal static ConfigEntry<bool> ThirdPersonOnFoot, ToggleMiddleMouse, DynamicCrosshair, BodyFirstPerson, EmptyHandArms, FemaleArms, ReplaceDriver,
             EquipmentOnBody, PainSounds, FirstPersonSwayOn, SmoothAimDownSights, PickAssistOn;
@@ -98,8 +98,9 @@ namespace WildWasteland.Modules.PlayerBody
         {
             Instance = this;
             // ---- F6: one toggle per feature (feature order), then the player options
-            Character = cfg.Player("", "Character", Gender.Male, "Your character's body. Native Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic and OrganicMechanic are available with or without multiplayer and use the Wild Wasteland player animations.");
+            Character = cfg.Player("", "Character", Gender.Male, "Your character's body. Male, Female, Merchant, Bodyguard, Sprokka, OrganicMechanic, Gungirl and Shoota use Wild Wasteland player animations, online or offline. Legacy Pistoleer/Mechanic choices map to Bodyguard/Merchant.");
             Mig(Character, "General", "Character");
+            Character.Value = (Gender)CharacterPortraits.Canonical((int)Character.Value);
             ThirdPersonOnFoot = cfg.Player("", "ThirdPerson", true, "The game's Change Camera key switches to a camera behind your character, on foot and in cars (replaces the game's own car camera).");
             ToggleMiddleMouse = cfg.Player("", "ToggleObserving", true, "Third person, observing key ([Keys] Observe). Off: hold the key to orbit the camera around the character; it returns behind the character when you let go. On: a press starts observing and the camera stays where you left it until the next press.");
             Mig(ToggleMiddleMouse, "Debug", "ToggleMiddleMouse"); Mig(ToggleMiddleMouse, "General", "Toggle Observing");
@@ -231,7 +232,7 @@ namespace WildWasteland.Modules.PlayerBody
             VerboseModApi = cfg.Tool(Api, "VerboseModApi", false, "Log every decision of every ModAPI character (very chatty; needs [Debug] VerboseLog).");
 
             // live reactions (the handlers only act while the module runs)
-            Character.SettingChanged += (s, e) => { if (Running) BodyRunner.CharacterChanged(); };
+            Character.SettingChanged += (s, e) => { var choice = (Gender)CharacterPortraits.Canonical((int)Character.Value); if (choice != Character.Value) { Character.Value = choice; return; } if (Running) BodyRunner.CharacterChanged(); };
             ReplaceDriver.SettingChanged += (s, e) => { if (!Running) return; if (ReplaceDriver.Value) InventoryModel.Reset(); else InventoryModel.Off(); };
             IgnitionControlOn.SettingChanged += (s, e) => { if (Running && IgnitionJob != null) IgnitionJob.RunNow(); };
         }
@@ -300,6 +301,7 @@ namespace WildWasteland.Modules.PlayerBody
             Core.Patches.Patch(this, Core.Patches.Method(typeof(HutongGames.PlayMaker.Actions.MouseLook), "OnUpdate"),
                 prefix: Core.Patches.Method(typeof(ThirdPerson), "BeforeMouseLook"));
             Car.Patch(this);
+            WheelArms.Patch(this);
             PickAssist.Patch(this);
             AimTransition.Patch(this);
             FemalePain.Patch(this);

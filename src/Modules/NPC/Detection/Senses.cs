@@ -225,7 +225,7 @@ namespace WildWasteland.Modules.NPC
         // ---------- sight ----------
         private static void Look(Agent a, float interval, float now)
         {
-            if(a.Tag=="MutantSanity"||SimpleBandits.Has(a.Owner)){SimpleLook(a,now);return;}
+            if(a.Tag=="MutantSanity"||(SimpleBandits.Has(a.Owner)&&a.Ghost==null&&a.State!=State.Search)){SimpleLook(a,now);return;}
             // shoved by a tornado: it forgets what it was doing unless it sees the player right now (sight still works, hearing doesn't)
             if (a.Blown && a.State != State.Idle && !(a.State == State.Combat && IsPlayer(a.Target) && a.UnseenFor < 0.5f))
             {
@@ -658,8 +658,7 @@ namespace WildWasteland.Modules.NPC
             return a.Players.TryGetValue(target, out contact) ? now < contact.FoughtUntil : ReferenceEquals(a.Fought, target) && now < a.FoughtUntil;
         }
 
-        // the player's shot within earshot: an NPC fighting him renews its memory; a convoy crew member on foot whose faction hunts him
-        // (Patrols' goal) now knows him (it looks at once and fights)
+        // Hearing shots renews an existing fight; a new listener investigates through Noise without acquiring the shooter.
         private static void HeardPlayerShot(GameObject player, Vector3 pos, float radius, float now)
         {
             if (player == null || radius <= 0f) return;
@@ -669,7 +668,6 @@ namespace WildWasteland.Modules.NPC
                 var a = kv.Value;
                 if (a.Owner == null || a.T.parent != null || a.Blown || (a.T.position - pos).sqrMagnitude > r2) continue;
                 if ((a.State == State.Combat || a.State == State.Hide) && a.Target == player) { FoughtFor(a, player, now, "hears his shots while fighting him"); continue; }
-                if (SimpleBandits.Fighting(a.Owner) && SimpleBandits.Goal(a.Owner) == player) { FoughtFor(a, player, now, "hears his shot"); a.NextLook = now; }
             }
         }
 
@@ -819,7 +817,7 @@ namespace WildWasteland.Modules.NPC
         // check a shout about the player; the player now shoots elsewhere: that is where the player is). Never while it sees its target.
         private static bool Assign(Agent a, Ghost g, Src prio, float now)
         {
-            if(a.Tag=="MutantSanity"||SimpleBandits.Has(a.Owner))return false;
+            if(a.Tag=="MutantSanity"||(SimpleBandits.Has(a.Owner)&&!SimpleBandits.Fighting(a.Owner)))return false;
             if (g == null || a.State == State.Combat || a.State == State.Hide || g.Retired || a.AmbushDist > 0f) return false;      // (1.3.2) an ambusher in wait ignores sounds
             float doneAt;
             if (a.Done.TryGetValue(g.Id, out doneAt) && g.Moved <= doneAt + 0.01f) return false;   // been there, nothing new about it
@@ -839,6 +837,7 @@ namespace WildWasteland.Modules.NPC
             a.State = State.Investigate; a.SeenFor = 0f;
             Budget(a, g);
             StartFlank(a, g);
+            if(SimpleBandits.Fighting(a.Owner)&&NpcModule.SensesLog.Value)Log(a,"investigates "+prio+" at ghost #"+g.Id);
             return true;
         }
 
@@ -965,7 +964,7 @@ namespace WildWasteland.Modules.NPC
             {
                 _responders.Clear();
                 float near2 = NpcModule.GunshotNearRange.Value * NpcModule.GunshotNearRange.Value, r2a = radius * radius;
-                foreach (var kv in _agents) { var a = kv.Value; if (a.Owner != null && !a.Spider && !SimpleBandits.Has(a.Owner) && a.T.parent == null && (a.T.position - pos).sqrMagnitude <= r2a && (filter == null || filter(a))) _responders.Add(a); }
+                foreach (var kv in _agents) { var a = kv.Value; if (a.Owner != null && !a.Spider && (!SimpleBandits.Has(a.Owner)||SimpleBandits.Fighting(a.Owner)) && a.T.parent == null && (a.T.position - pos).sqrMagnitude <= r2a && (filter == null || filter(a))) _responders.Add(a); }
                 if (_responders.Count > NpcModule.GunshotResponders.Value)
                 {
                     ByDistance.Pos = pos;           // (perf) a static comparer and a reused set: no closure / HashSet per shot
@@ -991,7 +990,7 @@ namespace WildWasteland.Modules.NPC
             foreach (var kv in _agents)
             {
                 var a = kv.Value;
-                if (a.Owner == null || SimpleBandits.Has(a.Owner) || a.T.parent != null || (sroot != null && a.T == sroot)) continue;
+                if (a.Owner == null || (SimpleBandits.Has(a.Owner)&&!SimpleBandits.Fighting(a.Owner)) || a.T.parent != null || (sroot != null && a.T == sroot)) continue;
                 float d2 = (a.T.position - pos).sqrMagnitude;
                 if (d2 > r2) continue;
                 if (stormy && (srcStorm || a.InStorm) && d2 > rs2) continue;

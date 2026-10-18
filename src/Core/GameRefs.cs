@@ -46,6 +46,8 @@ namespace WildWasteland.Core
         }
 
         static int _inPlayFrame = -1; static bool _inPlay;
+        // World simulation continues behind MP menus; InGame remains the local UI/input gate.
+        public static bool WorldRunning { get { return Multiplayer.Active ? !MultiplayerSaving.Frozen && Time.timeScale > 0f && SaveLoadState == "isPlay" : InGame; } }
         /// <summary>Like InGame but ignores timeScale (true while the game is paused by an editor / the ESC menu). For tools and editors.</summary>
         public static bool InPlay
         {

@@ -9,6 +9,7 @@ namespace WildWasteland.Modules.Survival
 {
     public sealed partial class Runtime
     {
+        const byte DrinkIntent = 146, SipResult = 147, Ingredient = 148, Presentation = 149;
         sealed class Drinker { internal Pot Pot; internal float Until; }
         static readonly Dictionary<ulong, Drinker> drinkers = new Dictionary<ulong, Drinker>();
         static readonly List<ulong> stopped = new List<ulong>();
@@ -37,7 +38,7 @@ namespace WildWasteland.Modules.Survival
             if (!active && !pot.Drinking || active && Time.unscaledTime < pot.NetworkAt) return;
             pot.NetworkAt = Time.unscaledTime + .1f; int id = Multiplayer.ObjectId(pot.Root); if (id == 0) return;
             if (Multiplayer.Hosting) BeginDrink(0, pot, active);
-            else Multiplayer.Send(140, w => { w.Write(potEpoch); w.Write(id); w.Write(active); });
+            else Multiplayer.Send(DrinkIntent, w => { w.Write(potEpoch); w.Write(id); w.Write(active); });
         }
         static void BeginDrink(ulong peer, Pot pot, bool active)
         {
@@ -51,7 +52,7 @@ namespace WildWasteland.Modules.Survival
             if (!Multiplayer.WorldReady || MultiplayerSaving.Frozen || food == null) return;
             PotEpoch(); int item = Multiplayer.ObjectId(food), target = Multiplayer.ObjectId(pot.Root); if (item == 0 || target == 0) return;
             if (Multiplayer.Hosting) AddIngredient(0, food, pot);
-            else Multiplayer.Send(142, w => { w.Write(potEpoch); w.Write(item); w.Write(target); });
+            else Multiplayer.Send(Ingredient, w => { w.Write(potEpoch); w.Write(item); w.Write(target); });
         }
         static void AddIngredient(ulong peer, GameObject food, Pot pot)
         {
@@ -82,7 +83,7 @@ namespace WildWasteland.Modules.Survival
                 else
                 {
                     uint sequence = ++sipSequence;
-                    Multiplayer.Send(141, w => { w.Write(potEpoch); w.Write(sequence); w.Write(sip * 12f); w.Write(nutrition); w.Write(insanity); }, pair.Key);
+                    Multiplayer.Send(SipResult, w => { w.Write(potEpoch); w.Write(sequence); w.Write(sip * 12f); w.Write(nutrition); w.Write(insanity); }, pair.Key);
                 }
             }
             foreach (ulong peer in stopped) drinkers.Remove(peer);
@@ -93,7 +94,7 @@ namespace WildWasteland.Modules.Survival
                 if (pot.Root == null) continue;
                 int id = Multiplayer.ObjectId(pot.Root); if (id == 0) continue;
                 bool heating = pot.Stew.Heating, pouring = pot.Pouring;
-                Multiplayer.Send(143, w => { w.Write(potEpoch); w.Write(id); w.Write(heating); w.Write(pouring); }, reliable: false);
+                Multiplayer.Send(Presentation, w => { w.Write(potEpoch); w.Write(id); w.Write(heating); w.Write(pouring); }, reliable: false);
             }
         }
         static void ApplySip(float water, float nutrition, float insanity)
@@ -106,9 +107,9 @@ namespace WildWasteland.Modules.Survival
         }
         static void PotMessage(ulong from, byte kind, BinaryReader reader)
         {
-            if (kind < 140 || kind > 143 || !Multiplayer.WorldReady) return;
+            if (kind < DrinkIntent || kind > Presentation || !Multiplayer.WorldReady) return;
             PotEpoch(); if (reader.ReadUInt64() != potEpoch || potEpoch == 0) return;
-            if (kind == 141)
+            if (kind == SipResult)
             {
                 if (!Multiplayer.Client || from != 0) return;
                 uint sequence = reader.ReadUInt32(); float water = reader.ReadSingle(), nutrition = reader.ReadSingle(), insanity = reader.ReadSingle();
@@ -117,14 +118,14 @@ namespace WildWasteland.Modules.Survival
                 lastSip = sequence; ApplySip(water, nutrition, insanity); return;
             }
             int id = reader.ReadInt32(); var root = Multiplayer.ObjectById(id);
-            if (kind == 143)
+            if (kind == Presentation)
             {
                 bool heating = reader.ReadBoolean(), pouring = reader.ReadBoolean();
                 if (!Multiplayer.Client || from != 0 || reader.BaseStream.Position != reader.BaseStream.Length) return;
                 var pot = FindPot(root); if (pot != null) { pot.Stew.Heating = heating; pot.NetworkPouring = pouring; } return;
             }
             if (!Multiplayer.Hosting || from == 0 || MultiplayerSaving.Frozen) return;
-            if (kind == 140) { bool active = reader.ReadBoolean(); var pot = FindPot(root); if (pot != null && reader.BaseStream.Position == reader.BaseStream.Length) BeginDrink(from, pot, active); return; }
+            if (kind == DrinkIntent) { bool active = reader.ReadBoolean(); var pot = FindPot(root); if (pot != null && reader.BaseStream.Position == reader.BaseStream.Length) BeginDrink(from, pot, active); return; }
             int target = reader.ReadInt32(); var recipient = FindPot(Multiplayer.ObjectById(target));
             if (recipient != null && reader.BaseStream.Position == reader.BaseStream.Length) AddIngredient(from, root, recipient);
         }

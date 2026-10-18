@@ -11,18 +11,14 @@ namespace WildWasteland.Core
     // Opt-in local launcher. Ordinary Steam/menu sessions retain their normal paths and identity.
     internal static class MultiplayerLaunch
     {
-        static string _role, _saves, _ready, _token, _world, _saveFile;
-        static Func<bool> _menu, _worldReady;
-        static Func<string, int, bool> _launch;
-        static Action<string, int, bool> _host;
-        static Action _join;
+        static string _role, _saves, _world, _saveFile;
+        static Func<bool> _menu;
         internal static void Install()
         {
             _role = Environment.GetEnvironmentVariable("WWMP_ROLE");
             if (_role != "host" && _role != "client") return;
             if (!Multiplayer.Present) throw new InvalidOperationException("WildWastelandMP launcher requires ApocalypterMP.dll");
             _saves = Environment.GetEnvironmentVariable("WWMP_SAVES");
-            _ready = Environment.GetEnvironmentVariable("WWMP_READY"); _token = Environment.GetEnvironmentVariable("WWMP_TOKEN");
             _world = Environment.GetEnvironmentVariable("WWMP_WORLD") ?? "WWMP_Local";
             if (string.IsNullOrEmpty(_saves) || !Path.IsPathRooted(_saves) || _world.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
                 throw new InvalidOperationException("Invalid WildWastelandMP launcher paths");
@@ -51,10 +47,6 @@ namespace WildWasteland.Core
                 throw new InvalidOperationException("WildWastelandMP launcher hooks failed");
             var launcher = Multiplayer.Type("Game.GameLauncher");
             _menu = MultiplayerAccess.Call<Func<bool>>(launcher, "get_InMainMenu", Type.EmptyTypes);
-            _worldReady = MultiplayerAccess.Call<Func<bool>>(launcher, "get_IsWorldReady", Type.EmptyTypes);
-            _launch = MultiplayerAccess.Call<Func<string, int, bool>>(launcher, "Launch", typeof(string), typeof(int));
-            _host = MultiplayerAccess.Call<Action<string, int, bool>>(Multiplayer.Type("Net.NetSession"), "HostWorld", typeof(string), typeof(int), typeof(bool));
-            _join = MultiplayerAccess.Call<Action>(Multiplayer.Type("Net.NetSession"), "StartUdpJoin", Type.EmptyTypes);
             MultiplayerAccess.Get<ConfigEntry<string>>(Multiplayer.Type("Plugin"), "UdpAddress")(null).Value = Environment.GetEnvironmentVariable("WWMP_ADDRESS") ?? "127.0.0.1";
             int port; if (!int.TryParse(Environment.GetEnvironmentVariable("WWMP_PORT"), out port)) port = 27861;
             MultiplayerAccess.Get<ConfigEntry<int>>(Multiplayer.Type("Plugin"), "UdpPort")(null).Value = port;
@@ -74,25 +66,9 @@ namespace WildWasteland.Core
             Application.runInBackground = true;
             Application.targetFrameRate = 60;
             while (!_menu()) yield return null;
-            yield return new WaitForSecondsRealtime(3);
-            if (_role == "host")
-            {
-                if (!_launch(_saveFile, 424242)) { Log.Error("[MP launcher] World launch failed"); yield break; }
-                _host(_world, 424242, false);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(_token) && !string.IsNullOrEmpty(_ready))
-                    while (!HostReady()) yield return new WaitForSecondsRealtime(.5f);
-                _join();
-            }
-            while (!_worldReady()) yield return null;
             SetTitle();
-            if (_role == "host" && !string.IsNullOrEmpty(_ready) && !string.IsNullOrEmpty(_token)) File.WriteAllText(_ready, _token);
-            Log.Always("[MP launcher] " + _role + " ready for interactive testing; world " + _world);
+            Log.Always("[MP launcher] " + _role + " ready at the title menu; choose HOST or JOIN manually");
         }
-        static bool HostReady()
-        { try { return File.Exists(_ready) && File.ReadAllText(_ready) == _token; } catch (IOException) { return false; } }
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         static extern bool SetWindowText(IntPtr window, string text);
         static void SetTitle()

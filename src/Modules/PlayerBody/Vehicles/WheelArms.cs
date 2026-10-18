@@ -14,8 +14,8 @@ namespace WildWasteland.Modules.PlayerBody
     {
         private sealed class Setup
         {
-            // Original 12 values, then side/top x left/right: hand XYZ, wrist Euler, shoulder Euler, elbow pole XYZ.
-            internal readonly float[] V = new float[60];
+            // Original 12 values, then arm poses; handlebars append sitting XYZ and straight/left/right torso Euler.
+            internal readonly float[] V = new float[_handlebars ? 96 : 60];
             internal Setup() { V[0] = .95f; V[1] = .03f; V[2] = .85f; V[5] = 75f; }
         }
         private sealed class Arm
@@ -29,9 +29,14 @@ namespace WildWasteland.Modules.PlayerBody
         }
         private static readonly Dictionary<string, Setup> _setups = new Dictionary<string, Setup>();
         private static readonly Arm[] _arms = new Arm[2];
+        private static readonly Arm[] _passengerArms = new Arm[2];
+        private static Transform _passengerHips;
         private static Transform _car, _mount, _wheel, _hips;
         private static VehicleController _vehicle;
         private static Steering _steering;
+        private static bool _handlebars, _removableWheel;
+        private static readonly Transform[] _grips = new Transform[2];
+        private static readonly Vector3[] _gripPoints = new Vector3[2];
         private static bool _returnToCenter;
         private static float _nextWheel, _nextLog, _towardDriver;
         private static Vector3 _center, _radius;
@@ -44,12 +49,34 @@ namespace WildWasteland.Modules.PlayerBody
         private static float _traceUntil, _traceNext;
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
+        internal static bool MissingWheel { get { return _removableWheel && _mount != null && FittedWheel(_mount) == null; } }
+        private static Transform FittedWheel(Transform mount)
+        {
+            if (mount != null) for (int i = 0; i < mount.childCount; i++)
+            {
+                var child = mount.GetChild(i);
+                if (child.gameObject.activeInHierarchy && child.CompareTag("vehPart")) return child;
+            }
+            return null;
+        }
+        internal static void Patch(PlayerBodyModule owner)
+        {
+            Patches.Patch(owner, Patches.Method(typeof(Steering), "CalculateSteerAngles"), prefix: Patches.Method(typeof(WheelArms), "BeforeSteer"));
+        }
+        private static void BeforeSteer(Steering __instance)
+        {
+            if (!ReferenceEquals(__instance, _steering) || !MissingWheel) return;
+            _vehicle.input.Steering = 0f; // Native steering still owns smoothing and centering, after all keyboard/mouse input writers.
+        }
+
         internal static void Clear()
         {
             StopEditor();
             if (_vehicle != null && _steering != null) _steering.returnToCenter = _returnToCenter;
             _vehicle = null; _steering = null; _car = _mount = _wheel = _hips = null;
+            _handlebars = _removableWheel = false; _grips[0] = _grips[1] = null;
             _arms[0] = _arms[1] = null; _setup = null; _key = _name = ""; _owner = "off";
+            _passengerArms[0] = _passengerArms[1] = null; _passengerHips = null;
             _nextWheel = _nextLog = 0f;
             ResetStroke(0f);
             _traceInput = 0; _traceUntil = _traceNext = 0f;
@@ -77,12 +104,37 @@ namespace WildWasteland.Modules.PlayerBody
             if (Time.unscaledTime < _nextWheel) return;
             _nextWheel = Time.unscaledTime + .5f;
             var mount = _steering.steeringWheel;
-            var wheel = mount != null && mount.childCount > 0 ? mount.GetChild(0) : null;
+            var bars = mount != null ? mount.Find("steering front") : null;
+            var wheel = bars != null ? bars : FittedWheel(mount);
             if (ReferenceEquals(mount, _mount) && ReferenceEquals(wheel, _wheel)) return;
             StopEditor();
             _mount = mount; _wheel = wheel; _setup = null; _key = _name = ""; _nextLog = 0f;
+            _handlebars = bars != null; _removableWheel = mount != null && mount.name == "hinge_steeringwheel";
+            _editPose = 0; _preview = _handlebars ? 3 : 2;
+            if (!_handlebars && _target >= 6) _target = 0;
+            _grips[0] = _grips[1] = null;
             ResetStroke(_steering.angle * _steering.steeringWheelTurnRatio);
-            if (wheel == null) return;
+            if (wheel == null)
+            {
+                if (_removableWheel) PlayerBodyModule.Verbose("Wheel arms: steering wheel missing; resting hands and blocking steering");
+                return;
+            }
+            if (_handlebars)
+            {
+                _grips[0] = bars.Find("clutch"); _grips[1] = bars.Find("gas");
+                for (int i = 0; i < 2; i++)
+                {
+                    var grip = _grips[i] != null ? _grips[i].GetComponent<MeshFilter>() : null;
+                    if (grip == null || grip.sharedMesh == null) { PlayerBodyModule.Warn("Handlebar arms: missing clutch/throttle grip mesh; keeping the seat pose"); return; }
+                    _gripPoints[i] = grip.sharedMesh.bounds.center;
+                }
+                _key = "handlebars";
+                _name = "Motorcycle handlebars"; _towardDriver = -1f;
+                _target = 1;
+                if (!_setups.TryGetValue(_key, out _setup)) { _setup = Load(); _setups.Add(_key, _setup); }
+                PlayerBodyModule.Verbose("Handlebar arms: " + Game.PathOf(bars) + "; setup " + _key + "; fixed clutch/throttle grips");
+                return;
+            }
             // Native wheels carry their rim mesh on the part root; child meshes can be ornaments, not rim geometry.
             var filter = wheel.GetComponent<MeshFilter>();
             if (filter == null || filter.sharedMesh == null) { PlayerBodyModule.Warn("Wheel arms: fitted wheel has no rim mesh; keeping the seat pose"); return; }
@@ -126,6 +178,9 @@ namespace WildWasteland.Modules.PlayerBody
         internal static void Solve(Dictionary<string, Transform> bones, string owner)
         {
             if (_setup == null || _mount == null || _wheel == null || _wheel.parent != _mount) return;
+            Transform hips;
+            if (!bones.TryGetValue("mixamorig:Hips", out hips)) return;
+            if (_handlebars) hips.position += _car.TransformDirection(new Vector3(_setup.V[84], _setup.V[85], _setup.V[86]) * .01f);
             if (owner != _owner) { _owner = owner; _nextLog = 0f; }
             if (owner != "wheel" && owner != "tool")
             {
@@ -133,13 +188,12 @@ namespace WildWasteland.Modules.PlayerBody
                 if (PlayerBodyModule.VerboseOn && Time.unscaledTime >= _nextLog) { _nextLog = Time.unscaledTime + 5f; PlayerBodyModule.Verbose("Wheel arms: owner " + owner + "; IK bypassed"); }
                 return;
             }
-            Transform hips;
-            if (!bones.TryGetValue("mixamorig:Hips", out hips)) return;
             if (hips != _hips)
             {
                 _hips = hips; _arms[0] = Bind(bones, "Left"); _arms[1] = Bind(bones, "Right");
                 _nextLog = 0f;
             }
+            if (_handlebars) { SolveHandlebars(bones, owner); return; }
             var v = _setup.V;
             float spin = _steering.angle * _steering.steeringWheelTurnRatio;
             var neutral = _mount.rotation * Quaternion.AngleAxis(-spin, Vector3.forward);
@@ -206,9 +260,77 @@ namespace WildWasteland.Modules.PlayerBody
             if (report) _nextLog = Time.unscaledTime + 5f;
         }
 
-        // WWW ArmIK.Solve: two rigid bones, projected fresh seat elbow, clamped reach; never translate or stretch a hand.
-        private static void Reach(Arm a, Vector3 target, float swing, Vector3 elbowOffset)
+        private static void SolveHandlebars(Dictionary<string, Transform> bones, string owner)
         {
+            if (_grips[0] == null || _grips[1] == null) return;
+            float steering = _steering.angle / Mathf.Max(1f, _steering.maximumSteerAngle);
+            int pose = steering < 0f ? 1 : 2;
+            float blend = Mathf.Clamp01(Mathf.Abs(steering));
+            if (_editor && _preview < 3) { pose = _editPose; blend = pose == 0 ? 0f : 1f; }
+            var v = _setup.V;
+            var torso = PoseVector(v, 87, 87 + pose * 3, blend);
+            float seatYaw = Mathf.Clamp(_steering.angle * .25f, -8f, 8f);
+            torso.y += seatYaw;
+            var right = _arms[1];
+            if (right == null || right.Hand == null) return;
+            var rightWrist = Quaternion.AngleAxis(seatYaw, _car.up) * right.Hand.rotation;
+            Transform spine;
+            if (bones.TryGetValue("mixamorig:Spine", out spine))
+                spine.rotation = _car.rotation * Quaternion.Euler(torso) * Quaternion.Inverse(_car.rotation) * spine.rotation;
+            var frame = _wheel.rotation;
+            var turn = Quaternion.AngleAxis(_steering.angle * _steering.steeringWheelTurnRatio, _mount.forward);
+            var fingers = _wheel.forward;
+            var gripBase = _grips[1].TransformPoint(_gripPoints[1]) - fingers * (right.Palm * v[2]) + _wheel.up * v[1];
+            var wristBase = right.FingerFrame ? Quaternion.LookRotation(fingers, _wheel.up) * right.Offset : turn * rightWrist;
+            var pole = right.Lower.position - right.Upper.position;
+            bool report = PlayerBodyModule.VerboseOn && Time.unscaledTime >= _nextLog;
+            for (int i = 1; i >= 0; i--)
+            {
+                var a = _arms[i]; if (a == null || a.Hand == null || i == 1 && owner == "tool") continue;
+                int o = PoseOffset(0, i), t = PoseOffset(pose, i);
+                var handTarget = (i == 1 ? gripBase : _wheel.position + MirrorVector(gripBase - _wheel.position, frame))
+                    + frame * PoseVector(v, o, t, blend) * .01f;
+                var handRotation = (i == 1 ? wristBase : MirrorOrientation(wristBase, frame))
+                    * Quaternion.Euler(PoseVector(v, o + 3, t + 3, blend));
+                var shoulderRotation = frame * Quaternion.Euler(PoseVector(v, o + 6, t + 6, blend)) * Quaternion.Inverse(frame);
+                if (a.Shoulder != null) a.Shoulder.rotation = shoulderRotation * a.Shoulder.rotation;
+                a.PoleSeed = i == 1 ? pole : MirrorVector(pole, frame);
+                Reach(a, handTarget, (i == 1 ? -1f : 1f) * v[4], frame * PoseVector(v, o + 9, t + 9, blend) * .01f);
+                a.Hand.rotation = handRotation;
+                if (report) PlayerBodyModule.Verbose("Handlebar arms: " + (i == 0 ? "left" : "right") + "; owner " + owner
+                    + "; requested/reach " + a.Requested.ToString("F3", Inv) + "/" + a.Reach.ToString("F3", Inv)
+                    + " m; wrist error " + Vector3.Distance(a.Hand.position, handTarget).ToString("F3", Inv) + " m; steering " + _steering.angle.ToString("F1", Inv)
+                    + "; pose " + pose + "; blend " + blend.ToString("F2", Inv) + "; reach limited " + a.BendLimited
+                    + "; torso " + torso.ToString("F1") + "; sitting cm " + new Vector3(v[84], v[85], v[86]).ToString("F1"));
+            }
+            if (report) _nextLog = Time.unscaledTime + 5f;
+        }
+
+        internal static void RestPassengerArms(Dictionary<string, Transform> bones, string owner)
+        {
+            if (owner != "wheel" && owner != "tool") return;
+            Transform hips; var player = Game.Player;
+            if (player == null || !bones.TryGetValue("mixamorig:Hips", out hips)) return;
+            if (_passengerHips != hips)
+            {
+                _passengerHips = hips; _passengerArms[0] = Bind(bones, "Left"); _passengerArms[1] = Bind(bones, "Right");
+            }
+            var frame = player.transform;
+            for (int i = 0; i < 2; i++)
+            {
+                var a = _passengerArms[i]; Transform knee;
+                if (a == null || i == 1 && owner == "tool" || !bones.TryGetValue(i == 0 ? "mixamorig:LeftLeg" : "mixamorig:RightLeg", out knee)) continue;
+                a.PoleSeed = -frame.up + frame.right * (i == 0 ? -.2f : .2f);
+                var rotation = a.FingerFrame ? Quaternion.LookRotation(frame.forward, frame.up) * a.Offset : a.Hand.rotation;
+                Reach(a, knee.position + frame.up * .07f - frame.forward * a.Palm, 0f, Vector3.zero, frame);
+                a.Hand.rotation = rotation;
+            }
+        }
+
+        // WWW ArmIK.Solve: two rigid bones, projected fresh seat elbow, clamped reach; never translate or stretch a hand.
+        private static void Reach(Arm a, Vector3 target, float swing, Vector3 elbowOffset, Transform frame = null)
+        {
+            if (frame == null) frame = _car;
             Vector3 sp = a.Upper.position, ep = a.Lower.position, hp = a.Hand.position;
             float upper = (ep - sp).magnitude, lower = (hp - ep).magnitude;
             if (upper < .001f || lower < .001f) return;
@@ -218,13 +340,13 @@ namespace WildWasteland.Modules.PlayerBody
             float d = Mathf.Clamp(a.Requested, Mathf.Abs(upper - lower) + .001f, extended);
             var dir = st.sqrMagnitude > 1e-8f ? st.normalized : (hp - sp).normalized;
             var bend = Vector3.ProjectOnPlane(a.PoleSeed + elbowOffset, dir);
-            if (bend.sqrMagnitude < 1e-8f) bend = Vector3.ProjectOnPlane(-_car.up, dir);
-            if (bend.sqrMagnitude < 1e-8f) bend = Vector3.ProjectOnPlane(_car.right, dir);
+            if (bend.sqrMagnitude < 1e-8f) bend = Vector3.ProjectOnPlane(-frame.up, dir);
+            if (bend.sqrMagnitude < 1e-8f) bend = Vector3.ProjectOnPlane(frame.right, dir);
             bend = Quaternion.AngleAxis(swing, dir) * bend.normalized;
-            var previous = Vector3.ProjectOnPlane(_car.TransformDirection(a.BendLocal), dir);
+            var previous = Vector3.ProjectOnPlane(frame.TransformDirection(a.BendLocal), dir);
             a.PoleDot = previous.sqrMagnitude > 1e-6f ? Vector3.Dot(previous.normalized, bend) : 1f;
             a.PoleGuarded = false;
-            a.BendLocal = _car.InverseTransformDirection(bend);
+            a.BendLocal = frame.InverseTransformDirection(bend);
             float along = (upper * upper - lower * lower + d * d) / (2f * d);
             var elbow = sp + dir * along + bend * Mathf.Sqrt(Mathf.Max(upper * upper - along * along, 0f));
             a.Upper.rotation = Quaternion.FromToRotation(ep - sp, elbow - sp) * a.Upper.rotation;
@@ -232,13 +354,28 @@ namespace WildWasteland.Modules.PlayerBody
         }
 
         private static string FilePath { get { return Path.Combine(PlayerBodyModule.DataDir, "WheelGrips", _key + ".txt"); } }
+        private static string LoadPath()
+        {
+            string path = FilePath;
+            if (!_handlebars || File.Exists(path)) return path;
+            var folder = Path.GetDirectoryName(path);
+            if (!Directory.Exists(folder)) return path;
+            var newest = DateTime.MinValue;
+            foreach (var legacy in Directory.GetFiles(folder, "handlebars-*.txt"))
+            {
+                var written = File.GetLastWriteTimeUtc(legacy);
+                if (written > newest) { newest = written; path = legacy; }
+            }
+            return path;
+        }
         private static Setup Load(bool defaultsOnly = false)
         {
             var s = new Setup();
             try
             {
                 string text;
-                if (!defaultsOnly && File.Exists(FilePath)) text = File.ReadAllText(FilePath);
+                var path = defaultsOnly ? FilePath : LoadPath();
+                if (!defaultsOnly && File.Exists(path)) text = File.ReadAllText(path);
                 else
                     using (var stream = typeof(WheelArms).Assembly.GetManifestResourceStream("PlayerBody.WheelGrips." + _key + ".txt"))
                     {
@@ -247,7 +384,7 @@ namespace WildWasteland.Modules.PlayerBody
                         if (PlayerBodyModule.VerboseOn) PlayerBodyModule.Verbose("Wheel arms: built-in calibrated defaults " + _key);
                     }
                 var fields = text.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                if (fields.Length != 12 && fields.Length != s.V.Length) throw new FormatException("expected 12 legacy or 60 side/top grip values");
+                if (fields.Length != 12 && fields.Length != 60 && !(_handlebars && fields.Length == 84) && fields.Length != s.V.Length) throw new FormatException("expected 12/60 legacy, 84 or 96 handlebar grip values");
                 for (int i = 0; i < fields.Length; i++)
                 {
                     float n;
@@ -256,11 +393,19 @@ namespace WildWasteland.Modules.PlayerBody
                 }
                 s.V[0] = Mathf.Clamp(s.V[0], .5f, 1.1f); s.V[1] = Mathf.Clamp(s.V[1], -.1f, .1f); s.V[2] = Mathf.Clamp(s.V[2], 0f, 1.2f);
                 s.V[3] = Mathf.Clamp(s.V[3], -35f, 35f); s.V[4] = Mathf.Clamp(s.V[4], -60f, 60f); s.V[5] = Mathf.Clamp(s.V[5], 20f, 120f);
-                for (int i = 6; i < s.V.Length; i++) s.V[i] = Mathf.Clamp(s.V[i], -90f, 90f);
+                for (int i = 6; i < s.V.Length; i++)
+                {
+                    int field = (i - 12) % 12;
+                    float limit = _handlebars && i >= 12 && (field < 3 || field >= 9) ? 150f : 90f;
+                    if (_handlebars && i >= 84) limit = i < 87 ? 50f : 60f;
+                    s.V[i] = Mathf.Clamp(s.V[i], -limit, limit);
+                }
                 if (fields.Length == 12)
                     for (int pose = 0; pose < 2; pose++) for (int arm = 0; arm < 2; arm++)
                         for (int k = 0; k < 3; k++) s.V[PoseOffset(pose, arm) + 3 + k] = s.V[6 + arm * 3 + k];
-                MirrorPose(s.V, 0, 1); MirrorPose(s.V, 1, 1);
+                if (_handlebars && fields.Length < 84)
+                    for (int pose = 1; pose < 3; pose++) Array.Copy(s.V, 12, s.V, PoseOffset(pose, 0), 24);
+                if (!_handlebars) for (int pose = 0; pose < 2; pose++) MirrorPose(s.V, pose, 1);
             }
             catch (Exception e) { PlayerBodyModule.Warn("Wheel grip setup " + _key + ": " + e.Message); return new Setup(); }
             return s;
@@ -269,7 +414,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             try
             {
-                MirrorPose(_setup.V, 0, 1); MirrorPose(_setup.V, 1, 1);
+                if (!_handlebars) for (int pose = 0; pose < 2; pose++) MirrorPose(_setup.V, pose, 1);
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
                 var fields = new string[_setup.V.Length];
                 for (int i = 0; i < fields.Length; i++) fields[i] = _setup.V[i].ToString("R", Inv);
@@ -282,8 +427,8 @@ namespace WildWasteland.Modules.PlayerBody
         internal static void Draw(ToolLayout l)
         {
             l.Heading("Steering-wheel hands");
-            l.Text("Each wheel's right-arm fit is mirrored to its left arm. Editing either side updates the mirrored pair; left-turn motion mirrors the right-turn sequence.");
-            l.Text("Per-wheel SIDE and TOP poses. Numpad decimal starts/stops the live editor; 0 selects hand/shoulder/elbow, 5 move/rotate, 9 side/top, 3 live steering. 8/2 up/down, 6/4 right/left, 7/1 toward/away. Numpad Enter saves. Edits also save on key release.");
+            l.Text(_handlebars ? "One setup for all motorcycles, with independent left/right hand, wrist, shoulder and elbow calibration for each steering pose. Sitting offset applies to every turn; torso bend/rotation is saved for each steering pose." : "Each wheel's right-arm fit is mirrored to its left arm. Editing either side updates the mirrored pair; left-turn motion mirrors the right-turn sequence.");
+            l.Text(_handlebars ? "Start with the button below; numpad decimal stops the editor. Num9 selects STRAIGHT / LEFT TURN / RIGHT TURN; Num3 preview/live. Num0 selects left/right hand/shoulder/elbow, sitting offset, torso rotation/bend. Num5 hand move/rotate; 8/2 up/pitch, 6/4 right/yaw, 7/1 forward-back/roll. Enter saves." : "Per-wheel SIDE and TOP poses. Start with the button below; numpad decimal stops the editor. 0 selects hand/shoulder/elbow, 5 move/rotate, 9 side/top, 3 live steering. 8/2 up/down, 6/4 right/left, 7/1 toward/away. Numpad Enter saves. Edits also save on key release.");
             l.Value("Wheel model / setup", _setup != null ? _name + " / " + _key : "no fitted wheel");
             l.Value("Arm owner", _owner);
             if (_setup == null || _mount == null || _wheel == null) return;
@@ -292,14 +437,14 @@ namespace WildWasteland.Modules.PlayerBody
                 if (_editor) StopEditor(); else ToolWindow.CloseThen(StartEditor);
             }
             DrawPoseEditor(l);
-            l.Value("Measured rim diameter (cm)", (200f * _radius.x * Mathf.Abs(_mount.lossyScale.x)).ToString("F1", Inv));
             var v = _setup.V;
-            v[0] = l.Slider("Rim radius (%)", _key + "/Radius", v[0] * 100f, 50f, 110f) * .01f;
-            v[1] = l.Slider("Palm lift toward driver (cm)", _key + "/Lift", v[1] * 100f, -10f, 10f) * .01f;
+            if (!_handlebars) l.Value("Measured rim diameter (cm)", (200f * _radius.x * Mathf.Abs(_mount.lossyScale.x)).ToString("F1", Inv));
+            if (!_handlebars) v[0] = l.Slider("Rim radius (%)", _key + "/Radius", v[0] * 100f, 50f, 110f) * .01f;
+            v[1] = l.Slider(_handlebars ? "Palm lift above grip (cm)" : "Palm lift toward driver (cm)", _key + "/Lift", v[1] * 100f, -10f, 10f) * .01f;
             v[2] = l.Slider("Palm reach", _key + "/Reach", v[2], 0f, 1.2f);
-            v[3] = l.Slider("Grip elevation (degrees)", _key + "/Elevation", v[3], -35f, 35f);
+            if (!_handlebars) v[3] = l.Slider("Grip elevation (degrees)", _key + "/Elevation", v[3], -35f, 35f);
             v[4] = l.Slider("Elbow swing (degrees)", _key + "/Elbow", v[4], -60f, 60f);
-            v[5] = l.Slider("Cross-wheel pull (degrees)", _key + "/Stroke", Mathf.Clamp(v[5] * 2f, 120f, 180f), 120f, 180f) * .5f;
+            if (!_handlebars) v[5] = l.Slider("Cross-wheel pull (degrees)", _key + "/Stroke", Mathf.Clamp(v[5] * 2f, 120f, 180f), 120f, 180f) * .5f;
             int hit = l.Buttons("SAVE this wheel", "RESET this wheel");
             if (hit == 0) Save();
             else if (hit == 1) { _setup = Load(true); _setups[_key] = _setup; Save(); }

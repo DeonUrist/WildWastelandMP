@@ -38,6 +38,8 @@ namespace WildWasteland.Core
         static Action<object> _capture;
         static Action<BinaryWriter, object> _writeState, _writeCar;
         static Action<object, BinaryWriter> _writeVars;
+        static Func<List<KeyValuePair<int, string>>> _inventory;
+        static Func<object, IDictionary> _pendingCreates;
         internal static void Install()
         {
             var type = Multiplayer.Type("Net.ItemVars");
@@ -54,6 +56,8 @@ namespace WildWasteland.Core
             _writeState = MultiplayerAccess.Call<Action<BinaryWriter, object>>(world, "WriteState", typeof(BinaryWriter), tracked);
             _writeCar = MultiplayerAccess.Call<Action<BinaryWriter, object>>(world, "WriteCarState", typeof(BinaryWriter), tracked);
             _writeVars = MultiplayerAccess.Call<Action<object, BinaryWriter>>(type, "Write", typeof(BinaryWriter));
+            _inventory = MultiplayerAccess.Call<Func<List<KeyValuePair<int, string>>>>(world, "LocalInventory", Type.EmptyTypes);
+            _pendingCreates = MultiplayerAccess.Get<IDictionary>(world, "pendingCreates");
             _changed = MultiplayerAccess.Call<Func<object, bool>>(type, "Changed", Type.EmptyTypes);
             _revert = MultiplayerAccess.Call<Action<object>>(type, "Revert", Type.EmptyTypes);
             _kick = MultiplayerAccess.Call<Action<GameObject>>(world, "KickOutOf", typeof(GameObject));
@@ -117,6 +121,16 @@ namespace WildWasteland.Core
         {
             using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
             { writer.Write(kind); write(writer); MultiplayerReliable.Send(stream.ToArray(), null); }
+        }
+        internal static bool FlushInventory()
+        {
+            foreach (var item in _inventory())
+            {
+                var root = Multiplayer.ObjectById(item.Key); var state = Multiplayer.TrackedState(root);
+                var vars = state != null ? _stateVars(state) : null;
+                if (vars != null) SendNative(30, w => { w.Write(item.Key); _writeVars(vars, w); });
+            }
+            return _pendingCreates(null).Count == 0 && !MultiplayerParts.Pending && !MultiplayerEdits.Busy;
         }
         static object Vars(GameObject part)
         { var state = Multiplayer.TrackedState(part); return state != null ? _stateVars(state) : null; }

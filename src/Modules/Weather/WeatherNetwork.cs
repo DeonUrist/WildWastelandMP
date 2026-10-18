@@ -43,10 +43,10 @@ namespace WildWasteland.Modules.Weather
         }
         void ApplyNetwork(byte[] bytes)
         {
-            var regions = new WeatherRegion[4]; var ages = new float[4]; int count; float clock;
+            var regions = new WeatherRegion[MaxRegions]; var ages = new float[MaxRegions]; int count; float clock;
             using (var r = new BinaryReader(new MemoryStream(bytes, false)))
             {
-                count = r.ReadInt32(); clock = r.ReadSingle(); if (count < 0 || count > 4 || float.IsNaN(clock) || float.IsInfinity(clock)) throw new InvalidDataException("Invalid storm snapshot");
+                count = r.ReadInt32(); clock = r.ReadSingle(); if (count < 0 || count > MaxRegions || float.IsNaN(clock) || float.IsInfinity(clock)) throw new InvalidDataException("Invalid storm snapshot");
                 for (int i = 0; i < count; i++)
                 {
                     regions[i] = new WeatherRegion { WorldCenter = new Vector3(r.ReadSingle(), r.ReadSingle(), r.ReadSingle()), Radii = new Vector2(r.ReadSingle(), r.ReadSingle()), Velocity = new Vector3(r.ReadSingle(), r.ReadSingle(), r.ReadSingle()), Heading = r.ReadSingle(), Hurricane = r.ReadBoolean() };
@@ -59,7 +59,7 @@ namespace WildWasteland.Modules.Weather
             }
             if (count > 0 && _visuals == null) { _visuals = new WeatherVisuals(_audio); _audio.Load(); }
             if (_visuals != null) _visuals.ClearGround();
-            _count = count; _clock = clock; Array.Copy(regions, _regions, 4); Array.Copy(ages, _ages, 4); Array.Clear(_anchors, 0, 4);
+            _count = count; _clock = clock; Array.Copy(regions, _regions, MaxRegions); Array.Copy(ages, _ages, MaxRegions); Array.Clear(_anchors, 0, MaxRegions);
             _draw.Enabled = count > 0;
         }
     }

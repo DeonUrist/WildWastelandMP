@@ -122,8 +122,8 @@ namespace WildWasteland.Modules.Patrols
         }
         internal void CancelBuild(bool menu, Action<GameObject> done) { if (done != null) done(null); }
 
-        // WW: Core.GameRefs.InGame (Menu "play" && SaveLoadGame "isPlay" && timeScale > 0, evaluated once per frame, Fsm.Initialized checked)
-        internal bool InGame() { return Core.GameRefs.InGame; }
+        // World simulation continues behind MP menus; offline uses the normal InGame gate.
+        internal bool InGame() { return Core.GameRefs.WorldRunning; }
 
         // =============================================================== build
 

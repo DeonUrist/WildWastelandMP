@@ -14,12 +14,12 @@ namespace WildWasteland.Modules.CleanHUD
     // (25 m cells in 64x64 chunks, gzip "IMFP" v4), so its per-slot files import directly. Unlike the source, the overlay is a
     // world-anchored Alpha8 window updated texel by texel: painting never rebuilds the whole texture, and an open map only
     // uploads it while something changed.
-    internal static class MapFog
+    internal static partial class MapFog
     {
         private const float Cell = 25f;
         private const int Window = 1024, Magic = 1229799760, FormatVersion = 4, ExploredFog = 55;
         private const string SourceGuid = "local.immersivemap";
-        private sealed class Chunk { internal readonly byte[] D = New(); }   // fog: 255 unexplored, 0 explored
+        private sealed class Chunk { internal readonly byte[] D = New(); internal int Pending, Next; }   // fog: 255 unexplored, 0 explored
         private static readonly Dictionary<long, Chunk> Chunks = new Dictionary<long, Chunk>();
         private static readonly byte[] Full = New();
         private static byte[] _buffer;
@@ -55,10 +55,13 @@ namespace WildWasteland.Modules.CleanHUD
             if (_standDown) CleanHudModule.Warn("Immersive Map: " + ReplacementGuard.Status(SourceGuid) + ". Wild Wasteland fog waits until restart.");
             _saves = Path.Combine(Core.Assets.ModuleConfigDir("CleanHUD"), "Saves");
             SaveBus.StateChanged -= SaveState; SaveBus.StateChanged += SaveState;
+            Multiplayer.Message -= FogMessage; Multiplayer.Message += FogMessage;
+            CleanHudModule.SharedVision.SettingChanged -= VisionChanged; CleanHudModule.SharedVision.SettingChanged += VisionChanged;
         }
 
         internal static void Reset()
         {
+            ResetSharing();
             Chunks.Clear(); _loaded = false; _seed = int.MinValue; _window = false; _havePosition = false; _wasOpen = false; _idle = false; _painting = false;
             DropOverlay();
         }
@@ -69,6 +72,8 @@ namespace WildWasteland.Modules.CleanHUD
         internal static void Shutdown()
         {
             SaveBus.StateChanged -= SaveState;
+            Multiplayer.Message -= FogMessage;
+            CleanHudModule.SharedVision.SettingChanged -= VisionChanged;
             Reset();
             if (_texture != null) UnityEngine.Object.Destroy(_texture); _texture = null; _buffer = null;
             if (_material != null) UnityEngine.Object.Destroy(_material); _material = null;
@@ -88,8 +93,7 @@ namespace WildWasteland.Modules.CleanHUD
             if (!Shown) return false;
             var w = Origin.World(scene);
             int cx = Mathf.FloorToInt(w.x / Cell), cz = Mathf.FloorToInt(w.z / Cell);
-            Chunk c; if (!Chunks.TryGetValue(Key(cx >> 6, cz >> 6), out c)) return true;
-            return c.D[(cz & 63) * 64 + (cx & 63)] > ExploredFog;
+            return FogAt(Key(cx >> 6, cz >> 6), (cz & 63) * 64 + (cx & 63)) > ExploredFog;
         }
         private static bool Shown { get { return _loaded && !_standDown && CleanHudModule.FogOfWar.Value && CleanHudModule.MapEnabled.Value; } }
         internal static bool Explored(Vector3 scene)
@@ -97,13 +101,13 @@ namespace WildWasteland.Modules.CleanHUD
             if (!_loaded || _standDown) return false;
             var world = Origin.World(scene);
             int cx = Mathf.FloorToInt(world.x / Cell), cz = Mathf.FloorToInt(world.z / Cell);
-            Chunk chunk;
-            return Chunks.TryGetValue(Key(cx >> 6, cz >> 6), out chunk) && chunk.D[(cz & 63) * 64 + (cx & 63)] <= ExploredFog;
+            return FogAt(Key(cx >> 6, cz >> 6), (cz & 63) * 64 + (cx & 63)) <= ExploredFog;
         }
 
         // ---- exploration (0.2 s interval)
         internal static void Paint()
         {
+            SharingTick();
             if (_painting) return;
             float now = Time.unscaledTime, dt = Mathf.Min(now - _lastPaint, 1f); _lastPaint = now;
             if (!_loaded || _standDown || !GameRefs.InGame || SaveBus.Busy || now < _holdUntil || Origin.AnchorTransform == null) return;
@@ -158,10 +162,11 @@ namespace WildWasteland.Modules.CleanHUD
                     int i = (cz & 63) * 64 + (cx & 63), cur = chunk.D[i], target = 255 - reveal;
                     if (cur <= target) continue;
                     int v = Mathf.Max(target, cur - step); chunk.D[i] = (byte)v; _idle = false;
+                    if (_networkSharing) QueuePart(PersonalPending, key, chunk, 1 << (i / FogPartSize));
                     if (_window)
                     {
                         int x = cx - _winX, z = cz - _winZ;
-                        if (x > 0 && z > 0 && x < Window - 1 && z < Window - 1) { _buffer[z * Window + x] = (byte)v; _uploadPending = true; }
+                        if (x > 0 && z > 0 && x < Window - 1 && z < Window - 1) { _buffer[z * Window + x] = FogAt(key, i); _uploadPending = true; }
                     }
                 }
             }
@@ -232,9 +237,13 @@ namespace WildWasteland.Modules.CleanHUD
             int kx0 = _winX >> 6, kz0 = _winZ >> 6, n = Window / 64;
             for (int kz = 0; kz < n; kz++) for (int kx = 0; kx < n; kx++)
             {
-                Chunk c; var src = Chunks.TryGetValue(Key(kx0 + kx, kz0 + kz), out c) ? c.D : Full;
+                long key = Key(kx0 + kx, kz0 + kz);
+                Chunk c; var src = Chunks.TryGetValue(key, out c) ? c.D : Full;
+                Chunk shared = null; bool sharing = _networkSharing && SharedChunks.TryGetValue(key, out shared);
                 int dst = kz * 64 * Window + kx * 64;
                 for (int row = 0; row < 64; row++) Buffer.BlockCopy(src, row * 64, _buffer, dst + row * Window, 64);
+                if (sharing) for (int row = 0; row < 64; row++) for (int x = 0; x < 64; x++)
+                { int i = dst + row * Window + x; _buffer[i] = Math.Min(_buffer[i], shared.D[row * 64 + x]); }
             }
             for (int i = 0; i < Window; i++) { _buffer[i] = 255; _buffer[(Window - 1) * Window + i] = 255; _buffer[i * Window] = 255; _buffer[i * Window + Window - 1] = 255; }
             _uploadPending = true; _wasOpen = false;
@@ -250,6 +259,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         internal static void WorldReady(string slot)
         {
+            ResetSharing();
             Chunks.Clear(); _window = false; _havePosition = false; _idle = false; _painting = false; _loaded = true; _seed = Seed();
             if (_standDown) return;
             string from = "nothing saved for this world yet";
@@ -265,6 +275,7 @@ namespace WildWasteland.Modules.CleanHUD
                 }
             }
             catch (Exception e) { Chunks.Clear(); CleanHudModule.Warn("Fog of war could not be read: " + e.Message); }
+            LoadShared(slot);
             CleanHudModule.Log("Fog of war loaded from " + from + " (" + Chunks.Count + " chunks, seed " + _seed + ")");
         }
 
@@ -282,6 +293,7 @@ namespace WildWasteland.Modules.CleanHUD
                 File.WriteAllBytes(path + ".tmp", data);
                 if (File.Exists(path)) File.Replace(path + ".tmp", path, null); else File.Move(path + ".tmp", path);
                 CleanHudModule.Log("Fog of war saved: " + Path.GetFileName(path) + " (" + Chunks.Count + " chunks, " + data.Length + " bytes)");
+                SaveShared(slot);
             }
             catch (Exception e) { CleanHudModule.Warn("Fog of war could not be saved: " + e.Message); }
         }
@@ -292,16 +304,17 @@ namespace WildWasteland.Modules.CleanHUD
             if (now == "wait" || now == "SaveGame") SaveEnded(SaveBus.Slot);
         }
 
-        private static byte[] Write(int seed)
+        private static byte[] Write(int seed, Dictionary<long, Chunk> chunks = null)
         {
+            if (chunks == null) chunks = Chunks;
             var reveal = new byte[4096];
             using (var memory = new MemoryStream())
             {
                 using (var gz = new GZipStream(memory, CompressionMode.Compress, true))
                 using (var w = new BinaryWriter(gz))
                 {
-                    w.Write(Magic); w.Write(FormatVersion); w.Write(seed); w.Write(Chunks.Count);
-                    foreach (var pair in Chunks)
+                    w.Write(Magic); w.Write(FormatVersion); w.Write(seed); w.Write(chunks.Count);
+                    foreach (var pair in chunks)
                     {
                         w.Write((int)(pair.Key >> 32)); w.Write((int)(pair.Key & 0xFFFFFFFFu));
                         var d = pair.Value.D; for (int i = 0; i < 4096; i++) reveal[i] = (byte)(255 - d[i]);
@@ -313,8 +326,9 @@ namespace WildWasteland.Modules.CleanHUD
             }
         }
 
-        private static bool Read(byte[] data)
+        private static bool Read(byte[] data, Dictionary<long, Chunk> chunks = null)
         {
+            if (chunks == null) chunks = Chunks;
             var read = new Dictionary<long, Chunk>();
             using (var gz = new GZipStream(new MemoryStream(data), CompressionMode.Decompress))
             using (var r = new BinaryReader(gz))
@@ -330,7 +344,7 @@ namespace WildWasteland.Modules.CleanHUD
                     read[Key(cx, cz)] = c;
                 }
             }
-            Chunks.Clear(); foreach (var pair in read) Chunks[pair.Key] = pair.Value;
+            chunks.Clear(); foreach (var pair in read) chunks[pair.Key] = pair.Value;
             return true;
         }
     }

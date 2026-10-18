@@ -46,6 +46,8 @@ namespace WildWasteland.Core
                 var ui = asm.GetType("Apocasetter.SettingsUI");
                 var toggle = ui != null ? ui.GetMethod("Toggle", BindingFlags.Instance | BindingFlags.NonPublic, null, Type.EmptyTypes, null) : null;
                 var open = ui != null ? ui.GetField("_open", BindingFlags.Instance | BindingFlags.NonPublic) : null;
+                if (_set != null) Patches.Patch(null, _set, postfix: Patches.Method(typeof(ApocasetterBridge), nameof(AfterInputBlock)));
+                if (ui != null && open != null && open.FieldType == typeof(bool)) Patches.Patch(null, ui.GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic), postfix: Patches.Method(typeof(ApocasetterBridge), nameof(AfterSettingsUpdate)));
                 if (toggle != null && toggle.ReturnType == typeof(void) && open != null && open.FieldType == typeof(bool))
                     Patches.Patch(null, toggle, prefix: Patches.Method(typeof(ApocasetterBridge), nameof(BeforeMenuToggle)));
                 else Log.Warn("Apocasetter bridge: loading menu guard unavailable; SettingsUI.Toggle/_open not found");
@@ -56,6 +58,8 @@ namespace WildWasteland.Core
         public static bool Present { get { Resolve(); return _set != null; } }
 
         private static bool BeforeMenuToggle(bool ____open) { return ____open || !LoadingProgress.MenusBlocked; }
+        private static void AfterInputBlock() { if (MultiplayerSaving.Frozen) Time.timeScale = 0f; else if (Multiplayer.WorldReady) Time.timeScale = 1f; }
+        private static void AfterSettingsUpdate(bool ____open) { if (____open) AfterInputBlock(); }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static bool QueueDisable(PluginInfo info, out string error)

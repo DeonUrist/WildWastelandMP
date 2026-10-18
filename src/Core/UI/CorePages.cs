@@ -12,7 +12,7 @@ namespace WildWasteland.Core.UI
     /// <summary>Pages owned by Core: module overview (on/off), performance, Harmony inventory, core settings.</summary>
     internal static class CorePages
     {
-        internal static ToolPage GamePage, DebugPage, DeveloperPage;
+        internal static ToolPage GamePage, WorldPage, HudPage, DebugPage, DeveloperPage;
         static readonly List<ToolPage> _debugPages = new List<ToolPage>();
         static ConfigPage _settings;
         static ConfigEntry<bool> _poi;
@@ -20,8 +20,10 @@ namespace WildWasteland.Core.UI
 
         internal static void Register()
         {
-            GamePage = new GameSettingsPage();
-            ToolWindow.Add(GamePage);
+            GamePage = new GameSettingsPage("PLAYER", DrawPlayer);
+            WorldPage = new GameSettingsPage("WORLD", DrawWorld);
+            HudPage = new GameSettingsPage("HUD", DrawHud);
+            ToolWindow.Add(GamePage); ToolWindow.Add(WorldPage); ToolWindow.Add(HudPage);
             ToolWindow.Add(new ActionPage(null, ToolGroups.General, "Modules", Modules));
             ToolWindow.Add(WildWasteland.Modules.Performance.PerformancePage.Instance);   // #133: separate Performance tab
             DebugPage = new ActionPage(null, ToolGroups.General, "Debug", Debug) { DebugOnly = true };
@@ -64,13 +66,14 @@ namespace WildWasteland.Core.UI
 
         sealed class GameSettingsPage : ToolPage
         {
-            internal GameSettingsPage() { Group = ToolGroups.General; Title = "Game"; }
+            readonly System.Action<ToolLayout> _draw;
+            internal GameSettingsPage(string title, System.Action<ToolLayout> draw) { Group = ToolGroups.General; Title = title; _draw = draw; }
             public override void OnShow()
             {
                 WildWasteland.Modules.PlayerBody.InventoryModel.PrepareSettingsPictures();
                 WildWasteland.Modules.HUD.CrosshairController.PreparePreview();
             }
-            public override void Draw(ToolLayout l) { Game(l); }
+            public override void Draw(ToolLayout l) { _draw(l); }
         }
 
         static void Switch(ToolLayout l, string label, ConfigEntry<bool> entry)
@@ -79,7 +82,7 @@ namespace WildWasteland.Core.UI
             if (value != entry.Value) entry.Value = value;
         }
 
-        static void Game(ToolLayout l)
+        static void DrawPlayer(ToolLayout l)
         {
             l.Heading("Player");
             BodySelection(l);
@@ -94,13 +97,15 @@ namespace WildWasteland.Core.UI
             Switch(l, "Occlusion", Player.OcclusionPrototype);   // third person on foot only; in cars it stays off
             l.Text("Full Body shows your body in first person. Use the game's Change Camera key for third person.");
             if (!ModuleHost.IsRunning(Player.Instance)) l.Text("Enable Player body & animation in Modules to use these player settings.");
-
+        }
+        internal static void DrawWorld(ToolLayout l)
+        {
             l.Heading("World");
             if (Multiplayer.Client) l.Text("World settings are controlled by the host.");
             else
             {
             int vehicles = !Patrols.ConvoyEnabled.Value ? 0 : Patrols.FuryRoad.Value ? 2 : 1;
-            next = l.Choices("Enemy Vehicles", vehicles, "Loner", "New arrival", "Fury road");
+            int next = l.Choices("Enemy Vehicles", vehicles, "Loner", "New arrival", "Fury road");
             if (next != vehicles)
             {
                 Patrols.ConvoyEnabled.Value = next != 0;
@@ -113,13 +118,12 @@ namespace WildWasteland.Core.UI
             if (weather != null)
             {
                 weather.MapAreas = l.Choices("Weather storm areas on map", weather.MapAreas ? 1 : 0, "Off", "On") == 1;
-                weather.HurricaneDensity = l.Slider("Hurricanes per km²", "Weather.Density", weather.HurricaneDensity, 0, 1);
-                weather.FrontWidthKm = l.Slider("Sand front width (km)", "Weather.Width", weather.FrontWidthKm, 6, 20);
-                weather.DepthKm = l.Slider("Storm depth (km)", "Weather.Depth", weather.DepthKm, 1, 4);
             }
             NavigationSettings(l);
             }
-
+        }
+        static void DrawHud(ToolLayout l)
+        {
             l.Heading("HUD");
             CrosshairSelection(l);
             Switch(l, "Grabbing dot", HudSettings.SelectionDot);
@@ -144,6 +148,12 @@ namespace WildWasteland.Core.UI
             }
             Switch(l, "Vehicle Icons", Player.VehicleStatusHint);
             Switch(l, "Compass", CleanHudSettings.ShowCompass);
+            if (Multiplayer.Present)
+            {
+                Switch(l, "Floating names", MultiplayerNames.FloatingNames);
+                Switch(l, "Players on compass", CleanHudSettings.ShowPlayers);
+                Switch(l, "Players on map", CleanHudSettings.ShowPlayersOnMap);
+            }
             Switch(l, "Map", CleanHudSettings.MapEnabled);
             if (Multiplayer.Client) l.Text("Fog of war, locations, patrol markers and routes follow the host's World settings.");
             l.Entry(CleanHudSettings.Scale);
@@ -152,14 +162,14 @@ namespace WildWasteland.Core.UI
         static void NavigationSettings(ToolLayout l)
         {
             l.Text("Map and compass world settings");
-            if (Multiplayer.SessionActive) Switch(l, "Players on compass", CleanHudSettings.ShowPlayers);
             CompassDetail(l, "Patrols on compass", CleanHudSettings.ShowConvoys, CleanHudSettings.AmbiguousPatrols);
             CompassDetail(l, "Locations on compass (1 km)", CleanHudSettings.ShowLocations, CleanHudSettings.AmbiguousLocations);
             Switch(l, "Fog of war", CleanHudSettings.FogOfWar);
+            if (Multiplayer.Present) Switch(l, "Shared vision", CleanHudSettings.SharedVision);
             CleanHudSettings.MapMarkers.Value = (MapDetail)l.Choices("Map markers", (int)CleanHudSettings.MapMarkers.Value, "Off", "Ambiguous", "On");
             CleanHudSettings.MapTrafficMarkers.Value = (MapDetail)l.Choices("World traffic markers", (int)CleanHudSettings.MapTrafficMarkers.Value, "Off", "Ambiguous", "On");
             CleanHudSettings.MapRoutes.Value = (MapDetail)l.Choices("Map Routes", (int)CleanHudSettings.MapRoutes.Value, "Off", "Ambiguous", "On");
-            l.Entry(CleanHudSettings.FogRadius); l.Entry(CleanHudSettings.FogEdge); l.Entry(CleanHudSettings.FogOpacity);
+            l.Entry(CleanHudSettings.FogEdge); l.Entry(CleanHudSettings.FogOpacity);
         }
 
         static void CompassDetail(ToolLayout l, string label, ConfigEntry<bool> show, ConfigEntry<bool> ambiguous)
@@ -178,29 +188,17 @@ namespace WildWasteland.Core.UI
 
         static void BodySelection(ToolLayout l)
         {
-            var r = l.Next(162); float width = (r.width - 10) / 2;
-            for (int i = 0; i < 2; i++)
+            var order = WildWasteland.Modules.PlayerBody.CharacterPortraits.Order;
+            var r = l.Next(288); float width = (r.width - 8 * (order.Length - 1)) / order.Length;
+            for (int i = 0; i < order.Length; i++)
             {
-                bool female = i == 1;
-                var card = new Rect(r.x + i * (width + 10), r.y, width, r.height);
-                bool selected = Player.Character.Value == (female ? Player.Gender.Female : Player.Gender.Male);
+                int choice = order[i];
+                var card = new Rect(r.x + i * (width + 8), r.y, width, r.height);
+                bool selected = (int)Player.Character.Value == choice;
                 Ledger.Panel(card, selected ? Ledger.Selected : Ledger.Field, selected ? Ledger.Accent : Ledger.Line);
-                var texture = WildWasteland.Modules.PlayerBody.InventoryModel.SettingsPicture(female);
-                if (texture != null) GUI.DrawTexture(new Rect(card.x + 8, card.y + 6, card.width - 16, card.height - 36), texture, ScaleMode.ScaleToFit);
-                else Ledger.Label(new Rect(card.x + 8, card.y + 8, card.width - 16, card.height - 40), "TAB preview unavailable", Ledger.Small, Ledger.Muted, TextAnchor.MiddleCenter);
-                Ledger.Label(new Rect(card.x, card.yMax - 29, card.width, 26), female ? "Female" : "Male", Ledger.Body, selected ? Ledger.Accent : Ledger.Text, TextAnchor.MiddleCenter);
-                if (GUI.Button(card, GUIContent.none, GUIStyle.none) && !selected) Player.Character.Value = female ? Player.Gender.Female : Player.Gender.Male;
-            }
-            l.Text("Additional characters (also available offline)");
-            for (int row = 0; row < 3; row++)
-            {
-                var options = l.Next(36); float cell = (options.width - 10) / 2;
-                for (int column = 0; column < 2; column++)
-                {
-                    var choice = (Player.Gender)(2 + row * 2 + column);
-                    string label = choice == Player.Gender.OrganicMechanic ? "Organic Mechanic" : choice.ToString();
-                    if (Ledger.Button(new Rect(options.x + column * (cell + 10), options.y, cell, options.height), label, true, Player.Character.Value == choice)) Player.Character.Value = choice;
-                }
+                var texture = WildWasteland.Modules.PlayerBody.CharacterPortraits.Picture(choice);
+                if (texture != null) GUI.DrawTexture(new Rect(card.x + 6, card.y + 6, card.width - 12, card.height - 12), texture, ScaleMode.ScaleToFit);
+                if (GUI.Button(card, GUIContent.none, GUIStyle.none) && !selected) Player.Character.Value = (Player.Gender)choice;
             }
         }
 
@@ -238,14 +236,14 @@ namespace WildWasteland.Core.UI
 
         static bool DebugSetting(ConfigEntryBase e)
         {
-            if (VerboseSetting(e) || ReferenceEquals(e, Plugin.DeveloperMode)) return false;
+            if (VerboseSetting(e) || ReferenceEquals(e, Plugin.DeveloperMode) || ReferenceEquals(e, MultiplayerNames.FloatingNames)) return false;
             if (ReferenceEquals(e, CleanHudSettings.ShowNeeds) || ReferenceEquals(e, CleanHudSettings.ShowHealthNumbers)
                 || ReferenceEquals(e, CleanHudSettings.ShowInsanity) || ReferenceEquals(e, CleanHudSettings.Scale)
                 || ReferenceEquals(e, CleanHudSettings.ShowConvoys) || ReferenceEquals(e, CleanHudSettings.ShowLocations)
                 || ReferenceEquals(e, CleanHudSettings.AmbiguousPatrols) || ReferenceEquals(e, CleanHudSettings.AmbiguousLocations)
-                || ReferenceEquals(e, CleanHudSettings.ShowCompass) || ReferenceEquals(e, CleanHudSettings.ShowPlayers) || ReferenceEquals(e, CleanHudSettings.MapEnabled)
+                || ReferenceEquals(e, CleanHudSettings.ShowCompass) || ReferenceEquals(e, CleanHudSettings.ShowPlayers) || ReferenceEquals(e, CleanHudSettings.ShowPlayersOnMap) || ReferenceEquals(e, CleanHudSettings.MapEnabled)
                 || ReferenceEquals(e, CleanHudSettings.MapMarkers) || ReferenceEquals(e, CleanHudSettings.MapRoutes)
-                || ReferenceEquals(e, CleanHudSettings.FogOfWar) || ReferenceEquals(e, CleanHudSettings.MapTrafficMarkers)
+                || ReferenceEquals(e, CleanHudSettings.FogOfWar) || ReferenceEquals(e, CleanHudSettings.SharedVision) || ReferenceEquals(e, CleanHudSettings.MapTrafficMarkers)
                 || ReferenceEquals(e, CleanHudSettings.DrivingHudOnlyThirdPerson)) return false;
             if (ReferenceEquals(e, Player.Character) || ReferenceEquals(e, Player.BodyFirstPerson) || ReferenceEquals(e, Player.FullBodyOnlyOnFoot)
                 || ReferenceEquals(e, Player.VehicleHotkeyHint) || ReferenceEquals(e, Player.VehicleStatusHint)
@@ -289,9 +287,12 @@ namespace WildWasteland.Core.UI
             }
         }
 
+        static bool WeatherTuning(ConfigEntryBase e)
+        { return e.Definition.Section == "Weather / Storms" && (e.Definition.Key == "Hurricanes per km²" || e.Definition.Key == "Front width (km)" || e.Definition.Key == "Depth (km)"); }
+
         static bool RetainedDebugSetting(ConfigEntryBase e)
         {
-            if (VerboseSetting(e) || ReferenceEquals(e, Patrols.MenuKey) || ReferenceEquals(e, Patrols.TemplateDumpKey)) return true;
+            if (WeatherTuning(e) || ReferenceEquals(e, CleanHudSettings.FogRadius) || VerboseSetting(e) || ReferenceEquals(e, Patrols.MenuKey) || ReferenceEquals(e, Patrols.TemplateDumpKey)) return true;
             return e.SettingType == typeof(bool) && DebugSetting(e) && !ReferenceEquals(e, Player.WeaponAdjust)
                 && !ReferenceEquals(e, Patrols.TurretSpotEditor) && !ReferenceEquals(e, Patrols.BusPassengerPoseEditorEnabled);
         }
@@ -323,6 +324,16 @@ namespace WildWasteland.Core.UI
                 var owner = i < 0 ? null : ModuleHost.Entries[i].Module;
                 if (owner != null && !HasDebugSettings(Plugin.Settings, owner) && !HasDebugSettings(Plugin.Tools, owner)) continue;
                 if (!l.Category("Debug/" + (owner != null ? owner.Id : "Core"), CategoryTitle(owner))) continue;
+                if (owner != null && owner.Id == "CleanHUD")
+                {
+                    l.Heading("Fog of war tuning");
+                    l.Entry(CleanHudSettings.FogRadius);
+                }
+                if (owner != null && owner.Id == "Weather")
+                {
+                    l.Heading("Storm tuning");
+                    foreach (var key in Plugin.Settings.Keys) if (WeatherTuning(Plugin.Settings[key])) l.Entry(Plugin.Settings[key]);
+                }
                 if (owner != null && owner.Id == "Patrols")
                 {
                     l.Heading("Patrol editor");

@@ -11,9 +11,11 @@ namespace WildWasteland.Modules.Weather
     // Native encounters keep their save anchors; Weather owns presentation and annular hazards.
     public sealed partial class WeatherModule : ModuleBase, IWeatherRegions, IMultiplayerPresentation
     {
-        private readonly WeatherRegion[] _regions = new WeatherRegion[4];
-        private readonly float[] _ages = new float[4];
-        private readonly bool[] _criticalLogged = new bool[4];
+        internal const int MaxRegions = 64;
+        private readonly WeatherRegion[] _regions = new WeatherRegion[MaxRegions];
+        private readonly float[] _ages = new float[MaxRegions];
+        private readonly bool[] _criticalLogged = new bool[MaxRegions];
+        private readonly int[] _visibleRegions = new int[4];
         private int _count;
         private float _clock;
         private ConfigEntry<bool> _mapAreas;
@@ -25,7 +27,7 @@ namespace WildWasteland.Modules.Weather
         private WeatherAudio _audio;
         private WeatherNative _native;
         private WeatherHazards _hazards;
-        private readonly WeatherNative.Storm[] _anchors = new WeatherNative.Storm[4];
+        private readonly WeatherNative.Storm[] _anchors = new WeatherNative.Storm[MaxRegions];
         private Job _draw;
         private bool _running;
         public override string Id { get { return "Weather"; } }
@@ -72,7 +74,8 @@ namespace WildWasteland.Modules.Weather
         private void Spawn(bool hurricane, bool here)
         {
             if (!_running || !GameRefs.InPlay || GameRefs.Player == null || GameRefs.MainCamera == null) return;
-            if (_count == _regions.Length) { Log.Warn("[Weather] Four previews are already active; clear them before spawning more."); return; }
+            int previews = 0; for (int i = 0; i < _count; i++) if (_anchors[i] != null && _anchors[i].Owned) previews++;
+            if (previews >= 4 || _count == _regions.Length) { Log.Warn("[Weather] Four previews are already active; clear them before spawning more."); return; }
             if (_visuals == null) _visuals = new WeatherVisuals(_audio);
             if (!_visuals.Ready) { Log.Warn("[Weather] Preview assets unavailable. See the earlier Weather asset error."); return; }
             _audio.Load();
@@ -99,20 +102,19 @@ namespace WildWasteland.Modules.Weather
             if (!_running || _native == null || GameRefs.Player == null) return;
             for (int i=_count-1;i>=0;i--)
                 if (_anchors[i]!=null && _anchors[i].Root==null) RemoveRegion(i);
-            Vector3 player=GameRefs.Player.transform.position;
             for (int n=0;n<_native.Storms.Length;n++)
             {
                 var storm=_native.Storms[n];
                 if (storm.Root==null || !storm.Ready || storm.Owned || storm.Selected || !storm.Root.activeInHierarchy) continue;
-                float distance=(storm.Root.transform.position-player).sqrMagnitude;
-                if (distance>Mathf.Pow(_width.Value*500+8000,2)) continue;
-                if (_count==_regions.Length)
+                float distance=Multiplayer.PlayerDistance(storm.Root.transform.position,GameRefs.Player.transform);
+                if (distance>_width.Value*500+8000) continue;
+                if (_count==(Multiplayer.Active ? _regions.Length : 4))
                 {
                     int farthest=-1; float far=distance;
                     for (int i=0;i<_count;i++)
                     {
                         if (_anchors[i]==null || _anchors[i].Owned) continue;
-                        float d=(Origin.Scene(_regions[i].WorldCenter)-player).sqrMagnitude;
+                        float d=Multiplayer.PlayerDistance(Origin.Scene(_regions[i].WorldCenter),GameRefs.Player.transform);
                         if (d>far) { far=d; farthest=i; }
                     }
                     if (farthest<0) continue;
@@ -140,7 +142,7 @@ namespace WildWasteland.Modules.Weather
         }
         private void TickHazards()
         {
-            if (!_running || _native==null || _native.Saving || !GameRefs.InGame || WeatherDiagnostics.Frozen) return;
+            if (!_running || _native==null || _native.Saving || !GameRefs.WorldRunning || WeatherDiagnostics.Frozen) return;
             for (int i=0;i<_count;i++)
             {
                 var anchor=_anchors[i];
@@ -181,7 +183,7 @@ namespace WildWasteland.Modules.Weather
         {
             if (!_running || _count == 0) return;
             UpdateLayout();
-            float dt = GameRefs.InGame && !WeatherDiagnostics.Frozen ? Time.deltaTime : 0;
+            float dt = GameRefs.WorldRunning && !WeatherDiagnostics.Frozen ? Time.deltaTime : 0;
             WeatherDiagnostics.Show(GameRefs.InPlay);
             _clock += dt;
             for (int i = _count - 1; i >= 0; i--)
@@ -225,8 +227,16 @@ namespace WildWasteland.Modules.Weather
             var policy = Services.WeatherVisualPolicy;
             var detail = policy != null ? policy.WeatherDetail : WeatherVisualDetail.Balanced;
             _visuals.Begin(_clock, camera);
-            for (int i = 0; i < _count; i++)
+            for (int shown = 0; shown < _visibleRegions.Length && shown < _count; shown++)
             {
+                int i = -1; float distance = float.MaxValue;
+                for (int candidate = 0; candidate < _count; candidate++)
+                {
+                    bool used = false; for (int p = 0; p < shown; p++) if (_visibleRegions[p] == candidate) used = true;
+                    float next = (Origin.Scene(_regions[candidate].WorldCenter) - camera.transform.position).sqrMagnitude;
+                    if (!used && next < distance) { i = candidate; distance = next; }
+                }
+                if (i < 0) break; _visibleRegions[shown] = i;
                 float life = Mathf.SmoothStep(0, 1, Mathf.Clamp01(_ages[i] / 6f)) * Mathf.SmoothStep(0, 1, Mathf.Clamp01((600 - _ages[i]) / 20f));
                 float critical = _regions[i].Hurricane ? Mathf.SmoothStep(0, 1, Mathf.Clamp01((_ages[i] - 20) / 20f)) : 0;
                 _visuals.Draw(_regions[i], camera, detail, life, critical, _columns, _columnCount, i);
@@ -237,7 +247,7 @@ namespace WildWasteland.Modules.Weather
         private void DrawTools(ToolLayout l)
         {
             WeatherPalette.Draw(l);
-            l.Text("Native encounters are replaced by moving WW storms. Critical storms lift vehicles and apply vanilla damage in hurricane sand walls, with safe eyes and War Rig shelter protection. Manual critical storms form over 20-40 gameplay seconds and last ten minutes; manual storms are not saved. Natural storms retain native encounter/save bookkeeping. Up to four nearest storms are presented at once; manual previews reserve their slots.");
+            l.Text("Native encounters are replaced by moving WW storms. Critical storms lift vehicles and apply vanilla damage in hurricane sand walls, with safe eyes and War Rig shelter protection. Manual critical storms form over 20-40 gameplay seconds and last ten minutes; manual storms are not saved. Natural storms retain native encounter/save bookkeeping. Multiplayer tracks storms around every player; each camera presents its four nearest storms.");
             l.Value("Active storms", _count.ToString(CultureInfo.InvariantCulture) + " / 4");
             l.Toggle(_mapAreas, "Storm areas on the map");
             l.Entry(_density); l.Entry(_width); l.Entry(_depth);
@@ -282,7 +292,7 @@ namespace WildWasteland.Modules.Weather
                 var data = WeatherDiagnostics.Read();
                 if (data == null || data.Version != 1 || data.Slot != SaveBus.Slot || data.WorldSeed != WeatherDiagnostics.WorldSeed() ||
                     data.Width != _width.Value || data.Depth != _depth.Value || data.Density != _density.Value ||
-                    data.Regions == null || data.Ages == null || data.Regions.Length == 0 || data.Regions.Length > 4 || data.Ages.Length != data.Regions.Length ||
+                    data.Regions == null || data.Ages == null || data.Regions.Length == 0 || data.Regions.Length > MaxRegions || data.Ages.Length != data.Regions.Length ||
                     data.SelectedRegion < -1 || data.SelectedRegion >= data.Regions.Length || data.SelectedColumn < -1 || data.SelectedColumn >= 80)
                 { Log.Warn("[WeatherDiag] Snapshot rejected: use the same save, world seed and Weather width/depth/density."); return; }
                 string policy = Services.WeatherVisualPolicy != null ? Services.WeatherVisualPolicy.WeatherDetail.ToString() : "Balanced";

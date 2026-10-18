@@ -257,7 +257,7 @@ namespace WildWasteland.Modules.PlayerBody
 
             // ---- whole-body actions: kick, jump, turn in place, walk-to-stop
             if (_actionSpeed != 0f) ActionTime += dt * _actionSpeed;
-            if (_wantKick) { _wantKick = false; if (Has("Kick")) { StartAction("Kick", 0f); ActionIsTurn = false; } }
+            if (_wantKick) { _wantKick = false; if (Has("Kick")) { StartAction("Kick", 0f); _actionSpeed = Len("Kick") / 0.55f; _actionUntil = now + 0.55f; _actionFade = 1f / 0.15f; ActionIsTurn = false; } }
             bool air = Airborne;
             if (_wantJump)
             {

@@ -6,11 +6,28 @@ using WildWasteland.Core;
 
 namespace WildWasteland.Modules.NPC
 {
-    internal sealed class WomenFeature : INpcAppearance
+    internal sealed class WomenFeature : INpcAppearance, ICharacterAssets
     {
         internal const string GUID = "com.denis.apocalypter.womenofwasteland";
         internal static bool Active;
         private static WomenFeature _api;
+        static bool _playerAssetsInstalled;
+        internal static void BindPlayerAssets() { Services.CharacterAssets = new WomenFeature(); }
+        public bool TryPaths(string identity, out string model, out string texture)
+        {
+            model = texture = null;
+            if (identity != "Gungirl" && identity != "Shoota") return false;
+            if (!_playerAssetsInstalled) { InstallAssets(Assets.ModuleDir("NPC")); _playerAssetsInstalled = true; }
+            model = PlayerAsset(identity == "Gungirl" ? NpcModule.GungirlModel.Value : NpcModule.ShootaModel.Value);
+            texture = PlayerAsset(identity == "Gungirl" ? NpcModule.GungirlTexture.Value : NpcModule.ShootaTexture.Value);
+            return true;
+        }
+        static string PlayerAsset(string file)
+        {
+            string path = Path.Combine(Assets.ModuleDir("NPC"), file);
+            string legacy = Path.Combine(Assets.LegacyPluginDir("WomenOfWasteland"), file);
+            return File.Exists(path) || !File.Exists(legacy) ? path : legacy;
+        }
         internal static void InitializePresentation(NpcModule module)
         {
             BepInEx.PluginInfo standalone;
@@ -42,7 +59,7 @@ namespace WildWasteland.Modules.NPC
             Core.Log.Always("[NPC] Women of Wasteland 1.0.0 integrated; female crew conversion available.");
         }
 
-        private static bool CanSpawn() { return Active && GameRefs.InGame; }
+        private static bool CanSpawn() { return Active && GameRefs.WorldRunning; }
 
         public void Dress(GameObject root, string identity, bool randomize)
         {

@@ -144,7 +144,7 @@ namespace WildWasteland.Modules.Weather
             if (action.Fsm.Name!="Move") return true;
             Storm storm;
             if (!_roots.TryGetValue(action.Owner.GetInstanceID(),out storm)) return true;
-            if (storm.Owned || WeatherDiagnostics.Frozen || !GameRefs.InGame)
+            if (storm.Owned || WeatherDiagnostics.Frozen || !GameRefs.WorldRunning)
             { if (storm.Body!=null && !storm.Body.isKinematic) storm.Body.velocity=Vector3.zero; return false; }
             return true;
         }
@@ -218,7 +218,7 @@ namespace WildWasteland.Modules.Weather
         }
         private void Reconcile()
         {
-            if (Multiplayer.Client || !GameRefs.InPlay || _saving || WeatherDiagnostics.Frozen) return;
+            if (Multiplayer.Client || !GameRefs.WorldRunning || _saving || WeatherDiagnostics.Frozen) return;
             _deadFsms.Clear();
             foreach (var pair in _nativeFsms) if (pair.Key.Owner==null) _deadFsms.Add(pair.Key);
             for (int i=0;i<_deadFsms.Count;i++) _nativeFsms.Remove(_deadFsms[i]);

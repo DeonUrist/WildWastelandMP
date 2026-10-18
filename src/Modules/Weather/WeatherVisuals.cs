@@ -33,8 +33,8 @@ namespace WildWasteland.Modules.Weather
         private Color _hurricaneColor;
         private int _paletteRevision = -1;
         private readonly Plane[] _frustum = new Plane[6];
-        private readonly float[,] _groundOffset = new float[4,80];
-        private readonly bool[,] _hasGround = new bool[4,80];
+        private readonly float[,] _groundOffset = new float[WeatherModule.MaxRegions,80];
+        private readonly bool[,] _hasGround = new bool[WeatherModule.MaxRegions,80];
         private float _nextGroundProbe;
         private int _groundProbe;
         private int _nearDetail = -1;
@@ -230,7 +230,7 @@ namespace WildWasteland.Modules.Weather
                     properties.SetVector(Pulse,channel==0 ? new Vector4(pulse,0,0,0) : new Vector4(0,pulse,0,0));
                     Draw(_lightning[(int)detail],Matrix4x4.TRS(source+rotation*new Vector3(0,0,510),rotation,Vector3.one),_discharge,camera,properties);
                     _flash=Mathf.Max(_flash,pulse*envelope/(1+distance*distance/(3000f*3000f)));
-                    if (_strikes[index]!=cycle && !WeatherDiagnostics.Frozen && GameRefs.InGame)
+                    if (_strikes[index]!=cycle && !WeatherDiagnostics.Frozen && GameRefs.WorldRunning)
                     { _strikes[index]=cycle; _strikeColumns[index]=column; _audio.Strike(_clock,source,eye,envelope); }
                 }
         }
@@ -256,8 +256,8 @@ namespace WildWasteland.Modules.Weather
         internal void CaptureDiagnostic(WeatherDiagnostics.Snapshot data)
         {
             data.DustColor = _dustColor; data.AirColor = Shader.GetGlobalVector(Air); data.SunDirection = Shader.GetGlobalVector(Sun);
-            data.GroundOffsets = new float[320]; data.GroundValid = new bool[320];
-            for (int r = 0; r < 4; r++) for (int c = 0; c < 80; c++)
+            data.GroundOffsets = new float[WeatherModule.MaxRegions*80]; data.GroundValid = new bool[WeatherModule.MaxRegions*80];
+            for (int r = 0; r < WeatherModule.MaxRegions; r++) for (int c = 0; c < 80; c++)
             { data.GroundOffsets[r*80+c] = _groundOffset[r,c]; data.GroundValid[r*80+c] = _hasGround[r,c]; }
             _localDust.CaptureDiagnostic(data);
         }
@@ -265,8 +265,8 @@ namespace WildWasteland.Modules.Weather
         {
             _dustColor = data.DustColor; Shader.SetGlobalVector(Air,data.AirColor); Shader.SetGlobalVector(Sun,data.SunDirection);
             ClearGround();
-            if (data.GroundOffsets != null && data.GroundValid != null && data.GroundOffsets.Length == 320 && data.GroundValid.Length == 320)
-                for (int r = 0; r < 4; r++) for (int c = 0; c < 80; c++)
+            if (data.GroundOffsets != null && data.GroundValid != null && data.GroundOffsets.Length <= WeatherModule.MaxRegions*80 && data.GroundOffsets.Length == data.GroundValid.Length)
+                for (int r = 0; r < data.GroundOffsets.Length/80; r++) for (int c = 0; c < 80; c++)
                 { _groundOffset[r,c] = data.GroundOffsets[r*80+c]; _hasGround[r,c] = data.GroundValid[r*80+c]; }
             _localDust.RestoreDiagnostic(data);
         }

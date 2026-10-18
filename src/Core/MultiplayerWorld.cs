@@ -27,8 +27,7 @@ namespace WildWasteland.Core
             { string slot = SaveBus.Slot; Multiplayer.Send(6, w => w.Write(slot), peer); return; }
             if (kind != 6 || peer != 0 || !Multiplayer.Client || _slot != null) return;
             string name = reader.ReadString();
-            if (name.Length < 8 || name.Length > 100 || !name.StartsWith("MP_", StringComparison.Ordinal) || !name.EndsWith(".es3", StringComparison.Ordinal)) return;
-            for (int i = 3; i < name.Length - 4; i++) if (!char.IsLetterOrDigit(name[i]) && name[i] != '-') return;
+            if (name.Length > 100 || !MultiplayerHosting.IsSaveFile(name)) return;
             _slot = name; var ready = Ready; if (ready != null) ready();
         }
     }

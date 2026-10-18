@@ -437,6 +437,7 @@ namespace WildWasteland.Modules.PlayerBody
                     Turn(HumanBodyBones.Neck, Vector3.right, pitch * 0.1f);
                 }
                 AimLiftApply();
+                ArmPoseApply();
                 PoseWeapon();
             }
 
@@ -493,6 +494,29 @@ namespace WildWasteland.Modules.PlayerBody
                     LiftArm(HumanBodyBones.LeftUpperArm, HumanBodyBones.LeftLowerArm, HumanBodyBones.LeftHand, d);
                 }
                 if (Mathf.Abs(v[1]) > 0.01f) Turn(HumanBodyBones.Head, Vector3.right, v[1] * w);
+            }
+            private readonly float[] _armPose = new float[10];
+            private void ArmPoseApply()
+            {
+                Array.Clear(_armPose, 0, _armPose.Length);
+                if (string.IsNullOrEmpty(_wKey)) return;
+                foreach (var pose in _p.PoseW)
+                {
+                    var v = AimLift.Get(_wKey, pose.Key, _p.CrouchW > .5f);
+                    for (int i = 0; i < _armPose.Length; i++) _armPose[i] += v[i + 3] * pose.Value;
+                }
+                for (int arm = 0; arm < 2; arm++)
+                {
+                    int i = arm * 5;
+                    var upper = arm == 0 ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm;
+                    var lower = arm == 0 ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm;
+                    var hand = arm == 0 ? HumanBodyBones.LeftHand : HumanBodyBones.RightHand;
+                    var d = (_root.up * _armPose[i] + _root.right * _armPose[i + 1]) * .01f;
+                    if (d.sqrMagnitude > 1e-8f) LiftArm(upper, lower, hand, d);
+                    if (Mathf.Abs(_armPose[i + 2]) > .01f) Turn(upper, Vector3.right, _armPose[i + 2]);
+                    if (Mathf.Abs(_armPose[i + 3]) > .01f) Turn(upper, Vector3.up, _armPose[i + 3]);
+                    if (Mathf.Abs(_armPose[i + 4]) > .01f) Turn(upper, Vector3.forward, _armPose[i + 4]);
+                }
             }
             private void LiftArm(HumanBodyBones upper, HumanBodyBones lower, HumanBodyBones hand, Vector3 d)
             {

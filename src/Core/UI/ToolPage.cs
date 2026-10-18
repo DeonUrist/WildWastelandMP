@@ -144,6 +144,13 @@ namespace WildWasteland.Core.UI
             var r = new Rect(X + (Ledger.SettingsActive ? 0 : 8), Y, Width - (Ledger.SettingsActive ? 0 : 16), h); Y += h + 4; return r;
         }
         public void Space(float h = 8) { if (!Searching) Y += h; }
+        public string TextInput(string label, string key, string value, int maxLength = 64)
+        {
+            if (!ShowRow(label)) return value;
+            var r = Next(30); Caption(r, label);
+            string next = Ledger.TextField(new Rect(r.x + r.width * LabelWidth, r.y, r.width * (1 - LabelWidth), r.height), Prefix + key, value ?? "");
+            return next.Length > maxLength ? next.Substring(0, maxLength) : next;
+        }
 
         void Caption(Rect row, string text, float fraction = LabelWidth, GUIStyle style = null, Color? color = null)
         {

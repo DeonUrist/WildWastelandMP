@@ -90,7 +90,7 @@ namespace WildWasteland.Modules.CleanHUD
             F("GRAPHICS", "FIELD OF VIEW", "FOV", 40, 120, 75, "Graphics_Canvas/Graphics/fov/FOV", "0");
             B("GRAPHICS", "AMBIENT OCCLUSION", "ambient_occlusion", true, "Graphics_Canvas/Graphics/ambient occlusion/ambient_occlusion");
             B("GRAPHICS", "BLOOM", "bloom", true, "Graphics_Canvas/Graphics/bloom/bloom");
-            B("GRAPHICS", "COLOR GRADING", "color_grading", true, "Graphics_Canvas/Graphics/color grading/color_grading");
+            B("GRAPHICS", "COLOR GRADING", "color_grading", false, "Graphics_Canvas/Graphics/color grading/color_grading");
             B("GRAPHICS", "SCREEN SPACE SHADOWS", "screen_space_shadows", true, "Graphics_Canvas/Graphics/screen space shadows/screen_space_shadows");
             B("GRAPHICS", "SHARPEN", "sharpen", true, "Graphics_Canvas/Graphics/sharpen/sharpen");
             B("GRAPHICS", "SHOW FPS", "toggleFPS", false, "Graphics_Canvas/Graphics/show fps/show_fps");
@@ -146,6 +146,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         internal static float Read(SettingDef d)
         {
+            if (d.Key == "color_grading") return 0;
             if (d.Kind == "fsm") { var f = FsmOf(d); return f != null && f.ActiveStateName == d.OnState ? 1 : 0; }
             var t = FindPath(d.Path);
             if (t != null)
@@ -165,6 +166,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         internal static void Write(SettingDef d, float v)
         {
+            if (d.Key == "color_grading") v = 0;
             if (d.Kind == "fsm")
             {
                 var f = FsmOf(d);
@@ -264,22 +266,29 @@ namespace WildWasteland.Modules.CleanHUD
         private static readonly Color Red = new Color(1f, .38f, .32f, 1f);
 
         internal static int BlockCancelFrame = -1;   // GetButtonDown("Cancel") is swallowed up to this frame (sub screen open)
+        private static readonly bool UpdateChecksEnabled = false;
         private static bool _updateChecked;
         private static string _updateUrl;
         private MenuButton _updateButton;
         private MenuButton _discordButton, _githubButton;
+        private MenuButton _mpHost, _mpSteam, _mpJoin, _mpDisconnect, _mpAddressButton, _mpPortButton, _mpNameButton;
+        private GlyphText _mpStatus, _mpAddressText, _mpPortText, _mpNameText;
+        private string _shownMPReason;
+        private string _mpAddress, _mpPort, _mpMessage, _mpName;
+        private int _mpEdit;
+        private bool _mpReplace;
 
         internal static System.Collections.IEnumerator CheckUpdates()
         {
-            if (_updateChecked) yield break;
-            using (var req = UnityEngine.Networking.UnityWebRequest.Get("https://api.github.com/repos/DeonUrist/WildWasteland/releases?per_page=100"))
+            if (!UpdateChecksEnabled || _updateChecked) yield break;
+            using (var req = UnityEngine.Networking.UnityWebRequest.Get("https://api.github.com/repos/DeonUrist/WildWastelandMP/releases?per_page=100"))
             {
                 req.timeout = 20;
-                req.SetRequestHeader("User-Agent", "WildWasteland/" + Plugin.VERSION);
+                req.SetRequestHeader("User-Agent", "WildWastelandMP/" + Plugin.VERSION);
                 req.SetRequestHeader("Cache-Control", "no-cache");
                 yield return req.SendWebRequest();
                 _updateChecked = true;
-                if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success) { CleanHudModule.Warn("WW update check: " + req.error); yield break; }
+                if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success) { CleanHudModule.Warn("WW MP update check: " + req.error); yield break; }
                 try
                 {
                     var releases = Json.Parse(req.downloadHandler.text) as List<object>;
@@ -290,11 +299,11 @@ namespace WildWasteland.Modules.CleanHUD
                         var release = item as Dictionary<string, object>; Version version;
                         string tag = Json.Text(release, "tag_name", "");
                         if (Json.Bool(release, "draft", false) || !Version.TryParse(tag.TrimStart('v', 'V').Split('-')[0], out version) || version <= latest) continue;
-                        latest = version; _updateUrl = "https://github.com/DeonUrist/WildWasteland/releases/tag/" + Uri.EscapeDataString(tag);
+                        latest = version; _updateUrl = "https://github.com/DeonUrist/WildWastelandMP/releases/tag/" + Uri.EscapeDataString(tag);
                     }
-                    CleanHudModule.Log("WW update check: installed " + Plugin.VERSION + (_updateUrl == null ? "; no newer release" : "; update available " + latest));
+                    CleanHudModule.Log("WW MP update check: installed " + Plugin.VERSION + (_updateUrl == null ? "; no newer release" : "; update available " + latest));
                 }
-                catch (Exception e) { _updateUrl = null; CleanHudModule.Warn("WW update check: " + e.Message); }
+                catch (Exception e) { _updateUrl = null; CleanHudModule.Warn("WW MP update check: " + e.Message); }
             }
         }
 
@@ -372,6 +381,7 @@ namespace WildWasteland.Modules.CleanHUD
             }
             if (WildWasteland.Core.UI.EditorSession.Busy || WildWasteland.Core.ApocasetterBridge.InputBlocked)
             {
+                if (_mpEdit != 0) { _mpEdit = 0; _mpMessage = null; }
                 if (WildWasteland.Core.UI.EditorSession.Busy) BlockCancelFrame = Time.frameCount + 1;
                 if (_root != null && _root.activeSelf) _root.SetActive(false);
                 return;
@@ -403,7 +413,9 @@ namespace WildWasteland.Modules.CleanHUD
 
             bool visible = _van.enabled && _van.gameObject.activeInHierarchy;
             if (_root.activeSelf != visible) _root.SetActive(visible);
-            if (!visible) { if (_screen != "main" || _modal != null) ResetToMain(); return; }
+            if (!visible) { if (_mpEdit != 0) { _mpEdit = 0; _mpMessage = null; } if (_screen != "main" || _modal != null) ResetToMain(); return; }
+            bool mpEditing = _mpEdit != 0;
+            TickMultiplayerInput();
             if (_background != null && (_backgroundWidth != Screen.width || _backgroundHeight != Screen.height))
             {
                 _backgroundWidth = Screen.width; _backgroundHeight = Screen.height;
@@ -413,7 +425,7 @@ namespace WildWasteland.Modules.CleanHUD
             }
             HideVanilla();
             TickReference();
-            _main.gameObject.SetActive(_screen == "main");
+            _main.gameObject.SetActive(_screen == "main" || _screen == "multiplayer");
             if (_sub != null) _sub.gameObject.SetActive(_screen != "main");
             if (_status != null) _status.gameObject.SetActive(_screen != "reference");
             bool showUpdate = _screen == "main" && _modal == null && _updateUrl != null;
@@ -425,7 +437,7 @@ namespace WildWasteland.Modules.CleanHUD
             if (_screen != "main" || _modal != null || _seedEdit) BlockCancelFrame = Time.frameCount + 1;
             if (_capRow != null) { TickCapture(); return; }
             TickKeyScroll();
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (!mpEditing && Input.GetKeyDown(KeyCode.Escape))
             {
                 if (_seedEdit) EndSeedEdit(false);
                 else if (_modal != null) CloseModal();
@@ -459,6 +471,8 @@ namespace WildWasteland.Modules.CleanHUD
             _modsButton = null; _nextModsScan = 0; _nextFrame.Clear(); _later.Clear(); BlockCancelFrame = -1;
             _languageButton = null; _languageShown = false;
             _updateButton = _discordButton = _githubButton = null;
+            _mpHost = _mpSteam = _mpJoin = _mpDisconnect = _mpAddressButton = _mpPortButton = _mpNameButton = null;
+            _mpStatus = _mpAddressText = _mpPortText = _mpNameText = null; _mpEdit = 0; _mpMessage = null;
         }
 
         private static bool IsActive(string path) { var t = SettingsModel.FindPath(path); return t != null && t.gameObject.activeInHierarchy; }
@@ -711,7 +725,7 @@ namespace WildWasteland.Modules.CleanHUD
             _discordButton = CenteredRow(_rootRt, 0, 0, 200, 48, "DISCORD", 26, () => Application.OpenURL("https://discord.gg/f56btNbPg"));
             var discordRect = (RectTransform)_discordButton.transform;
             discordRect.anchorMin = discordRect.anchorMax = discordRect.pivot = new Vector2(1, 0); discordRect.anchoredPosition = new Vector2(-60, 204);
-            _githubButton = CenteredRow(_rootRt, 0, 0, 200, 48, "GITHUB", 26, () => Application.OpenURL("https://github.com/DeonUrist/WildWasteland"));
+            _githubButton = CenteredRow(_rootRt, 0, 0, 200, 48, "GITHUB", 26, () => Application.OpenURL("https://github.com/DeonUrist/WildWastelandMP"));
             var githubRect = (RectTransform)_githubButton.transform;
             githubRect.anchorMin = githubRect.anchorMax = githubRect.pivot = new Vector2(1, 0); githubRect.anchoredPosition = new Vector2(-60, 140);
             Plate(discordRect, 0, 0, 200, 112);
@@ -750,6 +764,7 @@ namespace WildWasteland.Modules.CleanHUD
                 rows.Add(new KeyValuePair<string, Action>("NEW GAME", NewGame));
                 rows.Add(new KeyValuePair<string, Action>("MAP SEED", BeginSeedEdit));
                 rows.Add(new KeyValuePair<string, Action>("LOAD GAME", () => ShowSlots(true)));
+                if (Core.Multiplayer.Present) rows.Add(new KeyValuePair<string, Action>("MULTIPLAYER", BuildMultiplayer));
                 rows.Add(new KeyValuePair<string, Action>("WILD WASTELAND", WildWasteland.Core.UI.ToolWindow.OpenFromMenu));
                 rows.Add(new KeyValuePair<string, Action>("SETTINGS", ShowSettings));
                 rows.Add(new KeyValuePair<string, Action>("MODS", OpenMods));
@@ -760,6 +775,7 @@ namespace WildWasteland.Modules.CleanHUD
             {
                 rows.Add(new KeyValuePair<string, Action>("CONTINUE", Resume));
                 rows.Add(new KeyValuePair<string, Action>("SAVE GAME", OpenSave));
+                if (Core.Multiplayer.Present) rows.Add(new KeyValuePair<string, Action>("MULTIPLAYER", BuildMultiplayer));
                 rows.Add(new KeyValuePair<string, Action>("WILD WASTELAND", WildWasteland.Core.UI.ToolWindow.OpenFromMenu));
                 rows.Add(new KeyValuePair<string, Action>("SETTINGS", ShowSettings));
                 rows.Add(new KeyValuePair<string, Action>("CODEX", () => ShowReference(false)));
@@ -778,7 +794,6 @@ namespace WildWasteland.Modules.CleanHUD
                 if (r.Key == "MODS" && !mods) continue;
                 GlyphText t;
                 var b = Row(_main, X + 8, y, W - 16, RH, r.Key, 34, r.Value, out t);
-                if (r.Key == "SAVE GAME") SetEnabled(b, !Core.Multiplayer.Client);
                 if (r.Key == "WILD WASTELAND")
                 {
                     t.GetComponent<AccentTint>().enabled = false;
@@ -820,8 +835,103 @@ namespace WildWasteland.Modules.CleanHUD
             RefreshLabels();
         }
 
+        private void BuildMultiplayer()
+        {
+            if (!Core.Multiplayer.Present) return;
+            ResetToMain(); _screen = "multiplayer";
+            Core.ReplacementGuard.MenuModalOpen = true;
+            _mpEdit = 0; _mpAddress = Core.Multiplayer.UdpAddress; _mpPort = Core.Multiplayer.UdpPort.ToString(CultureInfo.InvariantCulture); _mpName = Core.Multiplayer.PlayerName;
+            var panel = _sub = R(_rootRt, "multiplayer", 700, 320, 660, 550);
+            Plate(panel, 0, 0, 660, 550);
+            T(panel, "heading", 30, 14, 536, 44, 34, TextAnchor.MiddleLeft, Gold, "MULTIPLAYER");
+            CenteredRow(panel, 600, 14, 48, 44, "X", 28, Back);
+            _mpStatus = T(panel, "status", 30, 62, 600, 44, 24, TextAnchor.MiddleLeft, White, "");
+            _mpNameButton = Row(panel, 8, 112, 644, 48, "", 26, () => BeginMultiplayerInput(3), out _mpNameText);
+            _mpAddressButton = Row(panel, 8, 164, 644, 48, "", 26, () => BeginMultiplayerInput(1), out _mpAddressText);
+            _mpPortButton = Row(panel, 8, 216, 644, 48, "", 26, () => BeginMultiplayerInput(2), out _mpPortText);
+            _mpSteam = Row(panel, 8, 276, 644, 56, "HOST (STEAM)", 30, () => { if (SaveMultiplayerEndpoint()) Core.UI.ToolWindow.OpenHostSetup(true); });
+            _mpHost = Row(panel, 8, 338, 644, 56, "HOST (IP)", 30, () => { if (SaveMultiplayerEndpoint()) Core.UI.ToolWindow.OpenHostSetup(false); });
+            _mpJoin = Row(panel, 8, 400, 644, 56, "JOIN", 32, () =>
+            {
+                if (Core.Multiplayer.SessionActive || !SaveMultiplayerEndpoint()) return;
+                if (_ctx == Ctx.Pause) { Confirm("RETURN TO MENU TO JOIN?", QuitToMenu); return; }
+                Core.Multiplayer.JoinFromMenu(); RefreshLabels();
+            });
+            _mpDisconnect = Row(panel, 8, 462, 644, 56, "DISCONNECT", 30, () => Confirm("DISCONNECT THE SESSION?", () => { Core.Multiplayer.DisconnectFromMenu(); RefreshLabels(); }));
+            RefreshMultiplayer();
+        }
+        private void RefreshMultiplayer()
+        {
+            if (_mpStatus == null) return;
+            bool active = Core.Multiplayer.SessionActive;
+            SetEnabled(_mpHost, Core.Multiplayer.CanHost); SetEnabled(_mpSteam, Core.Multiplayer.CanHost);
+            SetEnabled(_mpJoin, !active && (_ctx == Ctx.Pause || Core.Multiplayer.CanJoin)); SetEnabled(_mpDisconnect, active);
+            SetEnabled(_mpAddressButton, !active); SetEnabled(_mpPortButton, !active); SetEnabled(_mpNameButton, !active);
+            string name = "NAME  " + _mpName + (_mpEdit == 3 ? "_" : "");
+            _mpNameText.Size = Fit(name, 26, 600, 16); _mpNameText.Set(name);
+            string status = _mpMessage ?? Core.Multiplayer.ConnectionStatus;
+            _mpStatus.Size = Fit(status, 24, 600, 16); _mpStatus.Set(status);
+            string address = "HOST IP  " + _mpAddress + (_mpEdit == 1 ? "_" : "");
+            _mpAddressText.Size = Fit(address, 26, 600, 16); _mpAddressText.Set(address);
+            _mpPortText.Set("UDP PORT  " + _mpPort + (_mpEdit == 2 ? "_" : ""));
+            string reason = Core.Multiplayer.EndReason;
+            if (active) _shownMPReason = null;
+            else if (!string.IsNullOrEmpty(reason) && reason != _shownMPReason && _modal == null)
+            { _shownMPReason = reason; MultiplayerReason(reason); }
+        }
+        private void MultiplayerReason(string reason)
+        {
+            var lines = TalkDialogue.Wrap(reason, 816, 24); float height = 152 + lines.Count * 30;
+            _modal = R(_rootRt, "connection_reason", 0, 0, 1920, 1080);
+            Core.ReplacementGuard.MenuModalOpen = true;
+            var dim = _modal.gameObject.AddAccent<Image>(); dim.color = new Color(0, 0, 0, .55f); dim.raycastTarget = true;
+            var box = R(_modal, "box", 510, (1080 - height) / 2, 900, height);
+            Plate(box, 0, 0, 900, height);
+            T(box, "heading", 42, 20, 816, 44, 32, TextAnchor.MiddleLeft, Gold, "CONNECTION CLOSED");
+            float y = 76;
+            foreach (string line in lines) { T(box, "reason", 42, y, 816, 30, 24, TextAnchor.MiddleLeft, White, line); y += 30; }
+            CenteredRow(box, 320, height - 68, 260, 56, "OK", 30, CloseModal);
+            _nextFrame.Add(() => SelectFirst(_modal));
+        }
+        private void BeginMultiplayerInput(int field)
+        {
+            if (Core.Multiplayer.SessionActive) return;
+            _mpEdit = field; _mpReplace = true; _mpMessage = "TYPE TO REPLACE; ENTER TO APPLY; ESC TO CANCEL";
+            BlockCancelFrame = Time.frameCount + 1; RefreshMultiplayer();
+        }
+        private bool SaveMultiplayerEndpoint()
+        {
+            _mpEdit = 0; _mpMessage = Core.Multiplayer.SetEndpoint(_mpAddress, _mpPort, _mpName);
+            if (_mpMessage == null) _mpName = Core.Multiplayer.PlayerName;
+            RefreshMultiplayer(); return _mpMessage == null;
+        }
+        private void TickMultiplayerInput()
+        {
+            if (_mpEdit == 0) return;
+            if (_screen != "multiplayer" || _modal != null || !Application.isFocused || Core.Multiplayer.SessionActive) { _mpEdit = 0; _mpMessage = null; return; }
+            BlockCancelFrame = Time.frameCount + 1;
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                _mpEdit = 0; _mpMessage = null; _mpAddress = Core.Multiplayer.UdpAddress; _mpPort = Core.Multiplayer.UdpPort.ToString(CultureInfo.InvariantCulture); _mpName = Core.Multiplayer.PlayerName;
+                RefreshMultiplayer(); return;
+            }
+            if (Input.inputString.Length == 0) return;
+            string value = _mpEdit == 1 ? _mpAddress : _mpEdit == 2 ? _mpPort : _mpName;
+            foreach (char ch in Input.inputString)
+            {
+                if (ch == '\n' || ch == '\r')
+                { if (_mpEdit == 1) _mpAddress = value; else if (_mpEdit == 2) _mpPort = value; else _mpName = value; SaveMultiplayerEndpoint(); return; }
+                if (ch == '\b') { value = _mpReplace ? "" : value.Length > 0 ? value.Substring(0, value.Length - 1) : ""; _mpReplace = false; }
+                else if ((_mpEdit == 3 ? !char.IsControl(ch) && ch != '<' && ch != '>' : ch >= '0' && ch <= '9' || _mpEdit == 1 && ch == '.') && (_mpReplace || value.Length < (_mpEdit == 1 ? 15 : _mpEdit == 2 ? 5 : 48)))
+                { if (_mpReplace) value = ""; _mpReplace = false; value += ch; }
+            }
+            if (_mpEdit == 1) _mpAddress = value; else if (_mpEdit == 2) _mpPort = value; else _mpName = value;
+            RefreshMultiplayer();
+        }
+
         private void RefreshLabels()
         {
+            RefreshMultiplayer();
             var language = FindLanguageButton();
             if (language != null) HideGo(language.transform);
             if (_rootRt != null) HideGo(_rootRt.Find("ApocaLanguage_Button"));
@@ -868,7 +978,8 @@ namespace WildWasteland.Modules.CleanHUD
             if (_capBlock != null) UnityEngine.Object.Destroy(_capBlock);
             _capRow = null; _capBlock = null; _keyView = _keyContent = _keyThumb = null; _keyHint = null;
             if (_screen == "settings") _warnChecked = false;
-            _screen = "main";
+            _screen = "main"; _mpEdit = 0; _mpMessage = null;
+            Core.ReplacementGuard.MenuModalOpen = false;
         }
         private void Back()
         {
@@ -980,7 +1091,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         private void OpenSave()
         {
-            if (Core.Multiplayer.Client) return;
+            if (Core.Multiplayer.Client) { Core.MultiplayerSaving.RequestClientSave(); Resume(); return; }
             if (Core.Multiplayer.Hosting) { Core.MultiplayerSaving.RequestSave(); Resume(); return; }
             var incar = Fsm("Player", "InCar");
             if (incar != null && incar.ActiveStateName == "InCar") { Confirm("GET OUT OF THE CAR TO SAVE", null); return; }
@@ -1052,7 +1163,7 @@ namespace WildWasteland.Modules.CleanHUD
         {
             if (_modal == null) return;
             UnityEngine.Object.Destroy(_modal.gameObject); _modal = null;
-            Core.ReplacementGuard.MenuModalOpen = false;
+            Core.ReplacementGuard.MenuModalOpen = _screen == "multiplayer";
             _nextFrame.Add(() => SelectFirst(_screen == "main" ? _main : _sub));
         }
 
@@ -1181,6 +1292,7 @@ namespace WildWasteland.Modules.CleanHUD
                     var vt = T(b.transform, "value", cx + 44, 0, 120, h, 24, TextAnchor.MiddleLeft, White, "");
                     Action show = () => { fill.enabled = v > .5f; vt.Set(SettingsModel.Format(d, v)); };
                     show();
+                    if (d.Key == "color_grading") { SetEnabled(b, false); break; }
                     Action flip = () => { v = v > .5f ? 0 : 1; SettingsModel.Write(d, v); if (d.Kind == "bool") _settingsDirty = true; show(); };
                     b.onClick.AddListener(() => { Sound(); flip(); });
                     b.OnHorizontal = dir => flip();

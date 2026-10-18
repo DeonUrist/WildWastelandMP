@@ -83,13 +83,13 @@ namespace WildWasteland.Modules.Weather
             _next = Time.unscaledTime+.1f;
             if (WeatherDiagnostics.CloudPair) strength = 1;
             if (wind.sqrMagnitude > .01f) _root.transform.rotation = Quaternion.LookRotation(wind);
-            bool running = GameRefs.InGame && strength > .005f;
+            bool running = GameRefs.WorldRunning && strength > .005f;
             var emission = _system.emission; emission.enabled = running;
             emission.rateOverTimeMultiplier = _rate*strength*(!WeatherDiagnostics.CloudPair && detail == WeatherVisualDetail.Low ? .6f : 1);
             var main = _system.main; main.maxParticles = WeatherDiagnostics.CloudPair ? _nativeLimit : detail == WeatherVisualDetail.Low ? 60 : 100;
             main.startColor = WeatherDiagnostics.Enabled && WeatherDiagnostics.Preset == 8 ? _nativeColor : new ParticleSystem.MinMaxGradient(tint);
             if (_material.HasProperty("_Opacity")) _material.SetFloat("_Opacity",_opacity*strength);
-            if (!GameRefs.InGame || WeatherDiagnostics.Frozen) { if (_system.isPlaying) _system.Pause(); }
+            if (!GameRefs.WorldRunning || WeatherDiagnostics.Frozen) { if (_system.isPlaying) _system.Pause(); }
             else if (!_system.isPlaying) _system.Play();
             if (!_reported && running && !WeatherDiagnostics.Frozen)
             {

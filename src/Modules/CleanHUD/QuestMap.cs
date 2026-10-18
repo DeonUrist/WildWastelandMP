@@ -30,11 +30,25 @@ namespace WildWasteland.Modules.CleanHUD
         internal void DrawPlayer()
         {
             if (Event.current.type != EventType.Repaint || !_playerShown || _map == null || _camera == null || GameRefs.Player == null) return;
-            var player = GameRefs.Player.transform; var p = _camera.WorldToViewportPoint(player.position);
-            if (p.z <= 0 || p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) return;
-            var ahead = _camera.WorldToViewportPoint(player.position + player.forward * 10f) - p;
+            bool multiplayer = Multiplayer.WorldReady;
+            if (multiplayer && !CleanHudModule.ShowPlayersOnMap.Value) return;
             _map.GetWorldCorners(_playerCorners);
             var rect = new Rect(_playerCorners[0].x, Screen.height - _playerCorners[1].y, _playerCorners[2].x - _playerCorners[0].x, _playerCorners[1].y - _playerCorners[0].y);
+            if (multiplayer)
+                foreach (var remote in MultiplayerNames.Players)
+                {
+                    if (remote.Peer == Multiplayer.LocalPeer || remote.Tag == null) continue;
+                    var root = remote.Tag.transform.parent;
+                    if (root != null && root.gameObject.activeInHierarchy) DrawArrow(rect, root.position, Quaternion.Euler(0, root.eulerAngles.y, 0) * Vector3.forward, remote.Color);
+                }
+            var player = GameRefs.Player.transform;
+            DrawArrow(rect, player.position, player.forward, multiplayer ? MultiplayerNames.ColorOf(Multiplayer.LocalPeer) : new Color(.2f, 1f, .25f, 1f));
+        }
+        private void DrawArrow(Rect rect, Vector3 position, Vector3 forward, Color tint)
+        {
+            var p = _camera.WorldToViewportPoint(position);
+            if (p.z <= 0 || p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) return;
+            var ahead = _camera.WorldToViewportPoint(position + forward * 10f) - p;
             var center = new Vector2(p.x * rect.width, (1f - p.y) * rect.height);
             var matrix = GUI.matrix; var color = GUI.color; int depth = GUI.depth;
             GUI.depth = -1; GUI.BeginGroup(rect);
@@ -43,7 +57,7 @@ namespace WildWasteland.Modules.CleanHUD
                 GUIUtility.RotateAroundPivot(Mathf.Atan2(ahead.x, ahead.y) * Mathf.Rad2Deg, center);
                 var icon = MapIcons.Get("player");
                 GUI.color = new Color(.02f, .08f, .02f, 1f); GUI.DrawTexture(new Rect(center.x - 11, center.y - 12.5f, 22, 25), icon);
-                GUI.color = new Color(.2f, 1f, .25f, 1f); GUI.DrawTexture(new Rect(center.x - 9, center.y - 10.5f, 18, 21), icon);
+                GUI.color = tint; GUI.DrawTexture(new Rect(center.x - 9, center.y - 10.5f, 18, 21), icon);
             }
             finally { GUI.matrix = matrix; GUI.EndGroup(); GUI.color = color; GUI.depth = depth; }
         }

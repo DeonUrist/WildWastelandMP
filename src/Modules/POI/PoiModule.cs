@@ -64,7 +64,7 @@ namespace WildWasteland.Modules.POI
         // a site is tried when the player comes within 500 m, as OnTriggerEnter did. Game time, like physics; skipped while not in play.
         private void Proximity()
         {
-            if (!_running || _sites.Count == 0 || !GameRefs.InGame || SaveBus.Busy) return;
+            if (!_running || _sites.Count == 0 || !GameRefs.WorldRunning || SaveBus.Busy) return;
             var player = GameRefs.Player; if (player == null) return;
             var p = player.transform.position;
             for (int i = 0; i < _sites.Count; i++)
@@ -209,7 +209,7 @@ namespace WildWasteland.Modules.POI
         }
         internal void TrySpawn(PoiSite site)
         {
-            if (!_running || !_loaded || site == null || !site.gameObject.activeInHierarchy || site.Building || _spawned.Contains(site.Key) || !GameRefs.InGame || SaveBus.Busy) return;
+            if (!_running || !_loaded || site == null || !site.gameObject.activeInHierarchy || site.Building || _spawned.Contains(site.Key) || !GameRefs.WorldRunning || SaveBus.Busy) return;
             if (site.Definition.Enabled != null && !site.Definition.Enabled()) return;
             var player = GameRefs.Player; if (Multiplayer.PlayerDistance(site.transform.position, player != null ? player.transform : null) > 500f) return;
             site.Building = true;

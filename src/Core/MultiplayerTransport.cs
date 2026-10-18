@@ -15,10 +15,18 @@ namespace WildWasteland.Core
             var type = Multiplayer.Type("Net.UdpTransport"); var owner = Multiplayer.PatchOwner;
             if (!Patches.Patch(owner, AccessTools.Method(type, "Dispose"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Closing"))
                 || !Patches.Patch(owner, AccessTools.Method(type, "Update"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Open"), transpiler: AccessTools.Method(typeof(MultiplayerTransport), "AfterDispatch"))
+                || !Patches.Patch(owner, AccessTools.Method(type, "HandlePacket"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Packet"))
                 || !Patches.Patch(owner, AccessTools.Method(type, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Open")))
                 throw new InvalidOperationException("MP UDP lifecycle hooks failed");
         }
         static bool Open(object __instance) { Closed closed; return !Disposed.TryGetValue(__instance, out closed); }
+        static bool Packet(object __instance, System.Net.IPEndPoint __0, byte[] __1)
+        {
+            if (!Open(__instance)) return false;
+            if (__0 != null && __1 != null && __1.Length > 0) return true;
+            Log.Warn("[Multiplayer] UDP: discarded an incomplete packet (missing endpoint or payload)");
+            return false;
+        }
         static bool Closing(object __instance)
         {
             if (!Open(__instance)) return false;

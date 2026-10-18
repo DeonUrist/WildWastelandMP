@@ -36,6 +36,8 @@ namespace WildWasteland.Modules.Patrols
     {
         internal static readonly List<MerchantHost> All=new List<MerchantHost>();
         internal MerchantSave Data;
+        internal bool Presentation, NetworkTrading;
+        internal MerchantPose[] NetworkPoses;
         internal readonly List<MerchantObject> Objects=new List<MerchantObject>();
         private readonly List<PlayMakerFSM> _lists=new List<PlayMakerFSM>(),_sellers=new List<PlayMakerFSM>();
         private readonly Dictionary<MerchantStock,GameObject> _stock=new Dictionary<MerchantStock,GameObject>();
@@ -44,12 +46,23 @@ namespace WildWasteland.Modules.Patrols
         private Transform _root;private float _next;private Collider[] _chassis;internal bool Ready;
         private PlayMakerFSM _start;
         private void OnEnable(){All.Add(this);}
-        private void OnDestroy(){All.Remove(this);foreach(var pair in _stock)if(pair.Value!=null&&!pair.Key.purchased)Register.RemoveTree(pair.Value);}
+        private void OnDestroy()
+        {
+            All.Remove(this);
+            if(Presentation&&_root!=null)
+            {
+                foreach(var prefab in _root.GetComponentsInChildren<ES3Internal.ES3Prefab>(true))
+                    if(prefab!=null&&Core.Multiplayer.ObjectId(prefab.gameObject)!=0)prefab.transform.SetParent(null,true);
+                Destroy(_root.gameObject);
+            }
+            foreach(var pair in _stock)if(pair.Value!=null&&!pair.Key.purchased)Register.RemoveTree(pair.Value);
+        }
         // Perf: marker / crew / handbrake FSM resolved once (re-resolved while missing); was GetComponent x2 + a whole-bus
         // GetComponentsInChildren<PlayMakerFSM> per Park (2/s). Park still re-asserts every call (ignition off, handbrake, inputs).
         private PatrolMarker _marker;private Crew _crew;private PlayMakerFSM _handbrake;private float _handbrakeSearch=-1f;
         internal void Park()
         {
+            if(Presentation)return;
             if(_marker==null)_marker=GetComponent<PatrolMarker>();if(_crew==null)_crew=GetComponent<Crew>();
             var marker=_marker;if(marker?.PlayerEntered==true)return;
             var journey=WorldTraffic.Find(marker?.TrafficId);var crew=_crew;
@@ -98,18 +111,28 @@ namespace WildWasteland.Modules.Patrols
                 foreach(var state in list.Fsm.States)state.Actions=state.Actions.Select(action=>action is CreateObject create?
                     (FsmStateAction)new MerchantProbeAction{source=create.gameObject,store=create.storeObject,host=this}:action).ToArray();
                 foreach(var seller in station.GetComponentsInChildren<PlayMakerFSM>(true).Where(f=>f.FsmName=="SellItemsHere"))
-                {foreach(var state in seller.Fsm.States)foreach(var action in state.Actions)if(action is GetParent parent)parent.gameObject=Owner(lookup.gameObject);_sellers.Add(seller);}
-                var goods=MerchantCatalog.Goods(type);
+                {
+                    foreach(var state in seller.Fsm.States)
+                    {
+                        foreach(var action in state.Actions)if(action is GetParent parent)parent.gameObject=Owner(lookup.gameObject);
+                        state.Actions=state.Actions.Select(action=>action is TriggerEventByLayer triggerAction?
+                            (FsmStateAction)new MerchantTrigger{trigger=triggerAction.trigger,layer=triggerAction.layer,sendEvent=triggerAction.sendEvent,storeCollider=triggerAction.storeCollider}:action).ToArray();
+                    }
+                    _sellers.Add(seller);
+                }
+                var goods=Presentation?new GameObject[0]:MerchantCatalog.Goods(type);
                 for(int i=0;i<4;i++)
                 {var sale=Anchor(station.transform,"Sale"+i);sale.localPosition=new Vector3(0.4f+i%2*0.55f,0.1f,-0.5f-i/2*0.65f);Add(type+"/sale/"+i,MerchantCatalog.Label(type)+" sale item "+(i+1),"Sale items",sale);
                     if(!stock.Any(s=>s.type==type&&s.slot==i)&&goods.Length>0)stock.Add(new MerchantStock{type=type,slot=i,prefab=goods[UnityEngine.Random.Range(0,goods.Length)].name});}
                 yield return null;
                 Init(list);var demand=(Data.demands??new MerchantDemand[0]).FirstOrDefault(d=>d.type==type);
                 if(demand!=null&&demand.names.Length==demand.prices.Length){SetDemand(list,demand);list.Fsm.SetState("done");}
-                else list.Fsm.SetState(type=="organic"?"create":"random");
+                else if(!Presentation)list.Fsm.SetState(type=="organic"?"create":"random");
                 foreach(var seller in station.GetComponentsInChildren<PlayMakerFSM>(true).Where(f=>f.FsmName=="SellItemsHere")){Init(seller);seller.Fsm.SetState("wait");}
             }
-            Data.stock=stock.ToArray();MerchantLayouts.Apply(this);
+            Data.stock=stock.ToArray();
+            if(Presentation){Ready=true;ApplyNetwork(Data,NetworkPoses,NetworkTrading);yield break;}
+            MerchantLayouts.Apply(this);
             var wanted=new HashSet<string>(Data.stock.Where(s=>!s.purchased&&!string.IsNullOrEmpty(s.nativeName)).Select(s=>s.nativeName));var existingItems=new Dictionary<string,GameObject>();
             if(wanted.Count>0||discarded.Count>0)foreach(var item in Resources.FindObjectsOfTypeAll<GameObject>())if(item!=null&&item.scene.IsValid())
             {if(discarded.Contains(item.name)){Register.RemoveTree(item);Destroy(item);}else if(wanted.Contains(item.name))existingItems[item.name]=item;}
@@ -162,8 +185,15 @@ namespace WildWasteland.Modules.Patrols
             for(int i=0;i<demand.names.Length;i++){if(names!=null&&i<names.childCount)Text(names.GetChild(i),demand.names[i]);if(prices!=null&&i<prices.childCount)Text(prices.GetChild(i),demand.prices[i].ToString());}
         }
         private static void Text(Transform node,string text){var component=node.GetComponents<Component>().FirstOrDefault(c=>c!=null&&c.GetType().Name=="TextMeshPro");component?.GetType().GetProperty("text")?.SetValue(component,text,null);}
+        internal void ApplyNetwork(MerchantSave data,MerchantPose[] poses,bool trading)
+        {
+            Data=data;NetworkPoses=poses;NetworkTrading=trading;if(!Ready)return;
+            foreach(var list in _lists){var demand=Data.demands.FirstOrDefault(d=>d.type==list.gameObject.name);if(demand!=null)SetDemand(list,demand);}
+            foreach(var pose in poses??new MerchantPose[0]){var obj=Objects.FirstOrDefault(o=>o.Id==pose.id);if(obj?.Transform!=null){obj.Transform.position=transform.TransformPoint(pose.position);obj.Transform.rotation=transform.rotation*Quaternion.Euler(pose.rotation);}}
+            foreach(var seller in _sellers)if(seller!=null&&seller.enabled!=trading){seller.enabled=trading;if(trading)seller.Fsm.SetState("trigger");}
+        }
         private void Update()
-        { if (!PatrolsModule.Running) return;
+        { if (Presentation || !PatrolsModule.Running) return;
             if(Time.time<_next||Data==null)return;_next=Time.time+0.5f;Park();
             if(_marker==null)_marker=GetComponent<PatrolMarker>();var marker=_marker;bool trading=Ready&&!TrafficFactions.PlayerHostile(Data.types.Length>0?marker?.Faction:"Coyotes");
             foreach(var f in _sellers)if(f!=null&&f.enabled!=trading){f.enabled=trading;if(trading)f.Fsm.SetState("trigger");}
@@ -205,5 +235,12 @@ namespace WildWasteland.Modules.Patrols
         public FsmGameObject source,store;
         public MerchantHost host;
         public override void OnEnter(){store.Value=host.CreateProbe(source.Value);Finish();}
+    }
+    internal sealed class MerchantTrigger : TriggerEventByLayer
+    {
+        public override void OnPreprocess(){base.OnPreprocess();if(trigger==TriggerType.OnTriggerEnter)Fsm.HandleTriggerStay=true;}
+        static bool Local(Collider other){return other!=null&&(!Core.Multiplayer.Active||Core.Multiplayer.ItemAuthority(other.gameObject));}
+        public override void DoTriggerEnter(Collider other){if(other!=null&&Core.Multiplayer.Client&&!Local(other))Core.Multiplayer.RequestItemAuthority(other.gameObject);if(Local(other))base.DoTriggerEnter(other);}
+        public override void DoTriggerStay(Collider other){if(!Local(other))return;if(trigger==TriggerType.OnTriggerEnter)base.DoTriggerEnter(other);else base.DoTriggerStay(other);}
     }
 }

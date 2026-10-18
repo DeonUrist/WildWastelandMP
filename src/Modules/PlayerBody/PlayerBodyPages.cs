@@ -66,7 +66,9 @@ namespace WildWasteland.Modules.PlayerBody
             l.Value("Driver's seat", CarSeat.Seat != null ? CarSeat.Seat.root.name : "-");
             if (l.Button("Rebuild the body now", Game.Ready, false, 260)) BodyRunner.CharacterChanged();
             l.Heading("Settings");
-            l.Entry(PlayerBodyModule.Character);
+            int character = System.Array.IndexOf(CharacterPortraits.Order, (int)PlayerBodyModule.Character.Value);
+            int selected = l.Choices("Character", character, "Male", "Merchant", "Bodyguard", "Sprokka", "Organic Mechanic", "Female", "Gungirl", "Shoota");
+            if (selected != character) PlayerBodyModule.Character.Value = (PlayerBodyModule.Gender)CharacterPortraits.Order[selected];
             l.Toggle(PlayerBodyModule.BodyFirstPerson);
             l.Toggle(PlayerBodyModule.EmptyHandArms);
             l.Toggle(PlayerBodyModule.FemaleArms);

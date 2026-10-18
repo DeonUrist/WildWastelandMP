@@ -117,6 +117,7 @@ namespace WildWasteland.Modules.PlayerBody
             try
             {
                 if (!Game.Ready) return;
+                InventoryModel.LateTick();
                 ThirdPerson.LateCrosshair();
                 if (!Game.Dead && _body != null && _body.IsRagdoll) DestroyBody();
                 if (_body == null || !_body.Alive)
@@ -183,7 +184,6 @@ namespace WildWasteland.Modules.PlayerBody
                 _body.SetFirstPersonArms(fpArms);
                 _body.LateEquipment(PlayerBodyModule.EquipmentOnBody.Value);
                 if (!ReferenceEquals(mode, _lastMode)) { _lastMode = mode; PlayerBodyModule.Verbose("View: " + mode); }
-                InventoryModel.LateTick();
             }
             catch (Exception e) { PlayerBodyModule.Error("LateUpdate: " + e); _nextBuild = Time.unscaledTime + 5f; }
             finally { Perf.Add(Perf.Late, t0); }

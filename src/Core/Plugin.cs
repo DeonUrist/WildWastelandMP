@@ -99,6 +99,7 @@ namespace WildWasteland
                 Core.SaveTypes.Install();
                 Core.ReplacementGuard.Prepare();
                 Core.HealthStacks.Init();
+                Core.ColorGrading.Init();
                 Core.ITweenGuard.Init();
                 Core.QuietFsm.Install();
                 Core.VistasWorldGen.Init();

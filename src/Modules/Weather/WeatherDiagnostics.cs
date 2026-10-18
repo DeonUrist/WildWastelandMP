@@ -127,14 +127,14 @@ namespace WildWasteland.Modules.Weather
                 d.ParticleRotation=new Quaternion(reader.ReadSingle(),reader.ReadSingle(),reader.ReadSingle(),reader.ReadSingle());
                 d.Projection=ReadMatrix(reader); d.View=ReadMatrix(reader); d.ParticleSeed=reader.ReadUInt32();
                 d.DustColor=ReadFour(reader); d.AirColor=ReadFour(reader); d.SunDirection=ReadFour(reader);
-                int count=ReadCount(reader,4); d.Regions=new WeatherRegion[count]; d.Ages=new float[count];
+                int count=ReadCount(reader,WeatherModule.MaxRegions); d.Regions=new WeatherRegion[count]; d.Ages=new float[count];
                 for (int i=0;i<count;i++)
                 {
                     d.Regions[i]=new WeatherRegion { WorldCenter=ReadVector(reader), Radii=new Vector2(reader.ReadSingle(),reader.ReadSingle()),
                         Velocity=ReadVector(reader), Heading=reader.ReadSingle(), Hurricane=reader.ReadBoolean() };
                     d.Ages[i]=reader.ReadSingle();
                 }
-                count=ReadCount(reader,320); d.GroundOffsets=new float[count]; d.GroundValid=new bool[count];
+                count=ReadCount(reader,WeatherModule.MaxRegions*80); d.GroundOffsets=new float[count]; d.GroundValid=new bool[count];
                 for (int i=0;i<count;i++) { d.GroundOffsets[i]=reader.ReadSingle(); d.GroundValid[i]=reader.ReadBoolean(); }
                 if (reader.ReadBoolean())
                 {

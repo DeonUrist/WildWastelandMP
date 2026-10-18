@@ -54,7 +54,8 @@ namespace WildWasteland.Modules.CleanHUD
             if (go == null) return null;
             var n = go.name;
             for (int i = 0; i < 3; i++) n = CloneSuffix.Replace(n, "");
-            return n.Trim();
+            n = n.Trim();
+            return n.StartsWith("MP_", StringComparison.Ordinal) ? n.Substring(3) : n;
         }
 
         private static readonly Regex Paren = new Regex(@"\(([^)]+)\)\s*$", RegexOptions.Compiled);

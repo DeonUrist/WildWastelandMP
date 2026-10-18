@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using BepInEx;
 using BepInEx.Bootstrap;
+using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 
@@ -29,7 +30,12 @@ namespace WildWasteland.Core
         static Action<byte[], bool> _send;
         static Action<ulong, byte[], bool> _sendTo;
         static Action<ulong, byte[]> _handle;
-        static Action _stop, _steamHost, _udpHost, _udpJoin;
+        static Action _stop, _udpJoin;
+        static Action<string> _end, _announceClosing;
+        static ConfigEntry<string> _udpAddress, _playerName;
+        static Func<object, string> _localName;
+        static ConfigEntry<int> _udpPort;
+        static Func<object, string> _endReason;
         static Action<string, int, bool> _hostWorld;
         static Action<string> _activeSave;
         static Func<object, IDictionary> _objects;
@@ -79,6 +85,34 @@ namespace WildWasteland.Core
         public static bool Typing { get { return _ready && _chat(); } }
         internal static bool LocalTargetable { get { return !_ready || !_downed(); } }
         public static string SaveFile { get { return _ready ? _save(null) : null; } }
+        internal static bool InMainMenu { get { return Present && _mainMenu(); } }
+        internal static bool CanHost { get { return Present && !SessionActive && !MultiplayerHosting.Pending && (_mainMenu() || GameRefs.SaveLoadState == "isPlay" && !SaveBus.Busy) && !LoadingProgress.ScreenVisible; } }
+        internal static bool CanJoin { get { return Present && !SessionActive && !MultiplayerHosting.Pending && _mainMenu() && !LoadingProgress.ScreenVisible; } }
+        internal static string UdpAddress { get { return Present ? _udpAddress.Value : ""; } }
+        internal static string PlayerName { get { return Present ? _localName(null) : ""; } }
+        internal static int UdpPort { get { return Present ? _udpPort.Value : 0; } }
+        internal static string ConnectionStatus { get { return !Present ? "UNAVAILABLE" : _mode(null) == _joining ? "CONNECTING..." : Hosting ? "HOSTING" : Client ? "CONNECTED" : SessionActive ? "STARTING..." : _endReason(null) ?? "OFFLINE"; } }
+        internal static string EndReason { get { return Present ? _endReason(null) : null; } }
+        internal static string SetEndpoint(string address, string port, string name)
+        {
+            int value; System.Net.IPAddress ip;
+            name = (name ?? "").Trim();
+            if (name.Length == 0 || name.Length > 48) return "NAME MUST BE 1-48 CHARACTERS";
+            foreach (char ch in name) if (char.IsControl(ch) || ch == '<' || ch == '>') return "NAME CANNOT CONTAIN CONTROL CHARACTERS OR MARKUP";
+            if (!int.TryParse(port, out value) || value < 1 || value > 65535) return "PORT MUST BE 1-65535";
+            if (!System.Net.IPAddress.TryParse(address.Trim(), out ip) || ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) return "ENTER A VALID IPV4 ADDRESS";
+            if (!Present || SessionActive) return "DISCONNECT BEFORE EDITING";
+            _udpAddress.Value = ip.ToString(); _udpPort.Value = value; _playerName.Value = name; return null;
+        }
+        static void NamedPlayer(ref string __result) { if (!string.IsNullOrWhiteSpace(_playerName.Value)) __result = _playerName.Value; }
+        internal static void JoinFromMenu() { if (CanJoin) { _udpJoin(); Refresh(); } }
+        internal static void DisconnectFromMenu()
+        {
+            if (!Present || !SessionActive || SaveBus.Busy || LoadingProgress.ScreenVisible) return;
+            if (Hosting) _announceClosing("Host stopped hosting");
+            MultiplayerRecovery.Leave(CompleteDisconnect);
+        }
+        static void CompleteDisconnect() { _end("Disconnected"); Refresh(); }
         public static ulong LocalPeer { get { return _ready ? _localPeer(null) : 0; } }
         internal static int RemoteCount { get { return Hosting ? Remotes.Count : 0; } }
         internal static GameObject RemoteAt(int i) { return Remotes[i].Body; }
@@ -89,6 +123,7 @@ namespace WildWasteland.Core
             PluginInfo plugin;
             if (!Chainloader.PluginInfos.TryGetValue("ApocalypterMP", out plugin) || ReferenceEquals(plugin.Instance, null)) return;
             Assembly = plugin.Instance.GetType().Assembly;
+            MultiplayerLogging.Install();
             try
             {
                 var session = Type("Net.NetSession"); var world = Type("Net.WorldObjects");
@@ -111,9 +146,15 @@ namespace WildWasteland.Core
                 _sendTo = MultiplayerAccess.Call<Action<ulong, byte[], bool>>(session, "SendTo", typeof(ulong), typeof(byte[]), typeof(bool));
                 _handle = MultiplayerAccess.Call<Action<ulong, byte[]>>(session, "Handle", typeof(ulong), typeof(byte[]));
                 _stop = MultiplayerAccess.Call<Action>(session, "Stop", System.Type.EmptyTypes);
-                _steamHost = MultiplayerAccess.Call<Action>(session, "StartSteamHost", System.Type.EmptyTypes);
-                _udpHost = MultiplayerAccess.Call<Action>(session, "StartUdpHost", System.Type.EmptyTypes);
                 _udpJoin = MultiplayerAccess.Call<Action>(session, "StartUdpJoin", System.Type.EmptyTypes);
+                _end = MultiplayerAccess.Call<Action<string>>(session, "End", typeof(string));
+                _announceClosing = MultiplayerAccess.Call<Action<string>>(session, "AnnounceClosing", typeof(string));
+                _endReason = MultiplayerAccess.Get<string>(session, "lastEndReason");
+                _udpAddress = MultiplayerAccess.Get<ConfigEntry<string>>(Type("Plugin"), "UdpAddress")(null);
+                _udpPort = MultiplayerAccess.Get<ConfigEntry<int>>(Type("Plugin"), "UdpPort")(null);
+                _playerName = Plugin.Settings.Bind("Multiplayer", "Name", "", "Your multiplayer display name (1-48 characters). Empty uses the Steam or launcher name. Change before hosting or joining.");
+                _localName = MultiplayerAccess.Get<string>(session, "LocalName");
+                Patch(session, "LocalPlayerName", postfix: "NamedPlayer");
                 _hostWorld = MultiplayerAccess.Call<Action<string, int, bool>>(session, "HostWorld", typeof(string), typeof(int), typeof(bool));
                 _activeSave = MultiplayerAccess.Call<Action<string>>(Type("Game.GameLauncher"), "set_ActiveSaveFile", typeof(string));
                 _objects = MultiplayerAccess.Get<IDictionary>(world, "objects");
@@ -147,6 +188,7 @@ namespace WildWasteland.Core
                 Patch(Type("UI.HudMenu"), "get_Available", "CompassAvailable");
                 Patch(Type("UI.PlayersOverlay"), "Tick", "PlayerOverlayAllowed");
                 Patch(Type("Diagnostics.DebugKeys"), "Update", "DebugKeysAllowed");
+                Patch(session, "get_Status", "MenuConnectionStatus");
                 Patch(Type("Diagnostics.DebugTeleport"), "Update", "DebugAllowed");
                 Patch(Type("Diagnostics.DebugSpawner"), "SpawnNext", "DebugAllowed");
                 Patch(Type("Diagnostics.LookProbe"), "Log", "DebugAllowed");
@@ -154,15 +196,20 @@ namespace WildWasteland.Core
                 MultiplayerParty.Install();
                 MultiplayerActors.Install(PatchOwner);
                 MultiplayerPlayers.Install();
+                MultiplayerNames.Install();
                 MultiplayerItems.Install();
                 MultiplayerSettings.Install();
                 MultiplayerCombat.Install();
                 MultiplayerParts.Install();
                 MultiplayerReliable.Install();
                 MultiplayerSaving.Install();
+                MultiplayerHosting.Install();
+                MultiplayerNotifications.Install();
+                MultiplayerRecovery.Install();
                 MultiplayerHandshake.Install();
                 MultiplayerEffects.Install();
                 MultiplayerForces.Install();
+                MultiplayerVehicles.Install();
                 MultiplayerHeadless.Install();
                 Message += AppearanceMessage;
                 _ready = true;
@@ -254,28 +301,24 @@ namespace WildWasteland.Core
         static bool DebugAllowed() { return !_ready; }
         static bool DebugKeysAllowed()
         {
-            if (!_ready) return true;
-            if (Typing || UI.EditorSession.Busy || ApocasetterBridge.InputBlocked) return false;
-            // Retain connection shortcuts, but never execute MP's F9-F12 debug actions, even on the host.
-            if (Hotkeys.Pressed(UnityEngine.InputSystem.Key.F8)) _stop();
-            else if (!SessionActive)
-            {
-                if (Hotkeys.Pressed(UnityEngine.InputSystem.Key.F5)) HostCurrentWorld(true);
-                else if (Hotkeys.Pressed(UnityEngine.InputSystem.Key.F6)) HostCurrentWorld(false);
-                else if (Hotkeys.Pressed(UnityEngine.InputSystem.Key.F7)) _udpJoin();
-            }
-            return false;
+            return !_ready;
         }
-        static void HostCurrentWorld(bool steam)
+        static bool MenuConnectionStatus(ref string __result)
         {
-            if (!_worldReady() || GameRefs.SaveLoadGame == null) { if (steam) _steamHost(); else _udpHost(); return; }
+            if (!_ready || _mode(null) != _off) return true;
+            __result = "Net: " + ConnectionStatus + " (MULTIPLAYER in the main / ESC menu)"; return false;
+        }
+        internal static void HostCurrentWorld(bool steam, string worldName = null)
+        {
+            if (!Present || SessionActive || InMainMenu || GameRefs.SaveLoadState != "isPlay" || GameRefs.SaveLoadGame == null) return;
             var variables = GameRefs.SaveLoadGame.FsmVariables;
             var file = variables.FindFsmString("SaveFile"); var seed = variables.FindFsmInt("seed");
             string slot = file != null ? file.Value : ES3Settings.defaultSettings.path;
-            if (string.IsNullOrEmpty(slot) || seed == null) { Log.Warn("[Multiplayer] Load a world before hosting with F5/F6"); return; }
+            if (string.IsNullOrEmpty(slot) || seed == null) { Log.Warn("[Multiplayer] Load a world before hosting"); return; }
             slot = System.IO.Path.GetFileName(slot); _activeSave(slot);
-            _hostWorld(System.IO.Path.GetFileNameWithoutExtension(slot), seed.Value, steam);
-            Log.Always("[Multiplayer] Hosted current world " + slot + " over " + (steam ? "Steam" : "UDP"));
+            _hostWorld(string.IsNullOrEmpty(worldName) ? System.IO.Path.GetFileNameWithoutExtension(slot) : worldName, seed.Value, steam);
+            Refresh();
+            if (Hosting) Log.Always("[Multiplayer] Hosted current world " + slot + " over " + (steam ? "Steam" : "UDP"));
         }
         static bool CompassAvailable(ref bool __result)
         { if (!_ready) return true; __result = false; return false; }

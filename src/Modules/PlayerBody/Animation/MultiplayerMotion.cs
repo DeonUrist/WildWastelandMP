@@ -16,12 +16,14 @@ namespace WildWasteland.Modules.PlayerBody
             internal ulong Peer, Epoch; internal float Time, Received;
             internal byte Jump, Mode, Choice; internal bool Airborne;
             internal Vector3 Position, Hips; internal Quaternion Rotation;
+            internal string Weapon; internal Vector3 WeaponPosition; internal Quaternion WeaponRotation;
             internal readonly Quaternion[] Bones = new Quaternion[22];
             internal void Copy(Frame other)
             {
                 Peer = other.Peer; Epoch = other.Epoch; Time = other.Time; Received = UnityEngine.Time.unscaledTime;
                 Jump = other.Jump; Mode = other.Mode; Choice = other.Choice; Airborne = other.Airborne;
                 Position = other.Position; Hips = other.Hips; Rotation = other.Rotation; Array.Copy(other.Bones, Bones, Bones.Length);
+                Weapon = other.Weapon; WeaponPosition = other.WeaponPosition; WeaponRotation = other.WeaponRotation;
             }
         }
         sealed class Frames
@@ -35,7 +37,8 @@ namespace WildWasteland.Modules.PlayerBody
             }
         }
         static readonly Dictionary<ulong, Frames> MotionFrames = new Dictionary<ulong, Frames>();
-        static readonly Frame Outgoing = new Frame(), Incoming = new Frame();
+        static readonly Frame Outgoing = new Frame(), Incoming = new Frame(), WeaponPose = new Frame();
+        static Body _weaponBody; static int _weaponFrame = -1;
         static Frame _writing;
         static float _nextMotion;
         static ulong _motionEpoch;
@@ -51,7 +54,19 @@ namespace WildWasteland.Modules.PlayerBody
         static void ResetMotion()
         {
             foreach (var mask in DriverMasks.Values) mask.Restore(); DriverMasks.Clear(); UnusedDrivers.Clear();
-            MotionFrames.Clear(); _nextMotion = 0; _motionEpoch = 0; _jumpState = ""; _jump = 0;
+            MotionFrames.Clear(); _nextMotion = 0; _motionEpoch = 0; _jumpState = ""; _jump = 0; _weaponBody = null; _weaponFrame = -1;
+        }
+        internal static void CaptureWeaponMotion(Body local, Transform model)
+        {
+            if (!Multiplayer.WorldReady || !local.NetworkWeaponAction) return;
+            for (int i = 0; i < PoseBones.Length; i++)
+            {
+                Transform bone; if (!local.Bones.TryGetValue(PoseBones[i], out bone) || bone == null) return;
+                WeaponPose.Bones[i] = bone.localRotation; if (i == 0) WeaponPose.Hips = bone.localPosition;
+            }
+            WeaponPose.Position = model.position; WeaponPose.Rotation = model.rotation;
+            local.NetworkWeaponPose(out WeaponPose.Weapon, out WeaponPose.WeaponPosition, out WeaponPose.WeaponRotation);
+            _weaponBody = local; _weaponFrame = Time.frameCount;
         }
         static void HideNativeDriver(BodyState body)
         {
@@ -107,10 +122,17 @@ namespace WildWasteland.Modules.PlayerBody
                 root.localRotation = Quaternion.Slerp(first.Rotation, second.Rotation, blend);
                 for (int i = 0; i < body.Bones.Length; i++) if (body.Bones[i] != null) body.Bones[i].localRotation = Quaternion.Slerp(first.Bones[i], second.Bones[i], blend);
                 if (body.Bones[0] != null) body.Bones[0].localPosition = Vector3.Lerp(first.Hips, second.Hips, blend);
+                if (first.Mode == 4)
+                {
+                    _showItem(pair.Key, first.Weapon);
+                    var item = _item(pair.Key);
+                    if (item != null) item.transform.SetPositionAndRotation(root.TransformPoint(Vector3.Lerp(first.WeaponPosition, second.WeaponPosition, first.Weapon == second.Weapon ? blend : 0)), root.rotation * Quaternion.Slerp(first.WeaponRotation, second.WeaponRotation, first.Weapon == second.Weapon ? blend : 0));
+                }
             }
             UnusedDrivers.Clear();
             foreach (var pair in DriverMasks) if (pair.Key == null || pair.Value.Used != Time.frameCount) { pair.Value.Restore(); UnusedDrivers.Add(pair.Key); }
             foreach (var car in UnusedDrivers) DriverMasks.Remove(car);
+            foreach (var body in Bodies.Values) if (body.Equipment != null) body.Equipment.TickFlashlight();
             if (!Game.Ready || Game.Dead) return;
             string jump = Game.JumpState;
             if (_jumpState.Length > 0 && (jump == "Jump" && _jumpState != "Jump" || jump == "Falling" && _jumpState == "Idle" && Game.Velocity.y > 2f)) _jump++;
@@ -121,6 +143,7 @@ namespace WildWasteland.Modules.PlayerBody
             Outgoing.Peer = Multiplayer.LocalPeer; Outgoing.Epoch = _motionEpoch; Outgoing.Time = Time.unscaledTime;
             Outgoing.Jump = _jump; Outgoing.Choice = (byte)PlayerBodyModule.Character.Value;
             Outgoing.Mode = local != null && local.Alive && ModAPI.PlayerTraversalActive ? (byte)1 : local != null && local.Alive && Game.InCar && CarSeat.Seat != null ? (LocalPassenger ? (byte)3 : (byte)2) : (byte)0;
+            if (Outgoing.Mode == 0 && local != null && local.Alive && local.NetworkWeaponAction && _weaponBody == local && _weaponFrame == Time.frameCount) Outgoing.Mode = 4;
             Outgoing.Airborne = Outgoing.Mode == 0 && (jump == "Jump" || jump == "Falling");
             if (Outgoing.Mode != 0)
             {
@@ -130,6 +153,11 @@ namespace WildWasteland.Modules.PlayerBody
                 {
                     Transform bone; if (!local.Bones.TryGetValue(PoseBones[i], out bone) || bone == null) { Outgoing.Mode = 0; break; }
                     Outgoing.Bones[i] = bone.localRotation; if (i == 0) Outgoing.Hips = bone.localPosition;
+                }
+                if (Outgoing.Mode == 4)
+                {
+                    Outgoing.Position = inverse * (WeaponPose.Position - player.position); Outgoing.Rotation = inverse * WeaponPose.Rotation; Outgoing.Hips = WeaponPose.Hips;
+                    Array.Copy(WeaponPose.Bones, Outgoing.Bones, PoseBones.Length); Outgoing.Weapon = WeaponPose.Weapon; Outgoing.WeaponPosition = WeaponPose.WeaponPosition; Outgoing.WeaponRotation = WeaponPose.WeaponRotation;
                 }
             }
             _writing = Outgoing; Multiplayer.Send(82, WriteMotion, reliable: false);
@@ -156,12 +184,13 @@ namespace WildWasteland.Modules.PlayerBody
             if (frame.Mode == 0) return;
             Position(writer, frame.Position); Rotation(writer, frame.Rotation); Position(writer, frame.Hips);
             foreach (var rotation in frame.Bones) Rotation(writer, rotation);
+            if (frame.Mode == 4) { writer.Write(frame.Weapon); Position(writer, frame.WeaponPosition); Rotation(writer, frame.WeaponRotation); }
         }
         static void ReceiveMotion(ulong from, BinaryReader reader)
         {
             var frame = Incoming; frame.Epoch = reader.ReadUInt64(); frame.Peer = reader.ReadUInt64(); frame.Time = reader.ReadSingle();
             frame.Choice = reader.ReadByte(); frame.Jump = reader.ReadByte(); frame.Airborne = reader.ReadBoolean(); frame.Mode = reader.ReadByte();
-            if (frame.Epoch != MultiplayerParts.Epoch || frame.Mode > 3 || frame.Choice > 7 || float.IsNaN(frame.Time) || float.IsInfinity(frame.Time) || frame.Time < 0) return;
+            if (frame.Epoch != MultiplayerParts.Epoch || frame.Mode > 4 || frame.Choice >= MultiplayerModels.ChoiceCount || float.IsNaN(frame.Time) || float.IsInfinity(frame.Time) || frame.Time < 0) return;
             if (Multiplayer.Hosting) { if (from == 0 || Multiplayer.PlayerFor(from) == null) return; frame.Peer = from; }
             else if (!Multiplayer.Client || from != 0 || frame.Peer == Multiplayer.LocalPeer) return;
             if (frame.Mode != 0)
@@ -169,6 +198,8 @@ namespace WildWasteland.Modules.PlayerBody
                 frame.Position = Position(reader); frame.Rotation = Rotation(reader); frame.Hips = Position(reader);
                 for (int i = 0; i < frame.Bones.Length; i++) frame.Bones[i] = Rotation(reader);
             }
+            if (frame.Mode == 4) { frame.Weapon = reader.ReadString(); if (frame.Weapon.Length > 64 || frame.Weapon.IndexOf('/') >= 0 || frame.Weapon.IndexOf('\\') >= 0) return; frame.WeaponPosition = Position(reader); frame.WeaponRotation = Rotation(reader); }
+            if (reader.BaseStream.Position != reader.BaseStream.Length) return;
             Frames frames; if (!MotionFrames.TryGetValue(frame.Peer, out frames)) MotionFrames.Add(frame.Peer, frames = new Frames());
             frames.Add(frame);
             if (Multiplayer.Hosting) { _writing = frame; Multiplayer.Send(82, WriteMotion, reliable: false); }
@@ -179,5 +210,12 @@ namespace WildWasteland.Modules.PlayerBody
         Vector3 _networkPosition; Quaternion _networkRotation;
         internal Vector3 NetworkPosition { get { return _networkPosition + _networkRotation * _anim.localPosition; } }
         internal Quaternion NetworkRotation { get { return _networkRotation * _anim.localRotation; } }
+        internal bool NetworkWeaponAction { get { return _prop != null || _reloading || Time.time < _throwUntil || Time.time < _pumpUntil; } }
+        internal void NetworkWeaponPose(out string weapon, out Vector3 position, out Quaternion rotation)
+        {
+            weapon = _prop != null ? _propFor : "";
+            position = _prop != null ? _anim.InverseTransformPoint(_prop.transform.position) : Vector3.zero;
+            rotation = _prop != null ? Quaternion.Inverse(_anim.rotation) * _prop.transform.rotation : Quaternion.identity;
+        }
     }
 }

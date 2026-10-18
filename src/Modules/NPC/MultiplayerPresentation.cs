@@ -18,6 +18,8 @@ namespace WildWasteland.Modules.NPC
         {
             Instance = this; ModelDir = Path.Combine(Dir, "Models"); DataDir = Assets.ModuleConfigDir(Id);
             InitNetworkInput();
+            Webs.StartNetwork(this);
+            Scheduler.Interval(this, "Spider web guest lighting", 1f / 15f, Webs.Tick);
             Hotkeys.Register(this, ShoutKey, GuestShout, () => GameRefs.InGame && Senses.ModifierHeld());
             Hooks.GetButtonDownUpdate.Prefix(this, Senses.BeforeGetButtonDown); Hooks.GetButtonDo.Prefix(this, Senses.BeforeGetButton); Hooks.GetButtonUpUpdate.Prefix(this, Senses.BeforeGetButtonUp);
             WomenFeature.InitializePresentation(this);
@@ -28,6 +30,7 @@ namespace WildWasteland.Modules.NPC
         void IMultiplayerPresentation.ShutdownClient()
         {
             StopNetworkInput();
+            Webs.StopNetwork(); Webs.Shutdown();
             Multiplayer.PrefabRequested -= NetworkPrefab; Multiplayer.AppearanceRequested -= NetworkAppearance;
             WomenFeature.Shutdown(); _nativePrefab = null; Instance = null;
         }

@@ -70,9 +70,9 @@ namespace WildWasteland.Modules.Weather
             var settings = system.main; settings.maxParticles = detail == WeatherVisualDetail.Low ? 32 : detail == WeatherVisualDetail.Max ? 96 : 64;
             settings.startColor = Color.white; // Independent dark material, not the bright hurricane palette.
             var emission = system.emission; emission.rateOverTimeMultiplier = settings.maxParticles*.5f; emission.enabled = true;
-            if (!GameRefs.InGame || WeatherDiagnostics.Frozen) { if (system.isPlaying) system.Pause(); }
+            if (!GameRefs.WorldRunning || WeatherDiagnostics.Frozen) { if (system.isPlaying) system.Pause(); }
             else if (!system.isPlaying) system.Play();
-            if (!_reported[slot] && GameRefs.InGame && !WeatherDiagnostics.Frozen)
+            if (!_reported[slot] && GameRefs.WorldRunning && !WeatherDiagnostics.Frozen)
             {
                 if (_checkAt[slot] == 0) _checkAt[slot] = Time.time+3;
                 if (system.particleCount > 0 || Time.time >= _checkAt[slot])

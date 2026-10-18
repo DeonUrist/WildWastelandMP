@@ -154,8 +154,8 @@ namespace WildWasteland.Modules.Survival
         internal static void LateTick()
         {
             if (pots.Count == 0) return;
-            bool live = menu != null && menu.ActiveStateName == "play" && save != null && save.ActiveStateName == "isPlay" && Time.timeScale > 0;
-            bool input = live && Application.isFocused && !ApocasetterBridge.InputBlocked && !WildWasteland.Core.UI.EditorSession.Busy;
+            bool live = Multiplayer.Active ? GameRefs.WorldRunning : menu != null && menu.ActiveStateName == "play" && save != null && save.ActiveStateName == "isPlay" && Time.timeScale > 0;
+            bool input = live && GameRefs.InGame && Application.isFocused && !ApocasetterBridge.InputBlocked && !WildWasteland.Core.UI.EditorSession.Busy;
             bool use = input && InputController.GetKeyActionIsActive("Use");
             float dt = live ? Time.deltaTime : 0;
             StewLogic.Clock += dt;

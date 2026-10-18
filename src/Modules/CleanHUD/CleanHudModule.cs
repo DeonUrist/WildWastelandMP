@@ -17,11 +17,11 @@ namespace WildWasteland.Modules.CleanHUD
         internal const string GUID = "com.denis.apocalypter.cleanhud";
         internal static ConfigEntry<bool> Enabled, ShowNeeds, ShowHealthNumbers, ShowInsanity, MenuEnabled, CleanFont, EnableCheats;
         internal static ConfigEntry<float> Scale;
-        internal static ConfigEntry<bool> ShowConvoys, ShowLocations, ShowPlayers;
+        internal static ConfigEntry<bool> ShowConvoys, ShowLocations, ShowPlayers, ShowPlayersOnMap;
         internal static ConfigEntry<bool> AmbiguousPatrols, AmbiguousLocations;
         internal static ConfigEntry<bool> ShowCompass, MapEnabled, DrivingHudOnlyThirdPerson;
         internal static ConfigEntry<MapDetail> MapMarkers, MapRoutes, MapTrafficMarkers;
-        internal static ConfigEntry<bool> FogOfWar;
+        internal static ConfigEntry<bool> FogOfWar, SharedVision;
         internal static ConfigEntry<float> FogRadius, FogEdge, FogOpacity, BinocularZoom;
         internal static LayoutFile Layout;
         private Hud _hud;
@@ -47,6 +47,7 @@ namespace WildWasteland.Modules.CleanHUD
             ShowConvoys = cfg.Player("HUD", "ShowConvoys", true, "Compass icons and distances for vehicle groups: merchants yellow, Coyotes green, patrols red and convoys orange.");
             ShowLocations = cfg.Player("HUD", "ShowLocations", true, "Compass icons and distances for native locations within 1 km.");
             ShowPlayers = cfg.Player("HUD", "ShowPlayers", true, "Show multiplayer teammates, their names and distances on the Wild Wasteland compass. This is your own display preference.");
+            ShowPlayersOnMap = cfg.Player("HUD", "ShowPlayersOnMap", true, "Show colored direction arrows for all multiplayer players, including you, on the map. This is your own HUD preference.");
             AmbiguousPatrols = cfg.Player("HUD", "AmbiguousPatrols", true, "Show all compass vehicle groups with white vehicle icons, keeping their distances.");
             AmbiguousLocations = cfg.Player("HUD", "AmbiguousLocations", true, "Show undiscovered compass locations as neutral question marks. Approaching within 100 m or spotting through binoculars remembers their real icons and colors. Quest flags are unchanged.");
             ShowCompass = cfg.Player("HUD", "Compass", true, "Show the compass, including its direction strip and all markers.");
@@ -71,6 +72,7 @@ namespace WildWasteland.Modules.CleanHUD
             }
             FogOfWar = cfg.Player("Map", "FogOfWar", true, "Hide the parts of the map you have not explored yet. Exploring is recorded while this is off.");
             cfg.Migrate(FogOfWar, "local.immersivemap.cfg", "Fog", "Enabled");
+            SharedVision = cfg.Player("Map", "SharedVision", false, "Share explored map areas with everyone in the multiplayer world. Off restores each player's personal exploration, which keeps recording while sharing is on. Controlled by the host.");
             FogRadius = cfg.Player("Map", "FogRevealRadius", 500f, "Base range in meters. Exploration reveals twice this radius; high ground extends it up to threefold (4 km radial cap), with raised binoculars doubling the viewed cone again.", new AcceptableValueRange<float>(50f, 2000f));
             cfg.Migrate(FogRadius, "local.immersivemap.cfg", "Fog", "RevealRadius");
             FogEdge = cfg.Player("Map", "FogEdgeFade", 200f, "Width in meters of the soft edge, measured inward from the reveal radius. 0 = hard edge.", new AcceptableValueRange<float>(0f, 1000f));
@@ -134,6 +136,7 @@ namespace WildWasteland.Modules.CleanHUD
             MapFog.Init();
             MultiplayerWorld.Ready += PersonalWorldReady; MultiplayerWorld.Leaving += SavePersonalWorld;
             MultiplayerItems.BeforeFlush += SavePersonalWorld;
+            MultiplayerNotifications.Present += MessageHook.MultiplayerNotice;
             Scheduler.Interval(this, "MP exploration persistence", 30f, SavePersonalWorld);
             _loadingScreen = new LoadingScreen();
             ApocasaverLoading.Install(this, _loadingScreen);
@@ -245,6 +248,7 @@ namespace WildWasteland.Modules.CleanHUD
         {
             SavePersonalWorld(); MultiplayerWorld.Ready -= PersonalWorldReady; MultiplayerWorld.Leaving -= SavePersonalWorld;
             MultiplayerItems.BeforeFlush -= SavePersonalWorld;
+            MultiplayerNotifications.Present -= MessageHook.MultiplayerNotice;
             _weatherMap.Clear();
             Binoculars.Shutdown();
             VantageDiscovery.Reset(); VistasBanners.Shutdown();

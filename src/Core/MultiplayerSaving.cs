@@ -13,7 +13,7 @@ namespace WildWasteland.Core
     internal static class MultiplayerSaving
     {
         internal static bool Frozen { get; private set; }
-        static bool _serializing, _preparing;
+        static bool _serializing, _preparing, _wroteWorld, _snapshotPrepared;
         static float _scale, _warn;
         static float _phaseRetry;
         static ulong _token;
@@ -38,9 +38,15 @@ namespace WildWasteland.Core
         static Color _saveColor;
         static float _nextUi;
         static GUIStyle _fallbackStyle;
+        static Func<ulong, string> _playerName;
+        static Action<string> _notice;
+        static float _requestAt;
+        static readonly Dictionary<ulong, float> SaveRequests = new Dictionary<ulong, float>();
         internal static void Install()
         {
             var saver = Multiplayer.Type("Worlds.WorldSaver");
+            _playerName = MultiplayerAccess.Call<Func<ulong, string>>(Multiplayer.Type("Net.NetSession"), "NameOf", typeof(ulong));
+            _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
             _itemList = MultiplayerAccess.Call<Func<ArrayList>>(Multiplayer.Type("Net.WorldObjects"), "GameItemList", Type.EmptyTypes);
             _saving = MultiplayerAccess.Set<bool>(saver, "<Saving>k__BackingField");
             var tracked = Multiplayer.Type("Net.WorldObjects+Tracked");
@@ -52,7 +58,7 @@ namespace WildWasteland.Core
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(PlayMakerFSM), "BroadcastEvent", new[] { typeof(FsmEvent) }), prefix: AccessTools.Method(typeof(MultiplayerSaving), "Broadcast")))
                 throw new InvalidOperationException("MP host save barrier could not be installed");
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(saver, "Tick"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "NotFrozen"))
-                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(Button), "Press"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "NotFrozen")))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(Button), "Press"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "BeforePress")))
                 throw new InvalidOperationException("MP save input guard could not be installed");
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(Multiplayer.Type("Net.WorldObjects"), "ExcludeFromSave"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "BeforeExclude")))
                 throw new InvalidOperationException("MP save exclusion cleanup hook failed");
@@ -61,9 +67,11 @@ namespace WildWasteland.Core
                     throw new InvalidOperationException("MP frozen pose hook failed: " + name);
             Hooks.SendEventEnter.Prefix(Multiplayer.PatchOwner, SendEvent);
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Changed;
+            SaveBus.StateChanged += SaveState;
             Scheduler.Gui(Multiplayer.PatchOwner, "Server save fallback screen", DrawFallback, WantsFallback);
         }
-        static void Changed() { if (!Multiplayer.Active) { Waiting.Clear(); _preparing = _serializing = false; DisposeFlush(); SetFrozen(false); RestoreSaveButton(); } }
+        static void SaveState(string previous, string current) { if (_serializing && current == "SaveGame") _wroteWorld = true; }
+        static void Changed() { SaveRequests.Clear(); _requestAt = 0; if (!Multiplayer.Active) { Waiting.Clear(); _preparing = _serializing = false; DisposeFlush(); SetFrozen(false); RestoreSaveButton(); } }
         static void DisposeFlush() { var flush = _flush; _flush = null; (flush as IDisposable)?.Dispose(); }
         static void BeforeExclude(bool __1)
         { if (_serializing && __1 && _excluded == null) { var list = _itemList(); if (list != null) _excluded = list.ToArray(); } }
@@ -75,6 +83,12 @@ namespace WildWasteland.Core
         }
         static bool PauseTick() { if (!Frozen) return true; Time.timeScale = 0f; return false; }
         static bool NotFrozen() { return !Frozen; }
+        static bool BeforePress(Button __instance)
+        {
+            if (Frozen) return false;
+            if (Multiplayer.Client && __instance == _saveButton) { RequestClientSave(); return false; }
+            return true;
+        }
         static bool FrozenPose(object __0)
         {
             if (!Frozen) return true;
@@ -91,11 +105,32 @@ namespace WildWasteland.Core
         }
         static bool AllowSave()
         {
-            if (!Multiplayer.Active || _serializing) return true;
+            if (!Multiplayer.Active) return true;
+            if (_serializing)
+            {
+                // Put player records into the same cache before any native world flush can reach disk.
+                if (!_snapshotPrepared) { MultiplayerRecovery.SaveSnapshot(Multiplayer.SaveFile); _snapshotPrepared = true; }
+                return true;
+            }
             if (Multiplayer.Hosting && !_preparing) RequestSave();
             return false;
         }
-        internal static void RequestSave() { if (Multiplayer.Hosting && !Frozen) Scheduler.StartCoroutine(_save("host request", null)); }
+        internal static void RequestSave()
+        {
+            if (!Multiplayer.Hosting || Frozen || !Multiplayer.WorldReady) return;
+            string file = Multiplayer.SaveFile; var fsm = GameRefs.SaveLoadGame;
+            if (!MultiplayerHosting.IsSaveFile(file) || fsm == null) return;
+            var slot = fsm.FsmVariables.FindFsmString("SaveFile"); if (slot == null) return;
+            slot.Value = file; ES3Settings.defaultSettings.path = file;
+            Scheduler.StartCoroutine(_save("host request", null));
+        }
+        internal static void RequestClientSave()
+        {
+            if (!Multiplayer.Client || !Multiplayer.WorldReady || Frozen || Time.unscaledTime < _requestAt) return;
+            _requestAt = Time.unscaledTime + 5f;
+            Multiplayer.Send(142, EmptySaveRequest); _notice("Save request sent to the host.");
+        }
+        static void EmptySaveRequest(BinaryWriter writer) { }
         static bool Broadcast(FsmEvent __0) { return __0 == null || __0.Name != "SaveGame" || AllowSave(); }
         static bool SendEvent(HutongGames.PlayMaker.Actions.SendEvent action)
         {
@@ -108,6 +143,7 @@ namespace WildWasteland.Core
             if (!Multiplayer.Hosting || _preparing || _serializing) yield break;
             _preparing = true; _token = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0);
             _generation = SaveBus.Generation; _hostRole = true;
+            _wroteWorld = _snapshotPrepared = false;
             SetFrozen(true); _warn = Time.unscaledTime + 15f;
             try
             {
@@ -124,7 +160,8 @@ namespace WildWasteland.Core
                 Log.Always("[Multiplayer] Server save: all connected owners flushed; writing host world");
                 while (Multiplayer.Hosting && _generation == SaveBus.Generation && original.MoveNext()) yield return original.Current;
                 while (Multiplayer.Hosting && _generation == SaveBus.Generation && SaveBus.State == "isPlay" && SaveBus.PendingAfterSave) yield return null;
-                if (Multiplayer.Hosting && _generation == SaveBus.Generation && SaveBus.State == "isPlay" && Multiplayer.SaveFile != null) ES3.StoreCachedFile(Multiplayer.SaveFile);
+                if (_wroteWorld && Multiplayer.Hosting && _generation == SaveBus.Generation && SaveBus.State == "isPlay" && Multiplayer.SaveFile != null)
+                { ES3.StoreCachedFile(Multiplayer.SaveFile); MultiplayerRecovery.Checkpoint(); }
             }
             finally
             {
@@ -199,10 +236,18 @@ namespace WildWasteland.Core
             }
             if (_saveButton == null) return;
             if (!_saveCaptured) { _saveCaptured = true; _saveInteractable = _saveButton.interactable; if (_saveLabel != null) _saveColor = _saveLabel.color; }
-            _saveButton.interactable = false; if (_saveLabel != null) _saveLabel.color = Color.gray;
+            _saveButton.interactable = !Frozen; if (_saveLabel != null) _saveLabel.color = _saveColor;
         }
         static void Receive(ulong from, byte kind, BinaryReader reader)
         {
+            if (kind == 142)
+            {
+                if (!Multiplayer.Hosting || from == 0 || Multiplayer.PlayerFor(from) == null || reader.BaseStream.Position != reader.BaseStream.Length) return;
+                float last; if (SaveRequests.TryGetValue(from, out last) && Time.unscaledTime - last < 5f) return;
+                SaveRequests[from] = Time.unscaledTime;
+                string message = _playerName(from) + " wants to save"; _notice(message); Log.Always("[Multiplayer] " + message);
+                return;
+            }
             if (kind != 100 && kind != 101) return;
             ulong token = reader.ReadUInt64(); byte phase = reader.ReadByte();
             if (reader.BaseStream.Position != reader.BaseStream.Length || phase > 2) return;

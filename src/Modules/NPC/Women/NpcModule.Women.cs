@@ -45,6 +45,7 @@ namespace WildWasteland.Modules.NPC
             GungirlVoiceIntervalMin = Woman(cfg, "Gungirl", "VoiceIntervalMin", 2f, "Shortest combat shout pause for newly dressed females, seconds.", new AcceptableValueRange<float>(0f, 60f));
             GungirlVoiceIntervalMax = Woman(cfg, "Gungirl", "VoiceIntervalMax", 8f, "Longest combat shout pause for newly dressed females, seconds.", new AcceptableValueRange<float>(0f, 60f));
             FemaleSpawnKey = cfg.Hotkey("Spawn female raider", Key.None, "Debug: spawn a Gungirl six metres ahead.");
+            WomenFeature.BindPlayerAssets();
         }
     }
 }

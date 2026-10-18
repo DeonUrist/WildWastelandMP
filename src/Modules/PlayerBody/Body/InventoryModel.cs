@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,50 +8,15 @@ namespace WildWasteland.Modules.PlayerBody
     internal static class InventoryModel
     {
         private const string GameTexture = "player_character_2_UI";
-        private static Texture2D _game, _settingsMale, _settingsFemale;
-        private static bool _settingsPictureTried;
-        private static readonly System.Collections.Generic.List<RawImage> _switched = new System.Collections.Generic.List<RawImage>();
+        private static Texture2D _game;
+        private static readonly System.Collections.Generic.Dictionary<RawImage, Rect> _switched = new System.Collections.Generic.Dictionary<RawImage, Rect>();
         private static bool _applied;
         private static float _nextTry;
         private static int _tries;
 
         internal static void PrepareSettingsPictures()
         {
-            if (_settingsPictureTried) return;
-            _settingsPictureTried = true;
-            _settingsMale = LoadPicture("Models/player_character_2_UI_male.png", "male");
-            _settingsFemale = LoadPicture("Models/player_character_2_UI.png", "female");
-        }
-
-        private static Texture2D LoadPicture(string file, string gender)
-        {
-            string path = PlayerBodyModule.ModPath(file);
-            Texture2D picture = null;
-            try
-            {
-                if (!File.Exists(path) && gender == "male")
-                    using (var source = typeof(InventoryModel).Assembly.GetManifestResourceStream("PlayerBody.Portraits.male.png"))
-                        if (source != null)
-                        {
-                            Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            using (var output = File.Create(path)) source.CopyTo(output);
-                        }
-                if (!File.Exists(path)) return null;
-                picture = new Texture2D(2, 2, TextureFormat.RGBA32, false) { name = "Wild Wasteland " + gender + " TAB picture", hideFlags = HideFlags.HideAndDontSave };
-                if (!ImageConversion.LoadImage(picture, File.ReadAllBytes(path), true)) throw new InvalidDataException("not a PNG/JPG");
-                return picture;
-            }
-            catch (Exception e)
-            {
-                if (picture != null) UnityEngine.Object.Destroy(picture);
-                PlayerBodyModule.Warn("Body picture " + path + ": " + e.Message);
-                return null;
-            }
-        }
-
-        internal static Texture SettingsPicture(bool female)
-        {
-            return female ? _settingsFemale : _settingsMale;
+            CharacterPortraits.Prepare();
         }
 
         // Runner calls this every frame, but it only works until the swap is done for the loaded scene (a cheap bool check after that)
@@ -73,18 +36,23 @@ namespace WildWasteland.Modules.PlayerBody
                     if (t != null && t.name == GameTexture) { _game = t; break; }
             if (_game == null) return;
             PrepareSettingsPictures();
-            var mine = SettingsPicture(PlayerBodyModule.Female);
+            var mine = CharacterPortraits.Picture((int)PlayerBodyModule.Character.Value);
             if (mine == null) return;
             int n = 0;
             foreach (var r in Resources.FindObjectsOfTypeAll<RawImage>())
-                if (r != null && r.gameObject.scene.IsValid() && r.texture == _game) { r.texture = mine; _switched.Add(r); n++; }
+                if (r != null && r.gameObject.scene.IsValid() && r.texture == _game) { _switched.Add(r, r.uvRect); r.texture = mine; r.uvRect = new Rect(0, 0, 1, 1); n++; }
             _applied = n > 0;
             if (_applied) PlayerBodyModule.Info("TAB screen picture: " + n + " UI element(s) switched to " + PlayerBodyModule.Character.Value + " PNG");
+        }
+        internal static void RefreshPortrait()
+        {
+            var picture = CharacterPortraits.Picture((int)PlayerBodyModule.Character.Value);
+            if (picture != null) foreach (var image in _switched.Keys) if (image != null) image.texture = picture;
         }
 
         public static void Off()
         {
-            foreach (var r in _switched) if (r != null && _game != null) r.texture = _game;
+            foreach (var pair in _switched) if (pair.Key != null && _game != null) { pair.Key.texture = _game; pair.Key.uvRect = pair.Value; }
             _switched.Clear();
             _applied = false; _tries = 0; _nextTry = 0f;
         }

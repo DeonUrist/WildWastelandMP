@@ -179,11 +179,16 @@ namespace WildWasteland.Modules.NPC
             {
                 var n = _nests[i];
                 if (n.Phase >= 5 || now < n.NextTry) continue;
-                if (Flat(n.C - vp) > NpcModule.NestBuildRange.Value) continue;
+                if (Core.Multiplayer.PlayerDistance(n.C, player.transform, true) > NpcModule.NestBuildRange.Value) continue;
                 Build(n, now);
                 break;
             }
-            if (now >= _nextTouch) { _nextTouch = now + 0.1f; Touch(player, pp, now); }
+            if (now >= _nextTouch)
+            {
+                _nextTouch = now + 0.1f; Touch(player, pp, now);
+                for (int i = 0; i < Core.Multiplayer.RemoteCount; i++)
+                { var remote = Core.Multiplayer.RemoteAt(i); if (Core.Multiplayer.RemoteTargetable(remote)) Touch(remote, remote.transform.position, now); }
+            }
             if (now >= _nextSit) { _nextSit = now + 0.2f; Sitters(player, now); }
         }
 
@@ -196,7 +201,7 @@ namespace WildWasteland.Modules.NPC
             {
                 var n = _nests[i];
                 n.Spiders.RemoveAll(a => a == null || a.Owner == null);
-                if (n.Poi == null || !n.Poi.gameObject.activeInHierarchy || Flat(n.C - pp) > NpcModule.NestFreeRange.Value)
+                if (n.Poi == null || !n.Poi.gameObject.activeInHierarchy || Core.Multiplayer.PlayerDistance(n.C, Senses.PlayerObj.transform, true) > NpcModule.NestFreeRange.Value)
                 {
                     Free(n, true); _nests.RemoveAt(i);
                     foreach (var a in n.Spiders) if (a != null && a.Owner != null && !_pending.Contains(a)) _pending.Add(a);     // (1.7.1) the nest comes back when you do
@@ -212,7 +217,7 @@ namespace WildWasteland.Modules.NPC
                 if (a == null || a.Owner == null) { _pending.RemoveAt(i); continue; }
                 if (a.T.parent != null) continue;
                 var poi = PoiAt(a.T.position);
-                if (Flat(a.T.position - pp) > NpcModule.NestFreeRange.Value * 0.9f) continue;    // (1.7.3) far away: planned when you come closer (was planned and freed every 2 s)
+                if (Core.Multiplayer.PlayerDistance(a.T.position, Senses.PlayerObj.transform, true) > NpcModule.NestFreeRange.Value * 0.9f) continue;    // (1.7.3) far away: planned when you come closer (was planned and freed every 2 s)
                 if (poi == null) continue;          // (1.7.1) no place found (yet): asked again later - was dropped for good when > 600 m away
                 _pending.RemoveAt(i);
                 Nest nest = null;
@@ -601,7 +606,7 @@ namespace WildWasteland.Modules.NPC
         // ---------- touching a web ----------
         private static void Touch(GameObject player, Vector3 pp, float now)
         {
-            if (Senses.PlayerInCar) return;
+            if (Core.Multiplayer.IsRemotePlayer(player) ? Core.Multiplayer.RemoteCar(player) != null : Senses.PlayerInCar) return;
             Vector3 feet = pp + Vector3.up * 0.2f, mid = pp + Vector3.up * 0.9f, head = pp + Vector3.up * 1.6f;
             foreach (var n in _nests)
             {

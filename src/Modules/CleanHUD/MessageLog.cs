@@ -18,6 +18,11 @@ namespace WildWasteland.Modules.CleanHUD
 
         private static readonly Dictionary<FsmState, bool> Timed = new Dictionary<FsmState, bool>();
         internal static void Clear() { Active = false; Pending.Clear(); Timed.Clear(); }
+        internal static bool MultiplayerNotice(string message)
+        {
+            if (!CleanHudModule.Running || !CleanHudModule.Enabled.Value) return false;
+            Push(message); return true;
+        }
 
         internal static void Postfix(UiTextSetText __instance, Text ___uiText, string ___originalString)
         {

@@ -56,7 +56,7 @@ namespace WildWasteland.Modules.Weather
         {
             _thunder.Tick(clock,camera);
             if (_source == null) return;
-            if (!GameRefs.InGame || camera == null || AudioListener.pause) { if (_source.isPlaying) _source.Pause(); return; }
+            if (!GameRefs.WorldRunning || camera == null || AudioListener.pause) { if (_source.isPlaying) _source.Pause(); return; }
             if (Time.unscaledTime >= _nextSample)
             {
                 _nextSample = Time.unscaledTime+.2f; _target = 0;

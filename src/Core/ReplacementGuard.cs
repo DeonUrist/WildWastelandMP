@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using BepInEx;
 using BepInEx.Bootstrap;
+using BepInEx.Configuration;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using WildWasteland.Core.UI;
@@ -29,12 +30,14 @@ namespace WildWasteland.Core
         };
         static readonly List<int> _missing = new List<int>();
         static bool _checked;
+        static ConfigEntry<bool> _showRecommended;
         static Vector2 _scroll;
         static readonly Action<Rect, string, float, Color, TextAnchor> NoticeText = CleanHud.GlyphFont.Draw, NoticeWrap = CleanHud.GlyphFont.DrawWrapped;
         static readonly Func<string, float, float, float> NoticeHeight = CleanHud.GlyphFont.WrappedHeight;
 
         internal static void Prepare()
         {
+            _showRecommended = Plugin.Settings.Bind("Debug", "Recommended mods", false, "Show optional mod recommendations at the title menu.");
             foreach (var entry in ModuleHost.Entries)
             {
                 var guids = entry.Module.ConflictsWith;
@@ -94,14 +97,16 @@ namespace WildWasteland.Core
             }
             Log.Always("[Core] Recommended mods not active: " + _missing.Count);
         }
-        static bool WantsNotice() { return _title && (_message != null || _missing.Count > 0) && !MenuModalOpen && !LoadingProgress.ScreenVisible; }
+        static bool WantsNotice() { return _title && (_message != null || _showRecommended.Value && _missing.Count > 0) && !MenuModalOpen && !LoadingProgress.ScreenVisible; }
         static void Draw()
         {
             if (LoadingProgress.ScreenVisible || MenuModalOpen || ToolWindow.IsOpen || EditorSession.Busy || ApocasetterBridge.InputBlocked) return;
+            bool recommendations = _showRecommended.Value && _missing.Count > 0;
+            if (_message == null && !recommendations) return;
             float scale = Mathf.Min(Screen.width / 1920f, Screen.height / 1080f);
             float width = 810f, inset = 30f;
             float warningHeight = _message != null ? NoticeHeight(_message.text, 26f, width - inset * 2 - 30f) + 111f : 0;
-            float contentHeight = warningHeight + (_missing.Count > 0 ? 141f + 54f * _missing.Count : 0);
+            float contentHeight = warningHeight + (recommendations ? 141f + 54f * _missing.Count : 0);
             float height = Mathf.Min(contentHeight, Screen.height / scale - 540f);
             var panel = new Rect(Screen.width / scale - width - inset - 40f, Mathf.Max(inset + 40f, (Screen.height / scale - height) * .5f), width, height);
             int depth = GUI.depth; Color color = GUI.color; var matrix = GUI.matrix;
@@ -122,7 +127,7 @@ namespace WildWasteland.Core
                     Ledger.Label(new Rect(0, 3f, rowWidth, 45f), Heading.text, Ledger.Heading, Ledger.Accent);
                     NoticeWrap(new Rect(0, 63f, rowWidth, warningHeight - 96f), _message.text, 26f, Ledger.Text, TextAnchor.MiddleLeft);
                 }
-                if (_missing.Count > 0)
+                if (recommendations)
                 {
                     Ledger.Label(new Rect(0, warningHeight + 3f, rowWidth, 45f), "RECOMMENDED MODS", Ledger.Heading, Ledger.Accent);
                     Ledger.Label(new Rect(0, warningHeight + 54f, rowWidth, 51f), "Optional additions (not active). Click to view mod.", Ledger.Small, Ledger.Muted);

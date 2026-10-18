@@ -103,6 +103,7 @@ namespace WildWasteland.Modules.Patrols
 
             EnsureRunner();
             RegisterJobs();
+            NetworkMerchants.Start(this);
             RegisterHotkeys();
             Log.Always("[Patrols] " + DisplayName + " ready (" + CarTemplates.Summary + ")");
         }
@@ -110,6 +111,7 @@ namespace WildWasteland.Modules.Patrols
         public override void Shutdown()
         {
             Ram.StopNetwork();
+            NetworkMerchants.Stop();
             WorldTraffic.StopNetwork();
             Running = false;
             LoadingProgress.Remove(this);

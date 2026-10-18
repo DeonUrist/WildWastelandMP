@@ -12,7 +12,7 @@ namespace WildWasteland.Modules.PlayerBody
     //    left arm mesh gets Player2_max_arms_left.png and the right arm + kick leg Player2_max_arms.png (tools/max_arms/bake_max2.py).
     internal static class Arms
     {
-        private static Material _mat, _matLeft;
+        private static Material _mat, _matLeft, _matKick;
         private static readonly Dictionary<Renderer, Material> _orig = new Dictionary<Renderer, Material>();
         private static float _next;
 
@@ -41,7 +41,13 @@ namespace WildWasteland.Modules.PlayerBody
                     _matLeft.hideFlags = HideFlags.DontUnloadUnusedAsset;
                 }
                 _orig[smr] = m;
-                smr.sharedMaterial = texLeft != null && IsLeftArm(smr) ? _matLeft : _mat;
+                bool kick = smr.sharedMesh != null && smr.sharedMesh.name == "Player_leg";
+                if (kick && _matKick == null)
+                {
+                    var leg = Model.Kick();
+                    if (leg != null) _matKick = new Material(m) { name = "Player2 (Apocaplayer, kick)", mainTexture = leg, hideFlags = HideFlags.DontUnloadUnusedAsset };
+                }
+                smr.sharedMaterial = kick && _matKick != null ? _matKick : texLeft != null && IsLeftArm(smr) ? _matLeft : _mat;
                 added++;
             }
             if (added > 0) PlayerBodyModule.Verbose("Arms: " + added + " first-person arm/leg renderer(s) dressed");
@@ -60,7 +66,7 @@ namespace WildWasteland.Modules.PlayerBody
         {
             foreach (var kv in _orig) if (kv.Key != null) kv.Key.sharedMaterial = kv.Value;
             _orig.Clear();
-            _mat = _matLeft = null;   // the next character's textures
+            _mat = _matLeft = _matKick = null;   // the next character's textures
             _next = 0f;
         }
 
