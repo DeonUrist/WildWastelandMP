@@ -6,8 +6,8 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-VERSION = "0.1.40"
-RELEASE = "RC4"
+VERSION = "0.1.41"
+RELEASE = "RC5"
 BASE_SHA256 = "a8e96e62922435e3ae5da8b5d92493ec6e9c1da7bc092509461db94d4a468dda"
 
 
@@ -70,6 +70,13 @@ def main():
     tree(REPO / "src/Modules/Patrols/Embedded/DefaultTemplates", "Patrols/BaseTemplates")
     put(REPO / "src/Modules/Patrols/Embedded/EditorDefaults.json", "Patrols/PatrolsAndLoot.json")
 
+    readme = files["README.md"].decode("utf-8-sig")
+    if "BepInEx 5" not in readme or "https://www.nexusmods.com/apocalypter/mods/10" not in readme:
+        raise ValueError("Missing installation requirements")
+    # Documentation remains in the repository and release page, outside the install ZIP.
+    files = {name: data for name, data in files.items()
+             if not name.lower().endswith((".md", ".pdf", ".rst"))
+             and PurePosixPath(name).parts[0].lower() not in {"notes", "compat", "docs"}}
     names = sorted(files)
     for name in names:
         path = PurePosixPath(name)
@@ -83,9 +90,6 @@ def main():
         raise ValueError("Unexpected plugin/dependency DLL")
     if sum(name.startswith("LoadingScreens/Screen") and name.endswith(".png") for name in names) != 18:
         raise ValueError("Expected eighteen loading images")
-    readme = files["README.md"].decode("utf-8-sig")
-    if "BepInEx 5" not in readme or "https://www.nexusmods.com/apocalypter/mods/10" not in readme:
-        raise ValueError("Missing installation requirements")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.output, "x", zipfile.ZIP_DEFLATED, compresslevel=6) as archive:

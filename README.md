@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC4 · 0.1.40** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC5 · 0.1.41** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -13,7 +13,9 @@ All players need the **same WildWastelandMP release and mod versions**. Disable 
 
 When the Multiplayer dependency is missing, the main menu offers its Nexus download link, even with optional recommendations off.
 
-RC4 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+RC5 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+
+With nothing equipped and fists lowered, drivers grip and animate the wheel; passengers retain resting hands. Ready fists and seated attacks still use their upper-body poses.
 
 ## Install
 
@@ -29,6 +31,6 @@ RC4 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongs
 - **F3:** settings. **TAB:** inventory and player list. Guest Save requests go to the host. Local menus do not pause the shared world.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC4 is an official release candidate; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC5 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC4 release notes](notes/release-0.1.40-RC4.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC5 release notes](notes/release-0.1.41-RC5.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

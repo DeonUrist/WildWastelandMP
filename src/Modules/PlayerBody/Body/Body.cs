@@ -1011,7 +1011,7 @@ namespace WildWasteland.Modules.PlayerBody
             bool arms = gun || melee || fists || throwing || _mixamo && _layers.IsValid() && kind == Props.Kind.Throw;
             _wheelPoseFrame = Time.frameCount;
             _wheelArmOwner = arms ? (throwing ? "throw" : melee ? "melee" : gun ? "gun" : "held item") : weapon != "" ? "held item" : Game.Binoculars ? "binoculars" : Game.ToolInHand ? "tool" : Game.GameArmsShown ? "native arms" : "wheel";
-            if (!throwing && (fists || _wheelArmOwner == "wheel")) _wheelArmOwner = punching ? "punch" : "rest";
+            if (!throwing && fists) _wheelArmOwner = punching ? "punch" : "rest";
             // the lance leaving her hand / the grenade holstering the gun changes the weapon mid-throw: that must not reset the throw's arms
             if (weapon != _carWeapon) { _carWeapon = weapon; if (!throwing) { _carArmsReady = false; _carTurnedReady = false; _upperClip = ""; } _weaponSince = Time.time; }
 
