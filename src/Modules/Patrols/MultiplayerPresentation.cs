@@ -20,8 +20,9 @@ namespace WildWasteland.Modules.Patrols
             Ram.StartNetwork();
             Services.Camps = new WorldTraffic.NetworkCampStatus();
             Scheduler.EveryFrame(this, "Ram movement recovery", Ram.Tick);
+            Motorcycles.MotorcycleBalance.ClientPhysics = true;
         }
-        void IMultiplayerPresentation.ShutdownClient() { if (Services.Camps is WorldTraffic.NetworkCampStatus) Services.Camps = null; NetworkMerchants.Stop(); WarRig.NativeStormProtection.Restore(); Ram.StopNetwork(); WorldTraffic.StopNetwork(); Multiplayer.PrefabRequested -= NetworkPrefab; Multiplayer.CrewPresentationRequested -= Rider.NoContacts; }
+        void IMultiplayerPresentation.ShutdownClient() { Motorcycles.MotorcycleBalance.ClientPhysics = false; if (Services.Camps is WorldTraffic.NetworkCampStatus) Services.Camps = null; NetworkMerchants.Stop(); WarRig.NativeStormProtection.Restore(); Ram.StopNetwork(); WorldTraffic.StopNetwork(); Multiplayer.PrefabRequested -= NetworkPrefab; Multiplayer.CrewPresentationRequested -= Rider.NoContacts; }
         static GameObject NetworkPrefab(string name)
         {
             if (name == WarRig.Factory.Name) return WarRig.Factory.Template();

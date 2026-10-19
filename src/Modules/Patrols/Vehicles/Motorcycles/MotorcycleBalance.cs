@@ -6,9 +6,11 @@ namespace WildWasteland.Modules.Patrols.Motorcycles
     [DefaultExecutionOrder(-100)]
     public sealed class MotorcycleBalance : MonoBehaviour
     {
+        internal static bool ClientPhysics;
         private VehicleController vehicle;
         private Rigidbody body;
         private float targetLean;
+        private bool simulating;
 
         private void Awake()
         {
@@ -17,8 +19,15 @@ namespace WildWasteland.Modules.Patrols.Motorcycles
         }
 
         private void FixedUpdate()
-        { if (!PatrolsModule.Running) return;
-            if (!vehicle.IsInitialized || !vehicle.isActiveAndEnabled || body.isKinematic) return;
+        {
+            if ((!PatrolsModule.Running && !ClientPhysics) || Core.Multiplayer.OwnedElsewhere(gameObject)
+                || !vehicle.IsInitialized || !vehicle.isActiveAndEnabled || body.isKinematic)
+            { targetLean = 0; simulating = false; return; }
+            if (!simulating)
+            {
+                simulating = true;
+                if (Core.Log.Verbose) Core.Log.Info("[Multiplayer] Motorcycle balance active on simulation owner: " + gameObject.name);
+            }
             foreach (var wheel in vehicle.powertrain.wheels)
             {
                 var controller = (NWH.WheelController3D.WheelController)wheel.wheelUAPI;
