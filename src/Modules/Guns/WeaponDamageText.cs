@@ -18,7 +18,10 @@ namespace WildWasteland.Modules.Guns
             var fsm = __instance.Fsm;
             if (fsm == null || (fsm.Name != "ItemName" && fsm.Name != "Buyable")) return;
             var owner = fsm.GameObject;
-            if (owner == null || !owner.name.StartsWith("crossbow", StringComparison.OrdinalIgnoreCase)) return;
+            if (owner == null) return;
+            string name = owner.name;
+            int start = name.StartsWith("MP_", StringComparison.Ordinal) ? 3 : 0;
+            if (name.IndexOf("crossbow", start, StringComparison.OrdinalIgnoreCase) != start) return;
             var text = __instance.text;
             if (text == null || text.UseVariable) return;
             if (text.Value == "Damage - 20") { __state = text; __instance.text = Damage; }

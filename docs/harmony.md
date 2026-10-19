@@ -142,7 +142,7 @@ Dropped from NPCAI: postfixes on `Apocapatrol.Patrol.BailOut` / `Apocapatrol.Exp
 | Target | Kind | Handler | Filter (first line) | Hot? |
 |---|---|---|---|---|
 | `Apocaspawner.Parameters.WeaponDamage` (optional) | postfix | `ApocaspawnerDamage.AfterDamage` | player projectiles enabled, non-null result, crossbow owner | per spawner parameter read; applies Guns' projectile multiplier to the native base stat |
-| `UiTextSetText.OnEnter` | prefix + finalizer (temporary literal text) | `WeaponDamageText` | player projectiles enabled, crossbow ItemName/Buyable, native damage literal | per UI text state entry; CleanHUD also observes in postfix |
+| `UiTextSetText.OnEnter` | prefix + finalizer (temporary literal text) | `WeaponDamageText` | player projectiles enabled, crossbow ItemName/Buyable (optional native MP_ name prefix), native damage literal | per UI text state entry; CleanHUD also observes in postfix |
 | `GetLayer.OnEnter` | postfix | `Tracers.AfterGetLayer` | `TracersEnabled`, FSM "Attack", state `getLayer`, result 10 | rare |
 | `SetAudioClip.OnEnter` | postfix | `Tracers.AfterSetAudioClip` | `TracersEnabled`, FSM "Attack", state `actorHitSound`, player melee blade | per blade hit on living actors or corpses |
 | `PlaySound.DoPlaySound` | prefix (camera position for player empty clicks and reload sounds; OnEnter keeps Finish) | `EmptyGunSound.Before` | FSM Attack/empty (empty_fire), AnimSound or Reload; weapon under PlayerRig.Parent, first person | per PlaySound |
