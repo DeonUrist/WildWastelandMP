@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC2 · 0.1.38** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC3 · 0.1.39** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -10,6 +10,8 @@ Install these on **every player's PC** first:
 - **[Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10)** — **VERSION 0.4.1** - required separately; it is not included in this download.
 
 All players need the **same WildWastelandMP release and mod versions**. Disable standard WildWasteland and the standalone mods replaced by its modules; keep their configs and customized assets.
+
+RC3 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
 
 ## Install
 
@@ -25,6 +27,6 @@ All players need the **same WildWastelandMP release and mod versions**. Disable 
 - **F3:** settings. **TAB:** inventory and player list. Guest Save requests go to the host. Local menus do not pause the shared world.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC2 is a prerelease; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC3 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC2 release notes](notes/release-0.1.38-RC2.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC3 release notes](notes/release-0.1.39-RC3.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

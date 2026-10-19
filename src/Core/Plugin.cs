@@ -13,6 +13,7 @@ namespace WildWasteland
     /// The soft dependencies on the standalone mods only force them to load first, so the conflict check (5.8) sees them.
     /// </summary>
     [BepInPlugin(GUID, NAME, VERSION)]
+    [BepInIncompatibility(LegacyGUID)]
     [BepInDependency("ApocalypterMP", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocasetter", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocasaver", BepInDependency.DependencyFlags.SoftDependency)]
@@ -43,9 +44,10 @@ namespace WildWasteland
     [BepInDependency("apocalypter.worldamp", BepInDependency.DependencyFlags.SoftDependency)]
     public sealed class Plugin : BaseUnityPlugin
     {
-        public const string GUID = "com.denis.apocalypter.wildwasteland";
-        public const string NAME = "WildWastelandMP";
-        public const string VERSION = "0.1.38";
+        public const string GUID = "com.denis.apocalypter.wildwastelandmp";
+        public const string LegacyGUID = "com.denis.apocalypter.wildwasteland";
+        public const string NAME = "Wild Wasteland MP";
+        public const string VERSION = "0.1.39";
 
         public static Plugin Instance;
         public static ConfigFile Main, Settings, Tools;
@@ -62,6 +64,11 @@ namespace WildWasteland
             {
                 Core.Assets.Init(Info.Location);
                 Core.UI.Skin.Init(Info.Location);
+                if (!File.Exists(Config.ConfigFilePath))
+                {
+                    var legacyConfig = Path.Combine(Paths.ConfigPath, LegacyGUID + ".cfg");
+                    if (File.Exists(legacyConfig)) { File.Copy(legacyConfig, Config.ConfigFilePath); Config.Reload(); }
+                }
                 Core.Legacy.FirstRunMain = !File.Exists(Config.ConfigFilePath);
                 var toolsPath = Path.Combine(Core.Assets.ConfigDir, "tools.cfg");
                 Directory.CreateDirectory(Core.Assets.ConfigDir);
