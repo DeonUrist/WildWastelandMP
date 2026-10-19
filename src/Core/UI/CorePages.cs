@@ -157,13 +157,15 @@ namespace WildWasteland.Core.UI
                 Switch(l, "Players on map", CleanHudSettings.ShowPlayersOnMap);
             }
             Switch(l, "Map", CleanHudSettings.MapEnabled);
-            if (Multiplayer.Client) l.Text("Map fog follows the host's Debug settings. Locations, patrol markers and routes follow World settings.");
+            if (Multiplayer.Client) l.Text("Map fog, locations, patrol markers and routes follow the host's World settings.");
             l.Entry(CleanHudSettings.Scale);
         }
 
         static void NavigationSettings(ToolLayout l)
         {
             l.Text("Map and compass world settings");
+            Switch(l, "Fog of war", CleanHudSettings.FogOfWar);
+            if (Multiplayer.Present) Switch(l, "Shared vision", CleanHudSettings.SharedVision);
             CompassDetail(l, "Patrols on compass", CleanHudSettings.ShowConvoys, CleanHudSettings.AmbiguousPatrols);
             CompassDetail(l, "Locations on compass (1 km)", CleanHudSettings.ShowLocations, CleanHudSettings.AmbiguousLocations);
             CleanHudSettings.MapMarkers.Value = (MapDetail)l.Choices("Map markers", (int)CleanHudSettings.MapMarkers.Value, "Off", "Ambiguous", "On");
@@ -331,9 +333,7 @@ namespace WildWasteland.Core.UI
                 if (owner != null && owner.Id == "CleanHUD")
                 {
                     l.Heading("Map fog of war");
-                    l.Text("These controls affect unexplored areas on the map.");
-                    l.Toggle(CleanHudSettings.FogOfWar, "Fog of war");
-                    if (Multiplayer.Present) l.Toggle(CleanHudSettings.SharedVision, "Shared vision");
+                    l.Text("Tune unexplored areas on the map. The on/off controls are in World.");
                     l.Entry(CleanHudSettings.FogRadius);
                     l.Entry(CleanHudSettings.FogEdge); l.Entry(CleanHudSettings.FogOpacity);
                 }

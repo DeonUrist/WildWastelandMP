@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC6 · 0.1.42** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC7 · 0.1.43** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ When the Multiplayer dependency is missing, the main menu offers its Nexus downl
 
 Offline saving uses the integrated named save library, backups/recovery and autosaves even without Apocalypter Multiplayer. The dependency is still required to host or join a multiplayer world.
 
-RC6 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+RC7 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
 
 With nothing equipped and fists lowered, drivers grip and animate the wheel; passengers retain resting hands. Ready fists and seated attacks still use their upper-body poses.
 
@@ -31,8 +31,9 @@ With nothing equipped and fists lowered, drivers grip and animate the wheel; pas
 - **Join by IP:** from the title menu, open **MULTIPLAYER → JOIN**, enter the host's address and matching port, then connect.
 - **Join by Steam:** accept the host's invitation while at the title menu.
 - **F3:** settings. **TAB:** inventory and player list. Guest Save requests go to the host. Local menus do not pause the shared world.
+- **WORLD:** Fog of war on/off, plus Shared vision when Multiplayer is installed. Radius, edge fade and opacity are under **Debug → CleanHUD → Map fog of war**.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC6 is an official release candidate; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC7 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC6 release notes](notes/release-0.1.42-RC6.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC7 release notes](notes/release-0.1.43-RC7.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

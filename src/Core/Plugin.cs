@@ -47,7 +47,7 @@ namespace WildWasteland
         public const string GUID = "com.denis.apocalypter.wildwastelandmp";
         public const string LegacyGUID = "com.denis.apocalypter.wildwasteland";
         public const string NAME = "Wild Wasteland MP";
-        public const string VERSION = "0.1.42";
+        public const string VERSION = "0.1.43";
 
         public static Plugin Instance;
         public static ConfigFile Main, Settings, Tools;
