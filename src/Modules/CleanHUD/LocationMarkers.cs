@@ -64,7 +64,7 @@ namespace WildWasteland.Modules.CleanHUD
             var lines = new string[Discovered.Count + 1]; lines[0] = _seed.ToString(CultureInfo.InvariantCulture); Discovered.CopyTo(lines, 1);
             string path = SavePath(slot);
             Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllLines(path + ".tmp", lines);
-            if (File.Exists(path)) File.Replace(path + ".tmp", path, null); else File.Move(path + ".tmp", path);
+            AtomicFile.Replace(path + ".tmp", path);
             if (Core.Log.Verbose) Core.Log.Info("[CleanHUD] Location discoveries saved: " + path);
         }
 

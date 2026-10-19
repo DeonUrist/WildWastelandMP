@@ -27,6 +27,7 @@ namespace WildWasteland.Core
         static bool _running, _restoring;
         internal static void Install()
         {
+            SaveTerrain.Install();
             _data = MultiplayerAccess.Get<Dictionary<string, ES3Data>>(typeof(ES3File), "cache");
             _dirty = MultiplayerAccess.Get<bool>(typeof(ES3File), "dirty");
             var tile = typeof(MapMagic.Terrains.TerrainTile); var pool = AccessTools.TypeByName("Den.Tools.ObjectsPool+Pool");

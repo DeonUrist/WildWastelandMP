@@ -202,6 +202,8 @@ namespace WildWasteland.Core
                 // MP glides remote poses in real time; let the acknowledged final samples reach the saved transforms.
                 yield return new WaitForSecondsRealtime(.35f);
                 while (MultiplayerRecovery.CheckpointWriting) yield return null;
+                var terrain = SaveTerrain.Prepare(); while (terrain.MoveNext()) yield return terrain.Current;
+                if (!Multiplayer.Hosting || _generation != SaveBus.Generation) yield break;
                 if (HostSaveSystem.DeferScheduledSave()) yield break;
                 if (!BeginTransaction()) yield break;
                 _serializing = true; _preparing = false;
@@ -223,8 +225,9 @@ namespace WildWasteland.Core
                     }
                     finally
                     {
-                        if (Multiplayer.Hosting) Multiplayer.Send(100, w => { w.Write(_token); w.Write((byte)0); });
-                        Waiting.Clear(); _preparing = _serializing = false; SetFrozen(false);
+                        SaveTerrain.Release();
+                        try { if (Multiplayer.Hosting) Multiplayer.Send(100, w => { w.Write(_token); w.Write((byte)0); }); }
+                        finally { Waiting.Clear(); _preparing = _serializing = false; SetFrozen(false); }
                         if (_completed) { HostSaveSystem.Notify(HostSaveSystem.Status); MultiplayerRecovery.Checkpoint(); if (after != null) after(); }
                     }
                 }

@@ -71,7 +71,7 @@ namespace WildWasteland.Core
         internal static void Publish(string source, string target)
         {
             string stage = target + ".ww-publish"; CopyVerified(source, stage);
-            if (File.Exists(target)) File.Replace(stage, target, null); else File.Move(stage, target);
+            AtomicFile.Replace(stage, target);
             if (Hash(source) != Hash(target)) throw new IOException("Published save verification failed");
         }
         internal void Prepare(IEnumerable<string> files)

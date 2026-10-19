@@ -259,3 +259,8 @@ Height discovery adds one terrain ray per 0.2 s tick and uses the existing locat
 RC33 includes the PlayerBody.WheelArms LateUpdateLast job with cached wheel geometry/bones and per-wheel profiles. It runs after final seat/first-person offsets, without per-frame scene discovery. No runtime cost or animation acceptance was measured. Combined RC33 Windows Release/deploy passed zero warnings/errors; DLL MD5 `F165942C49354E5A5D89E595776802D4`.
 
 NOT YET MEASURED. Native Quests replaces the old private-method compatibility patches with named jobs, 500 us world-discovery slices, cached FSM/item/ranged queries and reused ray buffers. Voice decoding, spawning and UI rendering retain indivisible work. Denis must record standalone and ported scenarios (offers, active quests, crowded camps, walking/seated combat, save/load and optional Talk). No performance improvement claimed; no game/harness launched.
+
+
+## 2026-10-19 — save/terrain synchronization, Testing
+
+NOT YET MEASURED. Two Core prefixes add boolean gates to native terrain update/application; no job, scan or per-frame allocation. Existing offline/host save coroutines drain workers/application with two idle observations and a 120-second pre-write limit, retaining native budgets. File publication changes only on save IO. No game launch, harness or runtime measurement; no performance claim.

@@ -131,13 +131,13 @@ namespace WildWasteland.Core.UI
             var save = _selected >= 0 && _selected < _saves.Count ? _saves[_selected] : null; Ledger.Panel(new Rect(1200, 188, 620, 780), Ledger.Surface, Ledger.Line);
             var image = new Rect(1224, 212, 572, 288); Ledger.Fill(image, Ledger.Field); var picture = save != null ? Picture(save.File) : null;
             if (picture != null) GUI.DrawTexture(image, picture, ScaleMode.ScaleToFit); else Text(new Rect(image.x + 24, image.y + 80, image.width - 48, 120), save != null ? "No screenshot was recorded for this save." : "Select a save to preview it.", true);
-            if (_saving && CanSave)
+            if (_saving)
             {
                 Input(new Rect(1224, 520, 572, 76), "SAVE NAME", "SaveLibrary/Name", ref _name);
                 if (!_multiplayer) Input(new Rect(1224, 610, 572, 76), "WORLD NAME", "SaveLibrary/World", ref _world);
                 else { Text(new Rect(1224, 610, 572, 28), "WORLD NAME", true); Text(new Rect(1224, 642, 572, 42), HostSaveSystem.CurrentWorldName); }
-                if (Button(new Rect(1224, 712, 572, 54), "CREATE NEW SAVE", _name.Trim().Length > 0 && (_multiplayer || _world.Trim().Length > 0), true)) Save(null);
-                if (Button(new Rect(1224, 778, 572, 50), "OVERWRITE SELECTED", save != null && !save.Automatic && save.Multiplayer == _multiplayer && _name.Trim().Length > 0)) Confirm("overwrite", save.File);
+                if (Button(new Rect(1224, 712, 572, 54), "CREATE NEW SAVE", CanSave && _name.Trim().Length > 0 && (_multiplayer || _world.Trim().Length > 0), true)) Save(null);
+                if (Button(new Rect(1224, 778, 572, 50), "OVERWRITE SELECTED", CanSave && save != null && !save.Automatic && save.Multiplayer == _multiplayer && _name.Trim().Length > 0)) Confirm("overwrite", save.File);
             }
             else
             {
