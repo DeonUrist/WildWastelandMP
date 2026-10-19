@@ -44,6 +44,7 @@ namespace WildWasteland.Core
         static float _nextOffer, _nextWakeRequest;
         static byte _playerSave;
         internal static bool AwaitingWake { get { return _wakeId != 0; } }
+        internal static bool RestoringSleeper { get { return AwaitingWake || _restoreRecord != null && _stats(_restoreRecord).ContainsKey(SleepingKey); } }
         static void InstallWake(Type session, Type record)
         {
             var peer = Multiplayer.Type("Net.NetSession+Peer"); var remote = Multiplayer.Type("Game.RemotePlayer");
@@ -113,6 +114,7 @@ namespace WildWasteland.Core
         static bool CanReport()
         {
             if (!Multiplayer.Client) return true;
+            if (MultiplayerRespawn.Placing) return false;
             var record = _restoreRecord ?? _pending(null);
             return !AwaitingWake && (record == null || !_stats(record).ContainsKey(SleepingKey));
         }
@@ -199,7 +201,7 @@ namespace WildWasteland.Core
                 _requested = true;
                 Multiplayer.Send(WakePacket, w => { w.Write(_wakeEpoch); w.Write((byte)1); w.Write(_wakeId); w.Write(_wakeToken); });
             }
-            else if (!_connected && !AwaitingWake && (_restoreRecord == null || _restored && !_stats(_restoreRecord).ContainsKey(SleepingKey)) && !_joinSpawn(null).HasValue && ReadyToWake() && Time.unscaledTime >= _nextWakeRequest)
+            else if (!_connected && _placed && !AwaitingWake && (_restoreRecord == null || _restored && !_stats(_restoreRecord).ContainsKey(SleepingKey)) && !_joinSpawn(null).HasValue && ReadyToWake() && Time.unscaledTime >= _nextWakeRequest)
             {
                 _nextWakeRequest = Time.unscaledTime + 1f;
                 Multiplayer.Send(WakePacket, w => { w.Write(MultiplayerParts.Epoch); w.Write((byte)5); w.Write(0); w.Write((ulong)0); });

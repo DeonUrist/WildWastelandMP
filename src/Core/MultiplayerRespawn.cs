@@ -36,6 +36,8 @@ namespace WildWasteland.Core
         static Func<object, Dictionary<string, float>> _stats;
         static Action _report;
         static Action<string> _notice;
+        delegate bool HostPosition(out Vector3 position);
+        static HostPosition _hostPosition;
         static ConfigEntry<bool> _downedEnabled;
         static readonly Dictionary<int, GameObject> Anchors = new Dictionary<int, GameObject>();
         static readonly HashSet<GameObject> Protected = new HashSet<GameObject>();
@@ -52,11 +54,13 @@ namespace WildWasteland.Core
         static ulong _epoch;
         internal static bool Resetting { get; private set; }
         internal static bool ResetSucceeded { get; private set; }
+        internal static bool Placing { get { return _moving; } }
         static Func<GameObject, IEnumerator> _leaveCar;
         static Action<GameObject> _kickOut;
         internal static void Install()
         {
             var survival = Multiplayer.Type("Game.Survival"); var world = Multiplayer.Type("Net.WorldObjects"); var session = Multiplayer.Type("Net.NetSession");
+            _hostPosition = MultiplayerAccess.Call<HostPosition>(session, "TryGetHostPosition", typeof(Vector3).MakeByRefType());
             _leaveCar = MultiplayerAccess.Call<Func<GameObject, IEnumerator>>(survival, "LeaveCar", typeof(GameObject));
             _kickOut = MultiplayerAccess.Call<Action<GameObject>>(world, "KickOutOf", typeof(GameObject));
             _hasBed = MultiplayerAccess.Get<bool>(survival, "HasBed"); _setHasBed = MultiplayerAccess.Set<bool>(survival, "HasBed");
@@ -85,7 +89,8 @@ namespace WildWasteland.Core
             Type routine = null;
             foreach (var nested in survival.GetNestedTypes(BindingFlags.NonPublic)) if (nested.Name.StartsWith("<DieAndRespawn>", StringComparison.Ordinal)) { routine = nested; break; }
             if (routine == null || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(routine, "MoveNext"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "RespawnTarget"))
-                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "TryRestorePlayer"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "ReconnectTarget")))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "TryRestorePlayer"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "ReconnectTarget"))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "TrySpawnNextToHost"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "ReconnectTarget")))
                 throw new InvalidOperationException("MP safe respawn/reconnect placement hooks failed");
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(GetDistance), "DoGetDistance"), prefix: AccessTools.Method(typeof(MultiplayerRespawn), "RetentionDistance"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(DestroyObject), "OnEnter"), prefix: AccessTools.Method(typeof(MultiplayerRespawn), "RetentionDestroy")))
@@ -310,6 +315,13 @@ namespace WildWasteland.Core
         }
         static IEnumerator Respawn(Vector3 ignored) { return Place(Vector3.zero, true); }
         internal static bool StartingPosition(out Vector3 position) { position = _camp; return _hasCamp; }
+        internal static bool BesideHost(out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (Multiplayer.Hosting) { if (GameRefs.Player == null) return false; position = Origin.World(GameRefs.Player.transform.position); }
+            else if (!Multiplayer.Client || !_hostPosition(out position)) return false;
+            position += new Vector3(2f, 0f, 2f); return Finite(position);
+        }
         internal static IEnumerator ResetToCamp(Vector3 position)
         {
             ResetSucceeded = false;
@@ -328,9 +340,9 @@ namespace WildWasteland.Core
             }
             finally { _frozen(null, frozen); Resetting = false; }
         }
-        static IEnumerator Reconnect(Vector3 position) { return Place(position, false); }
+        static IEnumerator Reconnect(Vector3 position) { return Place(position, false, nearHost: !MultiplayerSleepers.RestoringSleeper); }
         internal static IEnumerator FinishWake(Vector3 position) { return Place(position, false, true); }
-        static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false, bool reset = false)
+        static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false, bool reset = false, bool nearHost = false)
         {
             var player = GameRefs.Player; var body = player != null ? player.GetComponent<Rigidbody>() : null;
             if (body == null) yield break;
@@ -350,10 +362,11 @@ namespace WildWasteland.Core
                         else if (!campOnly && _selected && Time.unscaledTime < fallbackAt) target = _bed(null);
                         else
                         {
-                            if (!_hasCamp) { yield return new WaitForSecondsRealtime(.25f); continue; }
-                            target = _camp; campOnly = true;
+                            if (Multiplayer.Client ? !BesideHost(out target) : !StartingPosition(out target)) { yield return new WaitForSecondsRealtime(.25f); continue; }
+                            campOnly = true;
                         }
                     }
+                    else if (nearHost && !BesideHost(out target)) { yield return new WaitForSecondsRealtime(.25f); continue; }
                     player.transform.position = Origin.Scene(target) + Vector3.up * 3f;
                     Physics.SyncTransforms();
                     Vector3 place;
@@ -361,8 +374,8 @@ namespace WildWasteland.Core
                     {
                         player.transform.position = place; VehicleLoadPlacement.Stand(player); body.isKinematic = false; body.velocity = Vector3.zero; body.angularVelocity = Vector3.zero; body.isKinematic = wasKinematic;
                         Physics.SyncTransforms();
-                        if (respawn) _notice(campOnly ? "You respawned at the initial camp." : "You respawned beside your selected spawn object.");
-                        Log.Always(respawn ? campOnly ? "[Multiplayer] Respawn placed at initial camp" : "[Multiplayer] Respawn placed beside selected object " + _bedItem(null) : "[Multiplayer] Player restored on a clear surface beside the saved position");
+                        if (respawn) _notice(campOnly ? Multiplayer.Client ? "You respawned beside the host." : "You respawned at the initial camp." : "You respawned beside your selected spawn object.");
+                        Log.Always(nearHost || respawn && campOnly && Multiplayer.Client ? "[Multiplayer] Player placed beside host" : respawn ? campOnly ? "[Multiplayer] Respawn placed at initial camp" : "[Multiplayer] Respawn placed beside selected object " + _bedItem(null) : "[Multiplayer] Player restored on a clear surface beside the saved position");
                         if (reset) ResetSucceeded = true;
                         else if (!respawn)
                         {

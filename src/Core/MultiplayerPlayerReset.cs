@@ -10,7 +10,7 @@ namespace WildWasteland.Core
     internal static class MultiplayerPlayerReset
     {
         const byte Command = 171, Result = 172;
-        sealed class Work { internal ulong Token, Epoch; internal object Record; internal string Name; }
+        sealed class Work { internal ulong Token, Epoch; internal object Record; internal string Name; internal bool Recall; }
         static readonly Dictionary<ulong, Work> Waiting = new Dictionary<ulong, Work>();
         static Func<ulong, object> _record;
         static Action _report;
@@ -27,25 +27,31 @@ namespace WildWasteland.Core
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Changed;
         }
         static void Changed() { if (!Multiplayer.SessionActive) { Waiting.Clear(); _clientToken = _clientEpoch = 0; _running = _clientResult = false; } }
-        internal static bool CanReset(MultiplayerRoster.Player row)
+        internal static bool CanReset(MultiplayerRoster.Player row, bool recall = false)
         {
             if (!Multiplayer.Hosting || !Multiplayer.WorldReady || row == null || row.Epoch != MultiplayerParts.Epoch || Pending
                 || SaveBus.Busy || MultiplayerSaving.Frozen || HostSaveSystem.Requested) return false;
-            if (row.Sleeping) return MultiplayerSleepers.CanRemoveBody(row.SleeperId, row.Record);
+            if (row.Sleeping) return MultiplayerSleepers.CanRemoveBody(row.SleeperId, row.Record) && (!recall || GameRefs.Player != null);
             Vector3 camp;
-            if (!row.HasPosition || !MultiplayerRespawn.StartingPosition(out camp)) return false;
+            if (!row.HasPosition || (recall ? row.Peer == 0 || !MultiplayerRespawn.BesideHost(out camp) : !MultiplayerRespawn.StartingPosition(out camp))) return false;
             return row.Peer == 0 ? GameRefs.Player != null : ReferenceEquals(_record(row.Peer), row.Record) && MultiplayerSleepers.ReadyPeer(row.Peer) && Multiplayer.PlayerFor(row.Peer) != null;
         }
-        internal static bool Reset(MultiplayerRoster.Player row)
+        internal static bool Reset(MultiplayerRoster.Player row, bool recall = false)
         {
-            if (!CanReset(row)) return false;
+            if (!CanReset(row, recall)) return false;
             if (row.Sleeping)
             {
+                if (recall)
+                {
+                    Vector3 point;
+                    if (!MultiplayerRespawn.BesideHost(out point) || !MultiplayerSleepers.RecallBody(row.SleeperId, row.Record, point)) return false;
+                    MultiplayerRoster.Invalidate(); _notice(row.Name + "'s sleeping body moved beside you."); return true;
+                }
                 if (!MultiplayerSleepers.RemoveBody(row.SleeperId, row.Record)) return false;
                 MultiplayerRoster.Invalidate(); _notice("Sleeping body removed for " + row.Name + ". Saved character retained."); return true;
             }
-            Vector3 target; if (!MultiplayerRespawn.StartingPosition(out target)) return false;
-            var work = new Work { Token = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0), Epoch = MultiplayerParts.Epoch, Record = row.Record, Name = row.Name };
+            Vector3 target; if (recall ? !MultiplayerRespawn.BesideHost(out target) : !MultiplayerRespawn.StartingPosition(out target)) return false;
+            var work = new Work { Token = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0), Epoch = MultiplayerParts.Epoch, Record = row.Record, Name = row.Name, Recall = recall };
             Waiting[row.Peer] = work;
             if (row.Peer == 0) Scheduler.StartCoroutine(Local(work));
             else
@@ -53,8 +59,8 @@ namespace WildWasteland.Core
                 Multiplayer.Send(Command, w => { w.Write(work.Epoch); w.Write(work.Token); w.Write(target.x); w.Write(target.y); w.Write(target.z); }, row.Peer);
                 Scheduler.StartCoroutine(Watch(row.Peer, work));
             }
-            _notice("Resetting " + row.Name + " to the starting location.");
-            Log.Always("[Multiplayer] Host player reset requested: " + row.Name + " [peer " + row.Peer + "]"); return true;
+            _notice(recall ? "Recalling " + row.Name + " beside you." : "Resetting " + row.Name + " to the starting location.");
+            Log.Always("[Multiplayer] Host player " + (recall ? "recall" : "reset") + " requested: " + row.Name + " [peer " + row.Peer + "]"); return true;
         }
         static IEnumerator Local(Work work)
         {
@@ -83,9 +89,9 @@ namespace WildWasteland.Core
             Waiting.Remove(peer);
             if (!Multiplayer.Hosting || work.Epoch != MultiplayerParts.Epoch) return;
             MultiplayerRoster.Invalidate();
-            _notice(success ? work.Name + " moved to the starting location." : "Could not reset " + work.Name + ".");
+            _notice(success ? work.Name + (work.Recall ? " recalled beside you." : " moved to the starting location.") : "Could not " + (work.Recall ? "recall " : "reset ") + work.Name + ".");
             if (success) MultiplayerRecovery.Checkpoint();
-            Log.Always("[Multiplayer] Host player reset " + (success ? "completed: " : "failed: ") + work.Name);
+            Log.Always("[Multiplayer] Host player " + (work.Recall ? "recall " : "reset ") + (success ? "completed: " : "failed: ") + work.Name);
         }
         static void Receive(ulong from, byte kind, BinaryReader r)
         {
@@ -123,7 +129,7 @@ namespace WildWasteland.Core
                 {
                     _running = false; _clientResult = success;
                     if (Multiplayer.Client && MultiplayerParts.Epoch == epoch)
-                    { _notice(success ? "The host moved you to the starting location." : "The host reset could not complete."); Reply(epoch, token, success); }
+                    { _notice(success ? "The host moved you to a safe location." : "The host placement could not complete."); Reply(epoch, token, success); }
                 }
             }
         }

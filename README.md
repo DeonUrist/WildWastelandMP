@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC1 · 0.1.37** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC2 · 0.1.38** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -23,7 +23,8 @@ All players need the **same WildWastelandMP release and mod versions**. Disable 
 - **Join by IP:** from the title menu, open **MULTIPLAYER → JOIN**, enter the host's address and matching port, then connect.
 - **Join by Steam:** accept the host's invitation while at the title menu.
 - **F3:** settings. **TAB:** inventory and player list. Guest Save requests go to the host. Local menus do not pause the shared world.
+- **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC1 is a prerelease; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC2 is a prerelease; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC1 release notes](notes/release-0.1.37-RC1.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC2 release notes](notes/release-0.1.38-RC2.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

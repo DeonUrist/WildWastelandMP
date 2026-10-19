@@ -1,4 +1,4 @@
-"""Package RC1 from the published base assets plus this fork's shipped defaults."""
+"""Package the current MP release from published base assets and shipped defaults."""
 import argparse
 import hashlib
 import json
@@ -6,7 +6,8 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-VERSION = "0.1.37"
+VERSION = "0.1.38"
+RELEASE = "RC2"
 BASE_SHA256 = "a8e96e62922435e3ae5da8b5d92493ec6e9c1da7bc092509461db94d4a468dda"
 
 
@@ -54,8 +55,9 @@ def main():
     for name in ("README.md", "README-MULTIPLAYER.md", "WILD-WASTELAND-GUIDE.md",
                  "Start-WildWastelandMP.bat", "Launch-WildWastelandMP.ps1"):
         put(REPO / name, name)
-    put(REPO / "notes/release-0.1.37-RC1.md", "RELEASE-NOTES.md")
-    for name in ("release-0.1.37-RC1.md", "seated-melee-throws.md", "low-crawl.md",
+    release_notes = "release-" + VERSION + "-" + RELEASE + ".md"
+    put(REPO / "notes" / release_notes, "RELEASE-NOTES.md")
+    for name in (release_notes, "release-0.1.37-RC1.md", "seated-melee-throws.md", "low-crawl.md",
                  "camp-merchant-idle.md", "weather-distance-haze.md"):
         put(REPO / "notes" / name, "notes/" + name)
     tree(REPO / "compat/ApocalypterMP", "compat/ApocalypterMP", {".md"})
@@ -98,7 +100,7 @@ def main():
             if archive.read("WildWastelandMP/" + name) != files[name]:
                 raise ValueError("Archive content mismatch: " + name)
     metadata = {
-        "version": VERSION, "release": "RC1", "handshake": 23,
+        "version": VERSION, "release": RELEASE, "handshake": 24,
         "archive": args.output.name, "entries": len(files), "bytes": args.output.stat().st_size,
         "sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
         "dll_md5": hashlib.md5(dll).hexdigest().upper(),

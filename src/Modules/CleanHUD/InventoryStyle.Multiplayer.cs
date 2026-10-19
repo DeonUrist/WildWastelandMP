@@ -13,7 +13,7 @@ namespace WildWasteland.Modules.CleanHUD
         {
             internal RectTransform Root; internal Image Color;
             internal GlyphText Name, Vitals, Bolts, Position, Vehicle;
-            internal MenuButton Reset; internal MultiplayerRoster.Player Player;
+            internal MenuButton Reset, Recall; internal MultiplayerRoster.Player Player;
         }
         sealed class PlayerList
         {
@@ -34,6 +34,7 @@ namespace WildWasteland.Modules.CleanHUD
         static GlyphText _resetTitle, _resetName, _resetAction, _resetWarning, _resetStatus;
         static MenuButton _resetConfirm;
         static MultiplayerRoster.Player _resetTarget;
+        static bool _recalling;
 
         static bool ModalButton(MenuButton button)
         {
@@ -51,16 +52,16 @@ namespace WildWasteland.Modules.CleanHUD
             _resetWarning = Label(panel, "", 30, 164, 860, 36, 21, White, TextAnchor.MiddleCenter);
             _resetStatus = Label(panel, "", 30, 204, 860, 36, 20, White, TextAnchor.MiddleCenter);
             ActionButton(panel, "CANCEL", 110, 282, 260, 52, HideReset);
-            _resetConfirm = ActionButton(panel, "RESET", 550, 282, 260, 52, ConfirmReset);
+            _resetConfirm = ActionButton(panel, "CONFIRM", 550, 282, 260, 52, ConfirmReset);
             _resetDialog.gameObject.SetActive(false);
         }
-        static void ShowReset(MultiplayerRoster.Player player)
+        static void ShowReset(MultiplayerRoster.Player player, bool recall = false)
         {
-            if (!Session.Open || !Application.isFocused || !MultiplayerPlayerReset.CanReset(player)) return;
-            HideDrop(); _pressed = null; _resetTarget = player;
-            _resetTitle.Set(player.Sleeping ? "REMOVE SLEEPING PLAYER?" : "RESET PLAYER?");
+            if (!Session.Open || !Application.isFocused || !MultiplayerPlayerReset.CanReset(player, recall)) return;
+            HideDrop(); _pressed = null; _resetTarget = player; _recalling = recall;
+            _resetTitle.Set(recall ? "RECALL PLAYER?" : player.Sleeping ? "REMOVE SLEEPING PLAYER?" : "RESET PLAYER?");
             Fitted(_resetName, player.Name + "   (" + player.Position.ToString("F1") + ")", 26);
-            _resetAction.Set(player.Sleeping ? "Remove this sleeping body from the world?" : "Move this player to the starting location?");
+            _resetAction.Set(recall ? player.Sleeping ? "Move this sleeping body beside you?" : "Move this player beside you?" : player.Sleeping ? "Remove this sleeping body from the world?" : "Move this player to the starting location?");
             _resetWarning.Set("Saved inventory, stats and respawn selection will be kept.");
             _resetStatus.Set(player.Sleeping ? "They can rejoin with their saved character." : "A seated player will leave their vehicle.");
             _resetConfirm.interactable = true; _resetDialog.gameObject.SetActive(true);
@@ -70,8 +71,8 @@ namespace WildWasteland.Modules.CleanHUD
         static void ConfirmReset()
         {
             if (!Session.Open || !Application.isFocused || _resetTarget == null) return;
-            if (MultiplayerPlayerReset.Reset(_resetTarget)) { HideReset(); _nextPlayers = 0; }
-            else { _resetStatus.Set("Player changed or reset is busy. Cancel and try again."); _resetConfirm.interactable = false; }
+            if (MultiplayerPlayerReset.Reset(_resetTarget, _recalling)) { HideReset(); _nextPlayers = 0; }
+            else { _resetStatus.Set("Player changed, placement blocked or busy. Cancel and try again."); _resetConfirm.interactable = false; }
         }
 
         static MenuButton Hit(Transform parent, float x, float y, float w, float h, Action action)
@@ -170,7 +171,7 @@ namespace WildWasteland.Modules.CleanHUD
             Label(root, "HP / ARMOR", 410, 48, 200, 32, 20, DialogueWidgets.Gold);
             Label(root, "NUTS", 620, 48, 130, 32, 20, DialogueWidgets.Gold);
             Label(root, "COORDINATES (X, Y, Z)", 770, 48, 400, 32, 20, DialogueWidgets.Gold);
-            Label(root, "VEHICLE", 1190, 48, 260, 32, 20, DialogueWidgets.Gold);
+            Label(root, "VEHICLE", 1190, 48, 146, 32, 20, DialogueWidgets.Gold);
             for (int i = 0; i < 4; i++)
             {
                 var line = new PlayerLine { Root = Rect(root, "player", 0, 88 + i * 46, 1592, 42) };
@@ -179,9 +180,10 @@ namespace WildWasteland.Modules.CleanHUD
                 line.Vitals = Label(line.Root, "", 410, 0, 200, 42, 23, White);
                 line.Bolts = Label(line.Root, "", 620, 0, 130, 42, 23, White);
                 line.Position = Label(line.Root, "", 770, 0, 400, 42, 22, White);
-                line.Vehicle = Label(line.Root, "", 1190, 0, 260, 42, 23, White);
+                line.Vehicle = Label(line.Root, "", 1190, 0, 146, 42, 23, White);
+                line.Recall = ActionButton(line.Root, "RECALL", 1340, 0, 120, 42, () => ShowReset(line.Player, true));
                 line.Reset = ActionButton(line.Root, "RESET", 1470, 0, 106, 42, () => ShowReset(line.Player));
-                line.Reset.gameObject.SetActive(false); list.Lines.Add(line);
+                line.Reset.gameObject.SetActive(false); line.Recall.gameObject.SetActive(false); list.Lines.Add(line);
             }
             return list;
         }
@@ -221,6 +223,7 @@ namespace WildWasteland.Modules.CleanHUD
                 line.Root.gameObject.SetActive(shown); if (!shown) { line.Player = null; continue; }
                 var player = list.Players[index]; line.Player = player;
                 line.Reset.gameObject.SetActive(Multiplayer.Hosting); line.Reset.interactable = MultiplayerPlayerReset.CanReset(player);
+                line.Recall.gameObject.SetActive(Multiplayer.Hosting); line.Recall.interactable = MultiplayerPlayerReset.CanReset(player, true);
                 line.Color.color = player.Color; Fitted(line.Name, player.Name, 23);
                 line.Vitals.Set(player.Downed ? "DOWNED" : Number(player.Health) + " / " + Number(player.Armor));
                 line.Bolts.Set(Number(player.Bolts));

@@ -66,6 +66,24 @@ namespace WildWasteland.Core
             MultiplayerRecovery.Checkpoint();
             Log.Always("[Multiplayer] Host removed sleeping body: " + sleeper.Name + " [id " + id + "]; saved character retained"); return true;
         }
+        internal static bool RecallBody(int id, object record, Vector3 target)
+        {
+            if (!CanRemoveBody(id, record) || MultiplayerSaving.Frozen || SaveBus.Busy || GameRefs.Player == null) return false;
+            var sleeper = Bodies[id]; Vector3 place;
+            if (!MultiplayerRespawn.Surface(Origin.Scene(target), GameRefs.Player.transform, out place)) return false;
+            if (sleeper.Body != null) foreach (var bone in sleeper.Body.Bodies) if (bone == null) return false;
+            if (sleeper.Body != null) Capture(sleeper);
+            var delta = Origin.World(place) - sleeper.Positions[0];
+            for (int i = 0; i < (sleeper.HasPose ? BoneCount : 1); i++)
+            {
+                sleeper.Positions[i] += delta;
+                if (sleeper.Body != null) { var bone = sleeper.Body.Bodies[i]; bone.isKinematic = true; bone.position = Origin.Scene(sleeper.Positions[i]); }
+            }
+            sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.Supported = false; sleeper.NextGround = 0;
+            Physics.SyncTransforms(); Store(sleeper);
+            if (sleeper.HasPose) Publish(sleeper, true);
+            MultiplayerRecovery.Checkpoint(); Log.Always("[Multiplayer] Host recalled sleeping body: " + sleeper.Name); return true;
+        }
         static readonly HashSet<int> Removed = new HashSet<int>();
         static readonly Vector3[] IncomingPositions = new Vector3[BoneCount];
         static readonly Quaternion[] IncomingRotations = new Quaternion[BoneCount];
