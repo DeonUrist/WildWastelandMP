@@ -87,9 +87,10 @@ namespace WildWasteland.Modules.CleanHUD
         private readonly Color _gold, _white;
         private readonly List<Line> _lines = new List<Line>();
         private readonly Stack<Line> _pool = new Stack<Line>();
+        private Line _autosave;
         private float _nextDrop;
 
-        internal static Vector2 Size { get { return new Vector2(Width, LineH * MaxLines); } }
+        internal static Vector2 Size { get { return new Vector2(Width, LineH * (MaxLines + 1)); } }
 
         internal MessageLog(RectTransform root, Font font, Color gold, Color white) { _root = root; _font = font; _gold = gold; _white = white; }
 
@@ -139,6 +140,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         internal void Tick()
         {
+            string warning = Core.HostSaveWarning.Text;
             while (MessageHook.Pending.Count > 0) { var m = MessageHook.Pending[0]; MessageHook.Pending.RemoveAt(0); Add(m); }
             float now = Time.unscaledTime, dt = Mathf.Min(Time.unscaledDeltaTime, .1f);
             if (now >= _nextDrop)
@@ -160,9 +162,21 @@ namespace WildWasteland.Modules.CleanHUD
             for (int i = 0; i < _lines.Count; i++)
             {
                 var l = _lines[i];
-                float target = i * LineH;
+                float target = (i + (warning == null ? 0 : 1)) * LineH;
                 l.Y = Mathf.Abs(l.Y - target) < .5f ? target : Mathf.Lerp(l.Y, target, 1f - Mathf.Exp(-dt * 14f));
                 var position = new Vector2(0, -l.Y); if (l.Rt.anchoredPosition != position) l.Rt.anchoredPosition = position;
+            }
+            // Keep the server countdown in one transparent log row instead of adding a line every second.
+            if (warning == null)
+            {
+                if (_autosave != null) { _autosave.Rt.gameObject.SetActive(false); _pool.Push(_autosave); _autosave = null; }
+            }
+            else
+            {
+                if (_autosave == null) { _autosave = Make(); _autosave.Msg = null; _autosave.G.alpha = 1f; }
+                if (_autosave.Msg != warning) { _autosave.Msg = warning; _autosave.Txt.text = warning; }
+                var position = Vector2.zero;
+                if (_autosave.Rt.anchoredPosition != position) _autosave.Rt.anchoredPosition = position;
             }
         }
     }

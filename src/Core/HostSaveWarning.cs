@@ -11,11 +11,15 @@ namespace WildWasteland.Core
         static int _seconds;
         static float _expires, _repeat;
         static string _text;
+        internal static string Text
+        {
+            get { return (Multiplayer.WorldReady || HostSaveSystem.LocalWorld) && (!Multiplayer.Client || Time.unscaledTime <= _expires) ? _text : null; }
+        }
         internal static void Install()
         {
             Multiplayer.Message += Receive;
             Multiplayer.SessionChanged += Clear;
-            Scheduler.Gui(null, "Autosave compass countdown", Draw, Wants);
+            Scheduler.Gui(null, "Autosave log fallback", Draw, Wants);
         }
         static void Clear() { _phase = 0; _text = null; _repeat = 0; }
         // 0 hidden, 1 ticking, 2 deferred, 3 final warning. Repeat includes joining players.
@@ -40,18 +44,15 @@ namespace WildWasteland.Core
             if (phase != _phase || seconds != _seconds) Set(phase, seconds);
             _expires = Time.unscaledTime + 4f;
         }
-        static bool Wants() { return _phase != 0; }
+        static bool Wants() { return Text != null && !CleanHud.MessageHook.Active; }
         static void Draw()
         {
-            if (!(Multiplayer.WorldReady || HostSaveSystem.LocalWorld) || Multiplayer.Client && Time.unscaledTime > _expires) { Clear(); return; }
             if (LoadingProgress.MenusBlocked || !GameRefs.InGame || UI.EditorSession.Busy || Event.current.type != EventType.Repaint) return;
             float scale = Mathf.Min(Screen.width / 1920f, Screen.height / 1080f);
-            Vector2 anchor = CleanHud.Hud.SaveWarningAnchor();
-            var rect = new Rect(anchor.x - 410 * scale, anchor.y + 8 * scale, 820 * scale, 58 * scale);
-            var oldColor = GUI.color; int depth = GUI.depth; GUI.depth = -100;
-            GUI.color = new Color(.03f, .025f, .015f, .82f); GUI.DrawTexture(rect, Texture2D.whiteTexture); GUI.color = oldColor;
+            var rect = new Rect(40 * scale, 24 * scale, 640 * scale, 32 * scale);
+            int depth = GUI.depth; GUI.depth = -100;
             var color = _phase == 3 || _phase == 1 && _seconds <= 15 ? new Color(1f, .78f, .35f) : new Color(.96f, .91f, .79f);
-            CleanHud.GlyphFont.DrawGame(rect, _text, 34 * scale, color, TextAnchor.MiddleCenter);
+            CleanHud.GlyphFont.DrawGame(rect, _text, 22 * scale, color, TextAnchor.MiddleLeft);
             GUI.depth = depth;
         }
     }

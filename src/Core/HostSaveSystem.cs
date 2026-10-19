@@ -51,7 +51,7 @@ namespace WildWasteland.Core
         static float _kilometres = -1;
         static HostSaveFiles _transaction;
         static string[] _oldKeys;
-        static float _nextAuto, _countdown = -1, _lastWarning = -1, _saveNow = -1;
+        static float _nextAuto, _countdown = -1, _saveNow = -1;
         static string _session;
         static Action<string> _notice;
         static Action<string> _announceClose;
@@ -68,7 +68,7 @@ namespace WildWasteland.Core
             var cfg = Plugin.Settings;
             Autosave = cfg.Bind("System / Saving", "Autosave", true, "Create separate autosaves for offline or hosted worlds. Manual saves are never replaced by autosaving.");
             Interval = cfg.Bind("System / Saving", "Autosave minutes", 10, new ConfigDescription("Real minutes between autosaves.", new AcceptableValueRange<int>(1, 120)));
-            Warning = cfg.Bind("System / Saving", "Warning seconds", 30, new ConfigDescription("Visible server-wide autosave countdown. At least 30 seconds, with notices at 30 and 15 seconds and a final warning before saving.", new AcceptableValueRange<int>(30, 120)));
+            Warning = cfg.Bind("System / Saving", "Warning seconds", 30, new ConfigDescription("Autosave countdown in the top-left message log. 0 disables pre-save warnings and the final warning delay. Applies to everyone in a hosted world.", new AcceptableValueRange<int>(0, 120)));
             WhileDriving = cfg.Bind("System / Saving", "Autosave while driving", false, "Allow autosaves while the offline player, host or guests are driving or riding in any vehicle. Manual and exit saves are always available in vehicles.");
             AutoKeep = cfg.Bind("System / Saving", "Autosaves to keep", 5, new ConfigDescription("Number of separate autosaves per world lineage. Manual saves are not pruned.", new AcceptableValueRange<int>(1, 100)));
             BackupKeep = cfg.Bind("System / Saving", "Backups to keep", 5, new ConfigDescription("Verified previous versions per save. Interrupted recovery and deleted-save backups are always retained.", new AcceptableValueRange<int>(1, 100)));
@@ -105,7 +105,7 @@ namespace WildWasteland.Core
             SaveBus.StateChanged += StateChanged;
             Multiplayer.Message += ReceiveNotice;
             Scheduler.Interval(null, "Server autosave warning", .25f, Tick);
-            Log.Always("[System] Autosave warnings: game-font compass countdown, 30/15-second notices, combat deferral and 3-second final warning");
+            Log.Always("[System] Autosave warnings: transparent top-left log countdown; 0 seconds disables pre-save warnings");
             Installed = true;
             Log.Always("[System] Saves ready: native offline and optional host saves, separate manual/autosaves, complete backups and interrupted-write recovery");
         }
@@ -217,8 +217,9 @@ namespace WildWasteland.Core
         internal static bool DeferScheduledSave()
         {
             if (!_scheduled || !HostSaveCombat.Check()) return false;
-            _requested = _scheduled = false; _countdown = _lastWarning = _saveNow = -1;
-            HostSaveWarning.Show(2); Notify("Autosave deferred until combat has ended.");
+            _requested = _scheduled = false; _countdown = _saveNow = -1;
+            HostSaveWarning.Show((byte)(Warning.Value > 0 ? 2 : 0));
+            Status = "Autosave deferred until combat has ended."; Log.Always("[System] " + Status);
             return true;
         }
         // Called only after all owners have frozen and flushed, before the native serializer starts.
@@ -415,7 +416,7 @@ namespace WildWasteland.Core
             foreach (string file in files) { if (kept++ < AutoKeep.Value || file == newest || file == ActiveFile) continue; Delete(file, true); HostSaveFiles.Prune(file, 0); }
         }
         static int CompareNewest(string a, string b) { return File.GetLastWriteTimeUtc(HostSaveFiles.WorldPath(b)).CompareTo(File.GetLastWriteTimeUtc(HostSaveFiles.WorldPath(a))); }
-        static void Schedule() { _nextAuto = Time.unscaledTime + Interval.Value * 60f; _countdown = _lastWarning = _saveNow = -1; _scheduled = false; HostSaveWarning.Show(0); }
+        static void Schedule() { _nextAuto = Time.unscaledTime + Interval.Value * 60f; _countdown = _saveNow = -1; _scheduled = false; HostSaveWarning.Show(0); }
         static void ScheduleChanged(object sender, EventArgs args) { Schedule(); }
         static void Tick()
         {
@@ -424,27 +425,29 @@ namespace WildWasteland.Core
             if (_session != ActiveFile) { _session = ActiveFile; Schedule(); }
             bool combat = HostSaveCombat.Check();
             if (!Autosave.Value || Busy || _requested || _quitting || RecoveryError != null || ReloadRequired)
-            { _countdown = _lastWarning = _saveNow = -1; HostSaveWarning.Show(0); return; }
+            { _countdown = _saveNow = -1; HostSaveWarning.Show(0); return; }
             float now = Time.unscaledTime;
-            int warning = Mathf.Min(Mathf.Max(30, Warning.Value), Interval.Value * 60);
+            int warning = Mathf.Min(Mathf.Max(0, Warning.Value), Interval.Value * 60);
             if (now < _nextAuto - warning) return;
             bool eligible = !combat && !SaveBus.Busy && !MultiplayerSaving.Frozen && GameRefs.WorldRunning && !UI.EditorSession.Busy && _health() >= 1 && (WhileDriving.Value || (Multiplayer.Hosting ? !_anyCar() : !_hostCar()));
-            if (!eligible) { _countdown = _lastWarning = _saveNow = -1; HostSaveWarning.Show(2); return; }
+            if (!eligible) { _countdown = _saveNow = -1; HostSaveWarning.Show((byte)(warning > 0 ? 2 : 0)); return; }
+            if (warning == 0)
+            {
+                HostSaveWarning.Show(0);
+                Request("Autosave " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), null, true, true);
+                return;
+            }
             if (_countdown < 0) _countdown = now + warning;
             int seconds = Mathf.CeilToInt(_countdown - now);
             if (seconds <= 0)
             {
                 HostSaveWarning.Show(3);
-                if (_saveNow < 0) { _saveNow = now + 3f; Notify("The game will save now"); return; }
+                if (_saveNow < 0) { _saveNow = now + 3f; return; }
                 if (now >= _saveNow && !Request("Autosave " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), null, true, true))
-                { _countdown = _lastWarning = _saveNow = -1; }
+                { _countdown = _saveNow = -1; }
                 return;
             }
             HostSaveWarning.Show(1, seconds);
-            // Threshold crossings survive a delayed frame without skipping either warning.
-            if (_lastWarning < 0 || _lastWarning > 30 && seconds <= 30 || _lastWarning > 15 && seconds <= 15)
-                Notify("Server autosave in " + seconds + " seconds.");
-            _lastWarning = seconds;
         }
         static bool VehicleSaveButton(HutongGames.PlayMaker.Actions.ActivateGameObject action)
         {

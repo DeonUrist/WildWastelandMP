@@ -143,7 +143,7 @@ namespace WildWasteland.Modules.Patrols
                 "An AI car that hits you (on foot or in your car) hurts you. The game's own bumper damage only works against creatures, not the player");
             Migrate(cfg, RamDamage, "Combat", "RamDamage");
             RamDamageInCar = cfg.Player(null, "Ram damage in car", false,
-                "Ram damage also while you sit in your own car (the game's own CrashDamage still applies by your speed). Off = only on foot");
+                "Vehicle collision damage to player drivers and passengers: AI rams and native crashes. Off protects occupants; on-foot ram damage keeps its separate switch. The host controls this in multiplayer");
             Migrate(cfg, RamDamageInCar, "Combat", "RamDamageInCar");
             RaiderMusic = cfg.Player(null, "Raider music", true,
                 "A raider car built from a template that has a cassette in its radio plays it at full volume from the moment it spawns, " +

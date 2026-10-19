@@ -206,6 +206,7 @@ namespace WildWasteland.Core
             var vars = Vars(root); if (vars == null || !mirror && Multiplayer.OwnedElsewhere(root)) return false;
             if (!absolute) { changes = PrepareEdit(root, changes); if (changes == null) return false; }
             var fields = _variables(vars); var baseline = _baseline(vars);
+            FsmInt purchased = null;
             using (var reader = new BinaryReader(new MemoryStream(changes, false)))
             {
                 int count = reader.ReadByte(); var indices = new int[count]; var values = new object[count];
@@ -230,10 +231,28 @@ namespace WildWasteland.Core
                 {
                     int index = indices[n];
                     if (fields[index] is FsmFloat) ((FsmFloat)fields[index]).Value = (float)values[n];
-                    else if (fields[index] is FsmInt) ((FsmInt)fields[index]).Value = (int)values[n];
+                    else if (fields[index] is FsmInt)
+                    {
+                        var value = (FsmInt)fields[index]; value.Value = (int)values[n];
+                        if (value.Name == "ForBuyInt" && value.Value == 0) purchased = value;
+                    }
                     else if (fields[index] is FsmBool) ((FsmBool)fields[index]).Value = (bool)values[n];
                     else ((FsmString)fields[index]).Value = (string)values[n];
                     baseline[index] = values[n];
+                }
+            }
+            // Native ApplyVars also retires the Buyable interaction. Our authoritative edits bypass it.
+            if (purchased != null)
+            {
+                var forBuy = FsmUtil.Find(root, "ForBuy");
+                if (forBuy != null && ReferenceEquals(purchased, forBuy.FsmVariables.FindFsmInt("ForBuyInt")))
+                {
+                    var buyable = FsmUtil.Find(root, "Buyable");
+                    if (buyable != null && buyable.enabled)
+                    {
+                        buyable.SendEvent("FactionCoyotesEnemy");
+                        if (Log.Verbose) Log.Info("[Multiplayer] Purchased item interaction reconciled: " + root.name);
+                    }
                 }
             }
             if (publish) SendNative(30, w => { w.Write(Multiplayer.ObjectId(root)); _writeVars(vars, w); });
