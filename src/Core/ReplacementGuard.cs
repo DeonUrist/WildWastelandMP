@@ -21,6 +21,7 @@ namespace WildWasteland.Core
         static int _failed;
         static GUIContent _message;
         static readonly GUIContent Heading = new GUIContent("RESTART REQUIRED");
+        static readonly GUIContent MultiplayerRequired = new GUIContent("Apocalypter Multiplayer 0.4.1 is missing.\nInstall it from Nexus Mods, then restart the game.");
         static readonly string[,] Recommended = {
             { "apocalypter.worldamp", "Vista World Gen", "73" },
             { "com.fived.apocalypter.fallout_nv_radio", "Apocalypter Radio", "74" },
@@ -29,7 +30,7 @@ namespace WildWasteland.Core
             { "com.denis.apocalypter.apocapocket", "Apocapocket", "7" }
         };
         static readonly List<int> _missing = new List<int>();
-        static bool _checked;
+        static bool _checked, _missingMultiplayer;
         static ConfigEntry<bool> _showRecommended;
         static Vector2 _scroll;
         static readonly Action<Rect, string, float, Color, TextAnchor> NoticeText = CleanHud.GlyphFont.Draw, NoticeWrap = CleanHud.GlyphFont.DrawWrapped;
@@ -90,6 +91,9 @@ namespace WildWasteland.Core
             SceneLoaded(SceneManager.GetActiveScene());
             if (_checked) return;
             _checked = true;
+            PluginInfo multiplayer;
+            _missingMultiplayer = !Chainloader.PluginInfos.TryGetValue("ApocalypterMP", out multiplayer) || multiplayer == null || ReferenceEquals(multiplayer.Instance, null);
+            if (_missingMultiplayer) Log.Warn("[Core] Required multiplayer mod missing: https://www.nexusmods.com/apocalypter/mods/10");
             for (int i = 0; i < Recommended.GetLength(0); i++)
             {
                 PluginInfo info;
@@ -97,16 +101,19 @@ namespace WildWasteland.Core
             }
             Log.Always("[Core] Recommended mods not active: " + _missing.Count);
         }
-        static bool WantsNotice() { return _title && (_message != null || _showRecommended.Value && _missing.Count > 0) && !MenuModalOpen && !LoadingProgress.ScreenVisible; }
+        static bool WantsNotice() { return _title && (_missingMultiplayer || _message != null || _showRecommended.Value && _missing.Count > 0) && !MenuModalOpen && !LoadingProgress.ScreenVisible; }
         static void Draw()
         {
             if (LoadingProgress.ScreenVisible || MenuModalOpen || ToolWindow.IsOpen || EditorSession.Busy || ApocasetterBridge.InputBlocked) return;
             bool recommendations = _showRecommended.Value && _missing.Count > 0;
-            if (_message == null && !recommendations) return;
+            if (!_missingMultiplayer && _message == null && !recommendations) return;
             float scale = Mathf.Min(Screen.width / 1920f, Screen.height / 1080f);
             float width = 810f, inset = 30f;
+            float requiredTextHeight = _missingMultiplayer ? NoticeHeight(MultiplayerRequired.text, 26f, width - inset * 2 - 30f) : 0;
+            float requiredHeight = _missingMultiplayer ? requiredTextHeight + 171f : 0;
             float warningHeight = _message != null ? NoticeHeight(_message.text, 26f, width - inset * 2 - 30f) + 111f : 0;
-            float contentHeight = warningHeight + (recommendations ? 141f + 54f * _missing.Count : 0);
+            float recommendationsTop = requiredHeight + warningHeight;
+            float contentHeight = recommendationsTop + (recommendations ? 141f + 54f * _missing.Count : 0);
             float height = Mathf.Min(contentHeight, Screen.height / scale - 540f);
             var panel = new Rect(Screen.width / scale - width - inset - 40f, Mathf.Max(inset + 40f, (Screen.height / scale - height) * .5f), width, height);
             int depth = GUI.depth; Color color = GUI.color; var matrix = GUI.matrix;
@@ -122,19 +129,25 @@ namespace WildWasteland.Core
                 var view = new Rect(panel.x + inset, panel.y + 18f, width - inset * 2, height - 36f);
                 float rowWidth = view.width - 30f;
                 _scroll = GUI.BeginScrollView(view, _scroll, new Rect(0, 0, rowWidth, contentHeight - 36f));
+                if (_missingMultiplayer)
+                {
+                    Ledger.Label(new Rect(0, 3f, rowWidth, 45f), "REQUIRED MOD MISSING", Ledger.Heading, Ledger.Accent);
+                    NoticeWrap(new Rect(0, 63f, rowWidth, requiredTextHeight), MultiplayerRequired.text, 26f, Ledger.Text, TextAnchor.MiddleLeft);
+                    if (Ledger.Button(new Rect(0, requiredHeight - 90f, rowWidth, 54f), "Download Apocalypter Multiplayer", gameFont: true)) Application.OpenURL("https://www.nexusmods.com/apocalypter/mods/10");
+                }
                 if (_message != null)
                 {
-                    Ledger.Label(new Rect(0, 3f, rowWidth, 45f), Heading.text, Ledger.Heading, Ledger.Accent);
-                    NoticeWrap(new Rect(0, 63f, rowWidth, warningHeight - 96f), _message.text, 26f, Ledger.Text, TextAnchor.MiddleLeft);
+                    Ledger.Label(new Rect(0, requiredHeight + 3f, rowWidth, 45f), Heading.text, Ledger.Heading, Ledger.Accent);
+                    NoticeWrap(new Rect(0, requiredHeight + 63f, rowWidth, warningHeight - 96f), _message.text, 26f, Ledger.Text, TextAnchor.MiddleLeft);
                 }
                 if (recommendations)
                 {
-                    Ledger.Label(new Rect(0, warningHeight + 3f, rowWidth, 45f), "RECOMMENDED MODS", Ledger.Heading, Ledger.Accent);
-                    Ledger.Label(new Rect(0, warningHeight + 54f, rowWidth, 51f), "Optional additions (not active). Click to view mod.", Ledger.Small, Ledger.Muted);
+                    Ledger.Label(new Rect(0, recommendationsTop + 3f, rowWidth, 45f), "RECOMMENDED MODS", Ledger.Heading, Ledger.Accent);
+                    Ledger.Label(new Rect(0, recommendationsTop + 54f, rowWidth, 51f), "Optional additions (not active). Click to view mod.", Ledger.Small, Ledger.Muted);
                     for (int n = 0; n < _missing.Count; n++)
                     {
                         int i = _missing[n];
-                        var row = new Rect(0, warningHeight + 105f + 54f * n, rowWidth, 54f);
+                        var row = new Rect(0, recommendationsTop + 105f + 54f * n, rowWidth, 54f);
                         if (Ledger.Button(row, Recommended[i, 1], gameFont: true)) Application.OpenURL("https://www.nexusmods.com/apocalypter/mods/" + Recommended[i, 2]);
                     }
                 }

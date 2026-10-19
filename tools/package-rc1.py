@@ -6,8 +6,8 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-VERSION = "0.1.39"
-RELEASE = "RC3"
+VERSION = "0.1.40"
+RELEASE = "RC4"
 BASE_SHA256 = "a8e96e62922435e3ae5da8b5d92493ec6e9c1da7bc092509461db94d4a468dda"
 
 
@@ -57,7 +57,7 @@ def main():
         put(REPO / name, name)
     release_notes = "release-" + VERSION + "-" + RELEASE + ".md"
     put(REPO / "notes" / release_notes, "RELEASE-NOTES.md")
-    for name in (release_notes, "release-0.1.38-RC2.md", "release-0.1.37-RC1.md", "seated-melee-throws.md", "low-crawl.md",
+    for name in (release_notes, "release-0.1.39-RC3.md", "release-0.1.38-RC2.md", "release-0.1.37-RC1.md", "seated-melee-throws.md", "low-crawl.md",
                  "camp-merchant-idle.md", "weather-distance-haze.md"):
         put(REPO / "notes" / name, "notes/" + name)
     tree(REPO / "compat/ApocalypterMP", "compat/ApocalypterMP", {".md"})
