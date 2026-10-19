@@ -48,7 +48,7 @@ namespace WildWasteland.Modules.NPC
             // (WW perf) think scale by camera distance (x1 / x2 / x4, as the brain's TickScale), the thinking state the timer belongs to
             // (0 none, 1 ghost walk, 2 search, 3 idle), the feeler fan's last answer and when to ask again, the next run-clip check
             public float Scale = 1f; public byte ThinkKind; public float NextFan, FanWant, FanOff, NextRunCheck;
-            public bool Follower; public Order Ord;     // (crew AI) driven by a quest follower system (never travels); the travel order of its Travel leg
+            public bool Follower, Merchant; public Order Ord;     // (crew AI) driven by a quest follower system (never travels); the travel order of its Travel leg
         }
 
         // (crew AI) Services.Npc.Travel: another module (Patrols: crews back to their car, foot patrols) sends an NPC to a scene point. Walked
@@ -66,7 +66,7 @@ namespace WildWasteland.Modules.NPC
         {
             Ctl c;
             if (npc != null && _ctl.TryGetValue(npc.GetInstanceID(), out c))
-            { if (enabled && !c.Excluded) Stop(c, true); c.Excluded = enabled; c.Follower = enabled; }
+            { if (enabled && !c.Excluded) Stop(c, true); c.Excluded = enabled || c.Merchant; c.Follower = enabled; }
         }
 
         internal static void Travel(GameObject npc, Vector3? point, float radius)
@@ -358,6 +358,9 @@ namespace WildWasteland.Modules.NPC
         private static Ctl Make(Senses.Agent a, float now)
         {
             var c = new Ctl { A = a, Rb = a.Owner.GetComponent<Rigidbody>(), BusyAt = -1000f, Fresh = true, NextThink = now + (_stagger++ % 10) * 0.02f };   // never busy yet: no return delay after a load
+            string prefab = a.Tag == "Coyotes" ? Senses.PrefabOf(a.Owner) : "";
+            c.Merchant = prefab == "Merchant" || prefab == "Mechanic" || prefab == "Organic_Mechanic";
+            c.Excluded = c.Resolved = c.Merchant;   // shopkeepers keep their authored spots; explicit travel orders still work.
             var anim = a.T.Find("Anim");
             c.Anim = anim != null ? anim.GetComponent<Animator>() : a.Owner.GetComponentInChildren<Animator>();
             return c;

@@ -8,7 +8,7 @@ namespace WildWasteland.Core
 {
     internal static class MultiplayerHosting
     {
-        internal sealed class SaveChoice { internal string File, Name; }
+        internal sealed class SaveChoice { internal string File, Name; internal bool Automatic; }
         static Func<IList> _worlds;
         static Func<string, int, object> _create;
         static Func<object, string> _file, _name;
@@ -67,7 +67,8 @@ namespace WildWasteland.Core
                 string file = Path.GetFileName(path), name;
                 if (!IsSaveFile(file) || new FileInfo(path).Length <= 1024) continue;
                 if (!names.TryGetValue(file, out name)) name = Path.GetFileNameWithoutExtension(file);
-                result.Add(new SaveChoice { File = file, Name = name });
+                var info = HostSaveSystem.Info(file, name);
+                result.Add(new SaveChoice { File = file, Name = info.Name, Automatic = info.Automatic });
             }
             return result;
         }
@@ -82,6 +83,8 @@ namespace WildWasteland.Core
         internal static string Validate(string name, string file, string seed)
         {
             if (!Multiplayer.CanHost) return "Hosting is unavailable while a session, save or load is active.";
+            if (!HostSaveSystem.Ready) return HostSaveSystem.RecoveryError ?? "The server save system is not ready.";
+            if (HostSaveSystem.RecoveryError != null) return HostSaveSystem.RecoveryError;
             if (string.IsNullOrEmpty(name) || name.Trim().Length == 0) return "Enter a world name.";
             foreach (char ch in name) if (char.IsControl(ch) || ch == '<' || ch == '>') return "Use a world name without control characters or markup.";
             int value;

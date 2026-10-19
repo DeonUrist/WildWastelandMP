@@ -1,0 +1,1321 @@
+[CleanHUD]
+
+## Clean HUD & menus: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[CleanHUD / HUD]
+
+## Replace the native HUD. Off restores it immediately.
+# Setting type: Boolean
+# Default value: true
+HUD = true
+
+## Show water, food and sleep beneath HP and armor.
+# Setting type: Boolean
+# Default value: true
+ShowNeeds = true
+
+## Show HP and armor values inside their bars.
+# Setting type: Boolean
+# Default value: true
+ShowHealthNumbers = true
+
+## Show insanity in the top right while above zero.
+# Setting type: Boolean
+# Default value: true
+ShowInsanity = true
+
+## Compass icons and distances for vehicle groups: merchants yellow, Coyotes green, patrols red and convoys orange.
+# Setting type: Boolean
+# Default value: true
+ShowConvoys = true
+
+## Compass icons and distances for native locations within 1 km.
+# Setting type: Boolean
+# Default value: true
+ShowLocations = true
+
+## Show multiplayer teammates, their names and distances on the Wild Wasteland compass. This is your own display preference.
+# Setting type: Boolean
+# Default value: true
+ShowPlayers = true
+
+## Show colored direction arrows for all multiplayer players, including you, on the map. This is your own HUD preference.
+# Setting type: Boolean
+# Default value: true
+ShowPlayersOnMap = true
+
+## Show all compass vehicle groups with white vehicle icons, keeping their distances.
+# Setting type: Boolean
+# Default value: true
+AmbiguousPatrols = true
+
+## Show undiscovered compass locations as neutral question marks. Approaching within 100 m or spotting through binoculars remembers their real icons and colors. Quest flags are unchanged.
+# Setting type: Boolean
+# Default value: true
+AmbiguousLocations = true
+
+## Show the compass, including its direction strip and all markers.
+# Setting type: Boolean
+# Default value: true
+Compass = true
+
+## Show the gear/RPM/speed HUD only while driving in third person. Off allows either camera view; the source HUD enable switch still applies.
+# Setting type: Boolean
+# Default value: true
+DrivingHudOnlyThirdPerson = true
+
+## HUD scale; each panel grows away from its screen edge.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.5 to 1.5
+Scale = 1
+
+[CleanHUD / Map]
+
+## Enable the native debug map on the game's Map key.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Off hides map markers; Ambiguous shows question marks until locations are discovered within 100 m or spotted through binoculars; On shows their icons and colors. Discoveries are saved. Map icons have no name labels.
+# Setting type: MapDetail
+# Default value: Ambiguous
+# Acceptable values: Off, Ambiguous, On
+Markers = Ambiguous
+
+## World traffic markers: moving dots and names of patrols, convoys, merchants and foot travelers. Off hides them; Ambiguous shows gray Unknown; On shows their colors and names. Independent of location markers; fog of war still applies.
+# Setting type: MapDetail
+# Default value: Ambiguous
+# Acceptable values: Off, Ambiguous, On
+TrafficMarkersMode = Ambiguous
+
+## Route lines of world traffic only (the moving markers are World traffic markers). Off hides them; Ambiguous draws them gray; On in faction colors.
+# Setting type: MapDetail
+# Default value: Off
+# Acceptable values: Off, Ambiguous, On
+Routes = Off
+
+## Hide the parts of the map you have not explored yet. Exploring is recorded while this is off.
+# Setting type: Boolean
+# Default value: true
+FogOfWar = true
+
+## Share explored map areas with everyone in the multiplayer world. Off restores each player's personal exploration, which keeps recording while sharing is on. Controlled by the host.
+# Setting type: Boolean
+# Default value: false
+SharedVision = true
+
+## Base range in meters. Exploration reveals twice this radius; high ground extends it up to threefold (4 km radial cap), with raised binoculars doubling the viewed cone again.
+# Setting type: Single
+# Default value: 500
+# Acceptable value range: From 50 to 2000
+FogRevealRadius = 500
+
+## Width in meters of the soft edge, measured inward from the reveal radius. 0 = hard edge.
+# Setting type: Single
+# Default value: 200
+# Acceptable value range: From 0 to 1000
+FogEdgeFade = 200
+
+## 1 hides unexplored areas completely; lower values leave them faintly visible.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 1
+FogOpacity = 1
+
+## Remembered additional binocular magnification. Scroll while binoculars are raised to change it from 1x to 2x.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 1 to 2
+BinocularZoom = 1
+
+TrafficMarkers = true
+
+[CleanHUD / Menu]
+
+## Replace the title and pause menus with CleanHUD's menus.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Use CleanHUD's forcedSquare font instead of the game's Helveticrap font. Applies to CleanHUD and its settings text.
+# Setting type: Boolean
+# Default value: false
+CleanFont = false
+
+## CleanHUD text and border accent; also selectable at the bottom of the title and pause menus.
+# Setting type: String
+# Default value: Yellow
+# Acceptable values: Yellow, Green, Blue, Red, Purple, White, Gray, Mint
+Accent = Green
+
+## Add the game's cheat controls to the menu settings.
+# Setting type: Boolean
+# Default value: false
+EnableCheats = false
+
+[Debug]
+
+## Detailed info logging for every module (off for normal play).
+# Setting type: Boolean
+# Default value: false
+VerboseLog = false
+
+## Show Developer while Enable Debug is on. Contains advanced settings, editors and diagnostics.
+# Setting type: Boolean
+# Default value: false
+Developer mode = false
+
+## Show optional mod recommendations at the title menu.
+# Setting type: Boolean
+# Default value: false
+Recommended mods = false
+
+[EngineSimCompat]
+
+## Engine Sim compatibility: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[General]
+
+Apocasetter = true
+
+[Guns]
+
+## Guns, ammo & tracers: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Real bullets for NPC and player guns: flight time, falloff with distance, headshots and vehicle part damage. Off = the game's own instant hits; the NPC module controls NPC decisions separately. (Gunplay: [General] EnableGunplay)
+# Setting type: Boolean
+# Default value: true
+Projectiles = true
+
+## Every physical gun keeps its own magazine and chamber state (saved with the game). Off = the game's own shared ammo per gun type; magazines are not saved while off.
+# Setting type: Boolean
+# Default value: true
+PerGunMagazines = true
+
+## Hold Reload to unload the current gun. Short presses reload on release. Per-gun magazines remain tracked when this is off. (Gunplay: [Ammo] EnableUnloading)
+# Setting type: Boolean
+# Default value: true
+Unloading = true
+
+## Drop excess ammo when switching to a smaller backpack or removing it. Failed drops retain the ammo and retry. (Gunplay: [Ammo] DropBackpackOverflow)
+# Setting type: Boolean
+# Default value: true
+BackpackOverflow = true
+
+## Drop one armor plate for each full 50 points of excess armor when switching to lower-capacity body armor. Excess below 50 produces no plate. Failed drops retain armor and retry. (Gunplay: [Ammo] DropArmorOverflow)
+# Setting type: Boolean
+# Default value: true
+ArmorOverflow = true
+
+## Adjust the health of the human bosses (Duke Ironjaw, Buzzgut) to [Guns / Bosses] AdjustHumanBossHP. Off = the game's own boss health.
+# Setting type: Boolean
+# Default value: true
+BossHealth = true
+
+## Projectiles of monsters without guns (Arachnid, Teacher and the like) are stopped by walls, terrain and vehicles; car glass, grids, doors and plates let them through as often as a pistol bullet. Off = the game's own projectiles, which fly through everything. Needs Projectiles.
+# Setting type: Boolean
+# Default value: true
+MonsterProjectilesHitWalls = true
+
+## Your melee weapons hit wheels hard (x [Guns / Ballistics] WheelDamageMultiplier), also fitted wheels the game's own swing passes through; a wheel brought to 0 pops off (WheelPopOff). Off = the game's own melee damage on wheels (the Patrols module's simpler fitted-wheel melee takes over).
+# Setting type: Boolean
+# Default value: true
+MeleeOnWheels = true
+
+## NPC gunmen aim at the centre of your body and lead moving targets (tuning in F7 > Weapons & HUD > NPC aim). Off = the game's own aim point (your head) and no lead. Needs Projectiles.
+# Setting type: Boolean
+# Default value: true
+NpcAim = true
+
+## First person: while aiming down sights, scroll up to zoom in smoothly and down to zoom out. Up to 3x additional zoom, including scopes. Leaving sights resets the zoom.
+# Setting type: Boolean
+# Default value: true
+IronsightWheelZoom = true
+
+## Press Aim Down Sights once to aim and again to stop aiming. Off: hold the button as in the original game.
+# Setting type: Boolean
+# Default value: false
+ToggleIronsights = false
+
+## First person: lower the current weapon and raise the next weapon smoothly when drawing, holstering or switching slots.
+# Setting type: Boolean
+# Default value: true
+SmoothWeaponSwitch = true
+
+[Guns / Ammo]
+
+## Seconds to hold Reload before unloading; a shorter press reloads on release.
+# Setting type: Single
+# Default value: 0.35
+# Acceptable value range: From 0.1 to 2
+HoldSeconds = 0.35
+
+[Guns / Bosses]
+
+## Health of the human bosses (Duke Ironjaw 1500, Buzzgut 600) in % of the game's own.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 5 to 300
+AdjustHumanBossHP = 50
+
+[Guns / Projectiles]
+
+## Bullet speed, m/s.
+# Setting type: Single
+# Default value: 250
+# Acceptable value range: From 20 to 2000
+BulletSpeed = 250
+
+## Crossbow bolt speed, m/s.
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 10 to 500
+BoltSpeed = 60
+
+## Damage of a bullet in the head - yours on NPCs, NPCs' on you and on each other (replaces the game's own x2 on NPC heads).
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.5 to 5
+HeadshotMultiplier = 1.5
+
+## Draw the glowing trail of every bullet in flight (crossbow bolts are always drawn).
+# Setting type: Boolean
+# Default value: true
+Tracers = true
+
+## Draw tracers for your own shots too.
+# Setting type: Boolean
+# Default value: true
+PlayerGunTracers = true
+
+## Bullets damage the vehicle parts they hit (20 bullet damage = 1 % condition; wheels much more). Off = the game's own rule.
+# Setting type: Boolean
+# Default value: true
+VehicleDamage = true
+
+## A wheel shot or slashed to 0 condition jumps off its car.
+# Setting type: Boolean
+# Default value: true
+WheelPopOff = true
+
+[Guns / Ranges]
+
+## Pistols/revolvers: damage falls off linearly with distance - half at 50 % of this range, the bullet is gone at 100 %. Metres.
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 5 to 1000
+PistolRange = 60
+
+## SMGs, falloff range in metres (half damage at half range).
+# Setting type: Single
+# Default value: 70
+# Acceptable value range: From 5 to 1000
+SmgRange = 70
+
+## Automatic rifles and machine guns, falloff range in metres.
+# Setting type: Single
+# Default value: 120
+# Acceptable value range: From 5 to 1000
+RifleRange = 120
+
+## Sniper/scoped rifles, falloff range in metres.
+# Setting type: Single
+# Default value: 250
+# Acceptable value range: From 5 to 1000
+SniperRange = 250
+
+## Shotguns, falloff range in metres.
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 5 to 1000
+ShotgunRange = 35
+
+## Crossbows, falloff range in metres.
+# Setting type: Single
+# Default value: 90
+# Acceptable value range: From 5 to 1000
+CrossbowRange = 90
+
+[HUD]
+
+## Combat HUD: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Weapon crosshair: 0 = none, 1 = vanilla, 2 = two horizontal lines, 3 = dot. Follows the game's weapon and aiming visibility.
+# Setting type: Int32
+# Default value: 1
+# Acceptable value range: From 0 to 3
+Crosshair = 1
+
+## Show the game's selection dot without a weapon. Independent of the weapon crosshair.
+# Setting type: Boolean
+# Default value: true
+SelectionDot = true
+
+## Damage numbers, hit marker and headshot sound for your hits (master switch for HitMarker, FloatingDamage and HeadshotSound). The crosshair settings are independent.
+# Setting type: Boolean
+# Default value: true
+HitFeedback = true
+
+## A diagonal cross flashes at the screen centre when your bullet hits a creature (white, red for a headshot).
+# Setting type: Boolean
+# Default value: true
+HitMarker = true
+
+## Damage your hits do, shown as: 0 = nothing, 1 = a list in the top right corner, 2 = numbers floating up from the hit point. White = damage, red with '!' = headshot, light blue = % of condition taken off a vehicle part.
+# Setting type: Int32
+# Default value: 2
+# Acceptable value range: From 0 to 2
+FloatingDamage = 2
+
+## Play a sound for your headshots. Near-simultaneous hits are coalesced and overlap is limited without restarting sounds.
+# Setting type: Boolean
+# Default value: true
+HeadshotSound = true
+
+## Volume of the headshot sound, percent.
+# Setting type: Int32
+# Default value: 100
+# Acceptable value range: From 0 to 100
+HeadshotVolume = 100
+
+[Keys]
+
+## Third person: orbit the camera around the character (held, or press on / press off with ToggleObserving). None = no key.
+# Setting type: Key
+# Default value: LeftAlt
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Observe (third person) = LeftAlt
+
+## Optional separate climb key (the game's Jump key also climbs with JumpTriggersClimbing). None = no key.
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Climb (alternative key) = None
+
+## Driving: start / stop the cassette player. Starting at zero volume sets 0.5. None = no hotkey.
+# Setting type: Key
+# Default value: Z
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Cassette start/stop = Z
+
+## Driving: cassette volume -0.1 (also keypad minus). None = no hotkey.
+# Setting type: Key
+# Default value: Minus
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Cassette volume down = Minus
+
+## Driving: cassette volume +0.1 (+ on the main keyboard, also keypad plus). None = no hotkey.
+# Setting type: Key
+# Default value: Equals
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Cassette volume up = Equals
+
+## Debug: spawn a Gungirl six metres ahead.
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Spawn female raider = None
+
+## Your shout (with 'Shout modifier' held): you yell like a raider and every NPC hostile to you within 25 m comes to check. None = off. (Alt+Q is shared on purpose with the Patrols merchant stop signal.)
+# Setting type: Key
+# Default value: Q
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Shout = Q
+
+## Hold this and press 'Shout' to shout (either Alt works when this is an Alt key); the game's own Q actions are ignored while it is held. None = the key alone.
+# Setting type: Key
+# Default value: LeftAlt
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Shout modifier = LeftAlt
+
+## Guns: key polled for hold-to-unload only if the game's Reload input axis cannot be read (normally the game's own Reload binding is used).
+# Setting type: Key
+# Default value: R
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Guns: unload fallback key = R
+
+## Patrols: open the patrol / convoy / merchant / loot editor (also F7 > Patrols & vehicles > Patrol editor). None = unbound
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Patrol editor = None
+
+## Patrols: save the vehicle you sit in as a template (only while seated; also F7 > Template recorder). None = unbound
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Template recorder = None
+
+## Patrols: toggle the bus passenger pose editor (also F7 > Seat & turret poses). None = unbound
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Bus passenger pose editor = None
+
+## Patrols: toggle the merchant item placement editor (also F7 > Merchants). None = unbound
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Merchant item editor = None
+
+## Key that shows or hides the quest log.
+# Setting type: Key
+# Default value: J
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Quests: quest log = J
+
+## Press to send your hired help away at any time. None = off (you can still dismiss them by talking to them).
+# Setting type: Key
+# Default value: Delete
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Quests: dismiss follower = Delete
+
+## Talk to the friendly NPC under your aim. Apocatalker owns its own interaction when installed.
+# Setting type: Key
+# Default value: F
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+Quests: talk = F
+
+NPC shout = Q
+
+NPC shout modifier = LeftAlt
+
+NPC test web = None
+
+Tool window = F7
+
+[Multiplayer]
+
+## Your multiplayer display name (1-48 characters). Empty uses the Steam or launcher name. Change before hosting or joining.
+# Setting type: String
+# Default value: 
+Name = Client
+
+## Show floating multiplayer names facing your rendered camera. This is your own HUD preference.
+# Setting type: Boolean
+# Default value: true
+FloatingNames = true
+
+[NPC]
+
+## NPC AI & navigation: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## NPCs see (field of view, light, flashlight), hear gunshots, shouts, engines and explosions, remember where you were and search. Off = the game's own sensors.
+# Setting type: Boolean
+# Default value: true
+EnableNpcDetection = true
+
+## NPCs steer around obstacles, use the maps of camps, caves and buildings, take shooting positions, kneel and aim. Off = the game's own movement.
+# Setting type: Boolean
+# Default value: true
+EnableNpcPathfinding = true
+
+## NPC gunmen pace their bursts: they hold fire beyond their gun's reach, take longer to aim at a distance and lead moving targets.
+# Setting type: Boolean
+# Default value: true
+NpcAim = true
+
+## Camp raiders who lose you go back to their spawn spot, and walk a short round in their camp while nothing happens.
+# Setting type: Boolean
+# Default value: true
+EnableIdleBehavior = true
+
+## The idle behaviour also for the peaceful Coyote towns.
+# Setting type: Boolean
+# Default value: true
+CoyotesIdle = true
+
+## NPCs of the same faction walk through each other while they fight, search or walk home - no bumping, no blocking a passage. Solid again once they are idle.
+# Setting type: Boolean
+# Default value: true
+FriendsPassThrough = true
+
+## Sandstorms (and ApocaDustStorm's dust storms) dim NPC sight and hearing; tornado funnels make NPCs forget what they were doing. Off = storms do not affect the senses.
+# Setting type: Boolean
+# Default value: true
+Storms = true
+
+## Scorpions burrow into sand when nothing alerts them (and come up every 10-30 s), eyes above the surface. Big scorpions also hunt underground: they travel under the sand and come up behind their enemy.
+# Setting type: Boolean
+# Default value: true
+Burrow = true
+
+## Scorpions wait until a target comes within 3-5 m. Spiders wait in darkness, but react to shouts, gunfire, light and a nest's web being touched.
+# Setting type: Boolean
+# Default value: true
+Ambush = true
+
+## Small spiders zigzag in when they get close to you over open ground, leap at you from 5-6 m, bite and run off before trying again.
+# Setting type: Boolean
+# Default value: true
+Pounce = true
+
+## Caves, wrecks and camps with spiders become spider nests: webs across their openings and on the ground, big spiders sitting in the webs. Touch a web and the whole nest comes at you.
+# Setting type: Boolean
+# Default value: true
+SpiderNests = true
+
+## Quadrupeds commit to dodgeable running bites and use faster bites at close range. Without the animation bundle, the original procedural bite is used.
+# Setting type: Boolean
+# Default value: true
+DogBite = true
+
+## Retargeted animations on hounds, Grimhound and nightwalkers. Requires NPC/Models/npcai_dogs.bundle; otherwise the existing procedural bite remains active.
+# Setting type: Boolean
+# Default value: true
+DogAnimations = true
+
+## Non-boss quadrupeds alternate standing and lying idle, spending a random 10-25 seconds in each pose. Threats interrupt rest through get-up.
+# Setting type: Boolean
+# Default value: true
+DogsLieDown = true
+
+## Optional short, collision-checked jumping bite. Native damage is applied only if the target remains within reach at contact.
+# Setting type: Boolean
+# Default value: true
+DogJumpAttack = true
+
+## With FlyingKlick's Dog Companion installed: the companion dog uses the same dog animations (locomotion, bites, sitting in vehicles, sneaking). Off = Dog Companion's own behaviour.
+# Setting type: Boolean
+# Default value: true
+DogCompanionCompat = true
+
+[NPC / Detection]
+
+## Width of an NPC's field of view, degrees.
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 10 to 360
+SightCone = 100
+
+## How far an NPC sees in daylight, m (and at any light if your flashlight is on).
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 5 to 300
+SightRange = 100
+
+## How far an NPC sees in full darkness, m.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 100
+DarkSightRange = 5
+
+[NPC / Gungirl]
+
+## Gungirl model, relative to the NPC asset folder. Restart to reload.
+# Setting type: String
+# Default value: Models/Flexa_female.glb
+Model = Models/Flexa_female.glb
+
+## Gungirl texture, relative to the NPC asset folder. Restart to reload.
+# Setting type: String
+# Default value: Models/flexa_female.png
+Texture = Models/flexa_female.png
+
+## Comma-separated attachment name prefixes hidden on newly dressed Gungirls.
+# Setting type: String
+# Default value: beard, headband, armband
+HideParts = beard, headband, armband
+
+## Female voice folder, relative to the NPC asset folder. WAV and OGG; OGG wins. Restart to reload.
+# Setting type: String
+# Default value: Sounds/Gungirl
+Voice = Sounds/Gungirl
+
+## Match female voice loudness to the native clips.
+# Setting type: Boolean
+# Default value: true
+VoiceMatchLoudness = true
+
+## Female voice volume multiplier.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 4
+VoiceVolume = 1
+
+## Shortest combat shout pause for newly dressed females, seconds.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0 to 60
+VoiceIntervalMin = 2
+
+## Longest combat shout pause for newly dressed females, seconds.
+# Setting type: Single
+# Default value: 8
+# Acceptable value range: From 0 to 60
+VoiceIntervalMax = 8
+
+[NPC / Pathfinding]
+
+## With many NPCs around, each one thinks less often (saves CPU in big fights).
+# Setting type: Boolean
+# Default value: false
+ScaleWithActors = false
+
+[NPC / Shoota]
+
+## Shoota model, relative to the NPC asset folder. Restart to reload.
+# Setting type: String
+# Default value: Models/Sprokka_female.glb
+Model = Models/Sprokka_female.glb
+
+## Shoota texture, relative to the NPC asset folder. Restart to reload.
+# Setting type: String
+# Default value: Models/sprokka_female.png
+Texture = Models/sprokka_female.png
+
+## Comma-separated attachment name prefixes hidden on newly dressed Shootas.
+# Setting type: String
+# Default value: armor2, armband
+HideParts = armor2, armband
+
+[NPC / Women of Wasteland]
+
+## Convert a share of newly spawned Flexa and Sprokka raiders to Gungirl and Shoota. Existing females keep their identity when off.
+# Setting type: Boolean
+# Default value: true
+EnableFemaleNpc = true
+
+## Percentage of eligible new raiders and crew converted to female variants.
+# Setting type: Int32
+# Default value: 33
+# Acceptable value range: From 0 to 100
+FemalePopulation = 33
+
+## Apply the female population chance to new Flexa/Sprokka drivers, passengers and turret gunners. Explicit female template choices still apply when off.
+# Setting type: Boolean
+# Default value: true
+FemaleCrew = true
+
+[Patrols]
+
+## Patrols, traffic & War Rig: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Raider patrols and convoys spawn on their own while you play. Off = no automatic spawns at all (the editor's test spawns still work)
+# Setting type: Boolean
+# Default value: true
+Automatic spawns = true
+
+## World traffic: Scrapyard and Coyote groups that meet fight each other (resolved off-screen when you are far away; wrecks, corpses and a skull on the debug map). Off = no new battles
+# Setting type: Boolean
+# Default value: true
+Faction battles = true
+
+## World traffic: Coyote trader buses (General / Mechanic / Organic shops) travel and park; stop one with Alt+Q or the horn. Off = no automatic merchant routes (same as Max merchants 0)
+# Setting type: Boolean
+# Default value: true
+Merchants = true
+
+## A template's human turrets fight: a Warboy crouching on the roof throws blast lances (and may leap at you: "Witness me!"), a gunner shoots all around with its own gun. Off = they just ride along
+# Setting type: Boolean
+# Default value: true
+Human turrets = true
+
+## Ranged humans (Boltjaw/Flexa/Lugnut/Scrud/Sprokka) in a car use their vanilla targeting and ranged attack: the passenger whenever a target is in the fire arc, the driver in bursts. Off = everybody just rides along
+# Setting type: Boolean
+# Default value: true
+Ranged combat = true
+
+## An AI car that hits you (on foot or in your car) hurts you. The game's own bumper damage only works against creatures, not the player
+# Setting type: Boolean
+# Default value: true
+Ram damage = true
+
+## Ram damage also while you sit in your own car (the game's own CrashDamage still applies by your speed). Off = only on foot
+# Setting type: Boolean
+# Default value: false
+Ram damage in car = false
+
+## A raider car built from a template that has a cassette in its radio plays it at full volume from the moment it spawns, until you switch the radio off. Off = the cassette sits in the radio, silent, as in a parked car
+# Setting type: Boolean
+# Default value: true
+Raider music = true
+
+## Raider cars wear the paint jobs from the Patrols\Textures folder (body textures, truck container sides and inside). Off = they keep the game's own textures (cars spawned from then on; the textures are not loaded at game start)
+# Setting type: Boolean
+# Default value: true
+Custom paintjobs = true
+
+## Override template explodeChance with 100%. Requires a dead driver and all living passengers/turrets to leave. An alive driver bailout never explodes the car; captured cars are protected
+# Setting type: Boolean
+# Default value: false
+Always explode cars = false
+
+## Remove raider cars you left behind. A car you have ever sat in is never removed (the game itself only deletes cars beyond 5 km)
+# Setting type: Boolean
+# Default value: true
+Cleanup = true
+
+## Raider engines overheat like yours (smoke, steam, the engine wears down). Off = they never overheat while their crew drives; a car you take or an engine you loot heats normally again
+# Setting type: Boolean
+# Default value: false
+Raiders overheat = false
+
+## Every patrol and convoy group can spawn from the start: their minimum distance travelled and minimum boss kills are ignored. Off = groups unlock with distance and bosses as set in the editor
+# Setting type: Boolean
+# Default value: true
+Fury Road = true
+
+## NPC module: no crew AI while seated; dismounted bandits fight using baked-map navigation; they hunt you only once they have seen or fought you, and keep track of you for a while after a fight
+# Setting type: Boolean
+# Default value: true
+Simple convoy bandits AI = true
+
+## World traffic: groups of 2-5 raiders walk between camps over open land (simulated while you are far away). Crew left without a usable car also walk to a nearby camp. Off = no new foot patrols
+# Setting type: Boolean
+# Default value: true
+Foot patrols = true
+
+## Debug: dismounted crew whose fight is over walk back to their car and take their seats again (a passenger or gunner takes the wheel if the driver is dead); the car leaves once every living member is aboard
+# Setting type: Boolean
+# Default value: true
+Return to car = true
+
+## World traffic: varied attack runs and vehicle-checked camp approaches
+# Setting type: Boolean
+# Default value: true
+Tactical driving = true
+
+## Allow the abandoned War Rig POI and manual War Rig spawns. World discovery chance is in POI / World. Existing rigs are unaffected
+# Setting type: Boolean
+# Default value: true
+War Rig spawns = true
+
+## Rescue a War Rig (with its truck and passengers) after a confirmed fall below the terrain. Off by default
+# Setting type: Boolean
+# Default value: false
+War Rig ground recovery = false
+
+World traffic = true
+
+Spawn warning = true
+
+[Patrols / Balance]
+
+## Lowest condition (%) of a spawned raider car's parts that have one (engine, radiator, wheels ...)
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 0 to 100
+MinPartHealth = 80
+
+## Highest condition (%) of a spawned raider car's parts; the roll is weighted toward two thirds of the way from Min to Max
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 0 to 100
+MaxPartHealth = 100
+
+## % chance for each part of an exploded raider car to keep its condition (MinPartHealth..MaxPartHealth) instead of dropping at 0 %. 20 = about one part in five, 0 = all junk, 100 = all usable
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 0 to 100
+ExplodedCarPartsPercent = 20
+
+[Patrols / Combat]
+
+## Damage multiplier when any car hits a creature other than the player, including NPC-driven cars: 4 = four times the game's bumper damage, 1 = vanilla, 0 = no damage
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 0 to 10
+NPC ram damage multiplier = 4
+
+## Occupants only shoot at a target closer than this, m
+# Setting type: Single
+# Default value: 40
+# Acceptable value range: From 1 to 200
+ShootDistance = 40
+
+## % chance that an unhurt blast-lance rider screams "Witness me!" and leaps at your car when you drive close (a wounded rider always does). 100 = every time
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 100
+WitnessMeChance = 10
+
+[Patrols / Merchants]
+
+## Maximum merchants, with at most one of each shop type. Zero disables automatic merchants.
+# Setting type: Int32
+# Default value: 2
+# Acceptable value range: From 0 to 3
+Max merchants = 2
+
+## Average percentage of Max merchants represented by routes. Whole slots are guaranteed; the remaining fractional slot is rolled at each check. 100 fills the cap; zero creates no merchant routes.
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 0 to 100
+Merchant spawn chance = 100
+
+## Check and adjust merchant route population this often, including replacing departed merchants. No immediate replacement when a route ends. Loaded merchants finish their visit before excess routes are removed.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 1 to 60
+Merchant check interval (minutes) = 5
+
+[Patrols / Spawning]
+
+## Size of every patrol / convoy that spawns, for weaker PCs: below 100 the group loses cars at random down to this share (rounded down, never below one car; a convoy keeps all of its trucks)
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 10 to 100
+PatrolSizePercent = 100
+
+## Maximum tracked patrol groups, including arrived and passing Coyote groups; replaces density
+# Setting type: Int32
+# Default value: 3
+# Acceptable value range: From 0 to 64
+Max patrols = 3
+
+## Maximum tracked convoy groups, including arrived groups; replaces density
+# Setting type: Int32
+# Default value: 1
+# Acceptable value range: From 0 to 64
+Max convoys = 1
+
+## Limit physical encounter cars; pending builds count toward the same budget
+# Setting type: Boolean
+# Default value: true
+Car spawn limit = true
+
+## Maximum cars in one patrol or convoy; cargo trucks have priority
+# Setting type: Int32
+# Default value: 5
+# Acceptable value range: From 1 to 24
+Max cars in event = 5
+
+## Combined physical car budget when encounters overlap near the player
+# Setting type: Int32
+# Default value: 6
+# Acceptable value range: From 1 to 48
+Max cars in double event = 6
+
+MinConvoyCooldown = 5
+
+MaxConvoyCooldown = 60
+
+PatrolSpawnChancePercent = 80
+
+[Patrols / War Rig]
+
+WarRigPercent = 100
+
+[Patrols / World traffic]
+
+## Simulated/cruising patrol speed
+# Setting type: Single
+# Default value: 55
+# Acceptable value range: From 10 to 100
+PatrolSpeedKmh = 55
+
+## Simulated/cruising convoy speed
+# Setting type: Single
+# Default value: 38
+# Acceptable value range: From 10 to 80
+ConvoySpeedKmh = 38
+
+## Loaded, uncleared raider camps support base patrols and convoys; incoming Coyote patrols do not require camps
+# Setting type: Single
+# Default value: 2500
+# Acceptable value range: From 500 to 10000
+Camp traffic range = 2500
+
+[Performance]
+
+## Performance & optimization: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: false
+Enabled = true
+
+[PlayerBody]
+
+## Player body & animation: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Your character's body. Male, Female, Merchant, Bodyguard, Sprokka, OrganicMechanic, Gungirl and Shoota use Wild Wasteland player animations, online or offline. Legacy Pistoleer/Mechanic choices map to Bodyguard/Merchant.
+# Setting type: Gender
+# Default value: Male
+# Acceptable values: Female, Male, Merchant, Bodyguard, Sprokka, Pistoleer, Mechanic, OrganicMechanic, Gungirl, Shoota
+Character = Male
+
+## The game's Change Camera key switches to a camera behind your character, on foot and in cars (replaces the game's own car camera).
+# Setting type: Boolean
+# Default value: true
+ThirdPerson = true
+
+## Third person, observing key ([Keys] Observe). Off: hold the key to orbit the camera around the character; it returns behind the character when you let go. On: a press starts observing and the camera stays where you left it until the next press.
+# Setting type: Boolean
+# Default value: true
+ToggleObserving = true
+
+## Third person with a weapon drawn: the crosshair sits where your shots and melee hits really land (the eye ray from the head). Without a weapon, or Off: the crosshair stays centred and the camera turns toward the aim point.
+# Setting type: Boolean
+# Default value: true
+DynamicCrosshair = true
+
+## First person: see the body (legs and torso when you look down, the shadow, the body in the driver's seat). Off = only the first-person arms.
+# Setting type: Boolean
+# Default value: true
+BodyFirstPerson = true
+
+## Full Body: show the first-person body only on foot, keeping the driver's first-person view clear.
+# Setting type: Boolean
+# Default value: false
+FullBodyOnlyOnFoot = false
+
+## First person with nothing in hand: show the body's own arms (idle/walk swing, hands on the wheel in a car). Off = no body arms in first person; the game's weapon and item arms always show.
+# Setting type: Boolean
+# Default value: true
+FirstPersonArms = true
+
+## First Person Arms: show the empty-handed arms only on foot, hiding the hands on the wheel while driving.
+# Setting type: Boolean
+# Default value: false
+FirstPersonArmsOnlyOnFoot = false
+
+## The game's first-person arms and kick leg wear your character's skin (Female; Male keeps the game's own).
+# Setting type: Boolean
+# Default value: true
+FirstPersonArmSkin = true
+
+## Your character replaces the game's man in the driver's seat (posed from the seat, guns and throws from the seat) and on the TAB screen picture.
+# Setting type: Boolean
+# Default value: true
+ReplaceDriver = true
+
+## Show the carried equipment on the body: backpack, long guns on the back, sidearms, blades, binoculars, flashlight (with its glow).
+# Setting type: Boolean
+# Default value: true
+EquipmentOnBody = true
+
+## Female character: four female hurt sounds and a female death sound.
+# Setting type: Boolean
+# Default value: true
+FemalePainSounds = true
+
+## First person: frame-rate independent weapon / item sway (the game's own sway stutters with uneven frame times).
+# Setting type: Boolean
+# Default value: true
+SmoothWeaponSway = true
+
+## First person: the gun eases between hip and sights (right mouse button) instead of jumping. Time in F7.
+# Setting type: Boolean
+# Default value: true
+SmoothAimDownSights = true
+
+## Third person on foot: an item, part or switch close to the crosshair on screen is picked even if the eye ray misses it.
+# Setting type: Boolean
+# Default value: true
+PickAssist = true
+
+FirstPersonJumpLegs = true
+
+[PlayerBody / Camera culling]
+
+## Third person: keep the camera distance and make geometry between camera and body semi-transparent (prototype; roofs and vehicles get a larger window; not inside caves). Off = the camera moves in front of obstacles.
+# Setting type: Boolean
+# Default value: false
+CameraCulling = false
+
+## Third person while driving: also use the camera culling (needs CameraCulling on).
+# Setting type: Boolean
+# Default value: false
+CameraCullingInVehicles = false
+
+[PlayerBody / Climbing]
+
+## Climb onto reachable solid ledges on foot.
+# Setting type: Boolean
+# Default value: true
+Climbing = true
+
+## The game's Jump key climbs onto a reachable ledge or catches one within arm's reach during a jump. Otherwise it jumps normally.
+# Setting type: Boolean
+# Default value: true
+JumpTriggersClimbing = true
+
+AutomaticStepUp = false
+
+[PlayerBody / Vehicles]
+
+## Show ignition off, handbrake engaged and playing cassette with volume in the top right while driving.
+# Setting type: Boolean
+# Default value: true
+VehicleStatusHint = true
+
+## Show the vehicle hotkeys on the left while driving. Hiding the hints keeps the keys working.
+# Setting type: Boolean
+# Default value: true
+VehicleHotkeyHint = true
+
+## Adds an "Ignition" row to the game's Controls screen (default E): each press performs one ignition/start panel click (ignition on, crank, then stop on standard cars).
+# Setting type: Boolean
+# Default value: true
+IgnitionKey = true
+
+## A blast lance thrown from the driver's seat flies out of your own car instead of blowing up on it.
+# Setting type: Boolean
+# Default value: true
+LanceIgnoresOwnCar = true
+
+RustlinerDoorways = true
+
+[POI]
+
+## Points of interest: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[POI / World]
+
+## Chance for each added POI in each generated 5 km terrain slice. 100 guarantees one site per slice for debugging. Changes affect newly generated slices.
+# Setting type: Int32
+# Default value: 2
+# Acceptable value range: From 0 to 100
+Spawn chance (%) = 2
+
+[Quests]
+
+## Quests & hiring: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## How many quests you can carry at once.
+# Setting type: Int32
+# Default value: 5
+MaxActiveQuests = 5
+
+## Multiplies every reward (hand-written and generated).
+# Setting type: Single
+# Default value: 1
+RewardMultiplier = 1
+
+## Show a short list of your active quests in the top-right corner.
+# Setting type: Boolean
+# Default value: true
+ShowTracker = true
+
+[Quests / Generated]
+
+## NPCs can offer randomly generated jobs as well as the ones in quests.txt.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Which kinds of random jobs may be generated (fetch, kill, goto, talk, clear, takeover, deliver). Add takeover or deliver here if your config was made by an older version.
+# Setting type: String
+# Default value: fetch,kill,goto,talk,clear,takeover,deliver
+Types = fetch,kill,goto,talk,clear,takeover,deliver
+
+[Quests / Hire]
+
+## Bodyguards, pups, bolters, pistoleers, gunnars and luggers can be hired for reputation (needs the NPCAI and Apocapatrol mods).
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## The follower rides in your car's passenger seat when it is free, and gets out when you do.
+# Setting type: Boolean
+# Default value: true
+RideInCars = true
+
+## A follower with a ranged weapon shoots at your enemies from the passenger seat, the way Apocapatrol's crews do (needs Apocapatrol).
+# Setting type: Boolean
+# Default value: true
+ShootFromCar = true
+
+[Quests / Items]
+
+## Fetch quests also count items in your hand and quick slots.
+# Setting type: Boolean
+# Default value: true
+CountCarriedItems = true
+
+[Quests / RepVendor]
+
+## Merchants (see Npcs) buy and sell reputation with their own faction in the talk window: Buy / Sell 1, 5, 25, 50 or as many as possible.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[Quests / Voice]
+
+## Play recorded voice lines for quests that have them (Voice Actors\<actor>\<quest id>\offer.wav, accept.wav, remind.wav, done.wav).
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Volume of the voice lines, 0 to 10. Every recording is first levelled to the same loudness; 5 is full level, above 5 boosts it further.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 10
+Volume = 5
+
+## Where the Voice Actors folder is. Empty = a 'Voice Actors' folder next to the plugin DLL (or one level above it).
+# Setting type: String
+# Default value: 
+Folder = 
+
+[QuestsCompat]
+
+Enabled = true
+
+[Survival]
+
+## Survival: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[System / Cleanup]
+
+## Remove only selected, positively identified disposable objects after a verified save. Unknown ownership/references always retain objects.
+# Setting type: Boolean
+# Default value: false
+Cleanup on save = false
+
+## Remove abandoned Zombie_Runner_Dead roots only; never resource carcasses, live actors or player bodies.
+# Setting type: Boolean
+# Default value: false
+Non-resource zombie remains = false
+
+## Remove empty ammo/battery packs only when they have no remaining sale value and have never been observed in player custody.
+# Setting type: Boolean
+# Default value: false
+Exhausted disposable packs = false
+
+## Must remain this far from every connected player.
+# Setting type: Int32
+# Default value: 1000
+# Acceptable value range: From 1000 to 10000
+Minimum distance metres = 1000
+
+## Continuous active gameplay beyond the minimum distance. Enabling cleanup starts a fresh observation period.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 10 to 600
+Abandoned minutes = 10
+
+[System / Saving]
+
+## Create separate autosaves for offline or hosted worlds. Manual saves are never replaced by autosaving.
+# Setting type: Boolean
+# Default value: true
+Autosave = true
+
+## Real minutes between autosaves.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 1 to 120
+Autosave minutes = 10
+
+## Visible server-wide autosave countdown. At least 30 seconds, with notices at 30 and 15 seconds and a final warning before saving.
+# Setting type: Int32
+# Default value: 30
+# Acceptable value range: From 30 to 120
+Warning seconds = 30
+
+## Allow autosaves while the offline player, host or guests are driving or riding in any vehicle. Manual and exit saves are always available in vehicles.
+# Setting type: Boolean
+# Default value: false
+Autosave while driving = false
+
+## Number of separate autosaves per world lineage. Manual saves are not pruned.
+# Setting type: Int32
+# Default value: 5
+# Acceptable value range: From 1 to 100
+Autosaves to keep = 5
+
+## Verified previous versions per save. Interrupted recovery and deleted-save backups are always retained.
+# Setting type: Int32
+# Default value: 5
+# Acceptable value range: From 1 to 100
+Backups to keep = 5
+
+## Capture a gameplay thumbnail for each save.
+# Setting type: Boolean
+# Default value: true
+Save screenshots = true
+
+[Weather]
+
+## Weather: master switch for this whole feature group. Turning it off at runtime stops it immediately (patches removed); turning it on starts it again.
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+[Weather / Colors]
+
+## Color of the incoming front and its cloud bank. Live RGB controls are in Developer > Weather > Weather visual preview.
+# Setting type: Color
+# Default value: B89A7DFF
+External wall color = B89A7DFF
+
+## Interior haze and sky/lighting tint. Applies live; does not recolor UI or the independent vanilla sand effect.
+# Setting type: Color
+# Default value: 805936FF
+Main tint color = 805936FF
+
+## Independent color of the dense rotating hurricane shell. Does not fill its central eye.
+# Setting type: Color
+# Default value: A3907FFF
+Hurricane color = A3907FFF
+
+## Independent tint of the game's local sand/cloud particles, with live RGB controls.
+# Setting type: Color
+# Default value: 572F0CFF
+Vanilla sand effect color = 572F0CFF
+
+[Weather / Map]
+
+## Show moving Weather storm areas on the map. Critical storms lift vehicles and damage actors in hurricane sand walls; eyes are safe.
+# Setting type: Boolean
+# Default value: true
+Storm areas = true
+
+[Weather / Storms]
+
+## Extra world dimming with depth inside a storm. 0 = none; 1 = complete darkness in the deep interior. HUD stays readable.
+# Setting type: Single
+# Default value: 0.75
+# Acceptable value range: From 0 to 1
+Storm darkening = 0.75
+
+## Columns per square kilometre of critical storm area, rounded to the nearest whole column. Zero disables columns. Applies live and does not change with Performance presets.
+# Setting type: Single
+# Default value: 0.8
+# Acceptable value range: From 0 to 1
+Hurricanes per km² = 0.8
+
+## Width of the broad leading sand front. Applies live to preview regions and their map areas.
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 6 to 20
+Front width (km) = 20
+
+## Depth behind the front; sand fades and the footprint narrows toward the rear. Applies live.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 1 to 4
+Depth (km) = 4
+

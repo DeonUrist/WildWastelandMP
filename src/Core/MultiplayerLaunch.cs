@@ -16,7 +16,7 @@ namespace WildWasteland.Core
         internal static void Install()
         {
             _role = Environment.GetEnvironmentVariable("WWMP_ROLE");
-            if (_role != "host" && _role != "client") return;
+            if (_role != "host" && _role != "client" && _role != "client2") return;
             if (!Multiplayer.Present) throw new InvalidOperationException("WildWastelandMP launcher requires ApocalypterMP.dll");
             _saves = Environment.GetEnvironmentVariable("WWMP_SAVES");
             _world = Environment.GetEnvironmentVariable("WWMP_WORLD") ?? "WWMP_Local";
@@ -60,7 +60,7 @@ namespace WildWasteland.Core
         static void XmlPath(ref string __result) { __result = Path.Combine(_saves, "Settings.xml"); }
         static void GraphicsPath(AkshayDhotre.GraphicSettingsMenu.GraphicSettingSaveManager __instance) { __instance.filePath = _saves.Replace('\\', '/') + "/"; }
         static bool PlayerKey(ref string __result) { __result = "WWMP-local-" + _role; return false; }
-        static bool PlayerName(ref string __result) { __result = _role == "host" ? "Host" : "Client"; return false; }
+        static bool PlayerName(ref string __result) { __result = _role == "host" ? "Host" : _role == "client2" ? "Client 2" : "Client"; return false; }
         static IEnumerator Start()
         {
             Application.runInBackground = true;

@@ -1,5 +1,23 @@
 # Remote holding poses, NPC arm fit and equipment — 2026-10-18, Testing
 
+## Seated gun/head and attachment follow-up — 2026-10-19, Testing
+
+Denis reported incorrect guest gun placement on observers while seated, heads not following the cursor, and requested correct presentation for other character models and NPCs. He approved the full PlayerBody/handshake scope.
+
+Code evidence: MultiplayerMotion serialized and applied the fitted gun only for mode4; driver/passenger modes2/3 already sent bones but used native item grip defaults. Body.LateCarInner read camera direction only while gun/throw arms were active and never added independent neck/head tracking. Foot first-person capture retained the deliberately suppressed torso pitch. ModCharacter.SetWeapon refreshed the host NPC manifest, but Suspended/Dispose restored the original hand without refreshing its path; resuming grabbed it again without a manifest update.
+
+Changes: modes2/3 use the existing mode4 gun payload/validation/interpolation and pose-aligned identity. Head look adds the remaining camera/target pitch, plus bounded seated yaw/pitch after torso aim; mapped NPC spine bones determine the remaining head pitch. First-person capture temporarily adds the missing torso pitch and compensates the head, captures before local camera fitting, then restores in finally. NPC attachment manifests refresh on actual grab and release. No new config/save keys/packet kinds/jobs/Harmony targets. Six source files: PlayerBody Animation/{MultiplayerAvatars,MultiplayerMotion,ModCharacter,Loco}.cs, Body/Body.cs, Core/MultiplayerHandshake.cs; 31 added/11 removed lines against task-start snapshots, with prior pending changes retained. Revision23 requires every peer to update.
+
+Windows `dotnet build WildWastelandMP.csproj -c Release -p:Deploy=false -o bin/Release/seated-aim_20261019` passed with zero warnings/errors. Exact stage `bin/Release/WildWastelandMP_seated-aim_20261019_141155.dll` installed with games closed and both disabled manifests absent. Built/staged/installed MD5 `0D2AAF8ACF5908301B327C10802C62A9`. Full current shared-tree work included. No game launch, harness, commit, push, base/external DLL or live-save/config edits. No new diagnostic log lines. Runtime visuals and performance are unverified.
+
+Manual acceptance:
+
+1. Restart/update host and every guest. Use one guest as driver, then passenger; repeat with host as driver/passenger. Observe from host and another guest. With rifle, pistol, shotgun, crossbow and lance, look left/right/up/down, aim/fire/reload, swap/holster and enter/exit. Expected: gun follows the hands and the sender's fitted pose, with no old weapon persisting through transitions. Repeat first-/third-person sender cameras, male/female and other selectable models.
+2. While seated unarmed, look left/right/up/down on host and guests. Expected: head follows the view within neck limits; hands retain wheel or passenger knee-rest pose. With a gun, the head follows without adding the torso's rotation twice. On foot, check head and gun pitch when looking up/down from both camera modes.
+3. Compare native male and female NPCs on host/guests through idle/walk/aim/burst/reload, mounting/dismounting and turret/follower animation transitions. Expected: matching arm/weapon presentation and gun attached to the current host hand, including after animation suspension/restoration. Regress wheel IK, crawling/downed poses, jump and climb. Do not mark Verified until Denis tests.
+
+## Original holding-pose/equipment fix — 2026-10-18
+
 Denis supplied paired screenshots of the same female player: the observer saw an M16 raised across her face while the local third-person model held it lowered. He also reported missing equipped backpacks/items and requested an NPC animation audit. He explicitly approved all three fixes and the larger PlayerBody/Core handshake scope.
 
 ## Proven causes

@@ -45,12 +45,14 @@ namespace WildWasteland.Modules.Guns
 
         internal static void Shot(GameObject shooter, Vector3 position, int kind, bool player)
         {
+            Services.ReportCombat();
             var npc = Services.Npc; if (npc == null) return;
             try { npc.Shot(shooter, position, kind, player); } catch (Exception e) { Core.Log.Warn("[Guns] NPC shot: " + e.Message); }
         }
 
         internal static void Hurt(GameObject victim, GameObject attacker)
         {
+            Services.ReportCombat();
             var npc = Services.Npc; if (npc == null) return;
             try { npc.Hurt(victim, attacker); } catch (Exception e) { Core.Log.Warn("[Guns] NPC hurt: " + e.Message); }
         }

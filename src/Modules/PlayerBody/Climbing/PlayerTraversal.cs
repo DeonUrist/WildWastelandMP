@@ -44,7 +44,7 @@ namespace WildWasteland.Modules.PlayerBody
         public static bool PlayerCanTraverse
         {
             get { return PlayerBodyModule.Running && Game.Ready && !Game.Dead && !Game.Paused && !Game.InCar
-                && Game.StandingHeight >= 1.4f && BodyRunner.PlayerBody != null && BodyRunner.PlayerBody.Alive && !BodyRunner.PlayerBody.IsRagdoll; }
+                && !Crawling.Active && Game.StandingHeight >= 1.4f && BodyRunner.PlayerBody != null && BodyRunner.PlayerBody.Alive && !BodyRunner.PlayerBody.IsRagdoll; }
         }
         public static bool PlayerTraversalActive { get { return BodyRunner.PlayerBody != null && BodyRunner.PlayerBody.Traversal != null; } }
         internal static bool PlayerWeaponStowed { get { return PlayerTraversalActive && BodyRunner.PlayerBody.Traversal.StowWeapon; } }

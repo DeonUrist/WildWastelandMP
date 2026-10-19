@@ -33,6 +33,7 @@ namespace WildWasteland.Modules.PlayerBody
 
         public static void OnSceneLoaded()
         {
+            Crawling.Reset();
             WheelArms.Clear();
             ClimbingController.ResetInstance();
             DestroyBody();
@@ -129,6 +130,7 @@ namespace WildWasteland.Modules.PlayerBody
                     if (_body == null) return;
                 }
 
+                if (!Crawling.Active) _body.EndCrawl();
                 if (Game.Dead)
                 {
                     _body.LateDead(_lastVelocity, _lastCar);
@@ -177,7 +179,7 @@ namespace WildWasteland.Modules.PlayerBody
                     bool show = third || PlayerBodyModule.BodyFirstPerson.Value;
                     _body.SetVisible(show && fpCam, !third && show && fpCam);
                     // first person, nothing in hand: the game draws no arms - show the body's own, animated like the rest of her
-                    fpArms = !third && fpCam && (ModAPI.PlayerTraversalActive
+                    fpArms = !third && fpCam && (Crawling.Active || ModAPI.PlayerTraversalActive
                         || PlayerBodyModule.EmptyHandArms.Value && !Game.Binoculars && (Game.ToolInHand || !Game.GameArmsShown));
                     mode = third ? "on foot, third person" : "on foot, first person";
                 }

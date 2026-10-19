@@ -38,6 +38,9 @@ namespace WildWasteland.Modules.Survival
                 if (prefab != null && prefab.name == "Water_Can_Plastic") { source = prefab.gameObject; break; }
             if (source == null) throw new InvalidOperationException("Water_Can_Plastic prefab is not loaded yet.");
             LoadModels();
+            // Each imported primitive needs a material slot, even when all use the same texture.
+            var potMaterials = new Material[potMesh.subMeshCount];
+            for (int i = 0; i < potMaterials.Length; i++) potMaterials[i] = potMaterial;
             if (holder == null)
             {
                 holder = new GameObject("StewPot.Templates") { hideFlags = HideFlags.HideAndDontSave };
@@ -56,13 +59,13 @@ namespace WildWasteland.Modules.Survival
                 foreach (var collider in copy.GetComponents<Collider>()) Object.DestroyImmediate(collider);
                 copy.GetComponent<MeshFilter>().sharedMesh = potMesh;
                 copy.GetComponent<MeshRenderer>().enabled = false;
-                copy.GetComponent<MeshRenderer>().sharedMaterial = potMaterial;
+                copy.GetComponent<MeshRenderer>().sharedMaterials = potMaterials;
                 var physics = copy.AddComponent<MeshCollider>(); physics.convex = true; physics.sharedMesh = ColliderMesh;
                 copy.GetComponent<Rigidbody>().mass = 3f;
                 var audio = copy.GetComponent<AudioSource>(); audio.playOnAwake = false; audio.loop = false;
                 var visual = new GameObject("StewPot.Visual"); visual.layer = copy.layer; visual.transform.SetParent(copy.transform, false);
                 visual.AddComponent<MeshFilter>().sharedMesh = potMesh;
-                visual.AddComponent<MeshRenderer>().sharedMaterial = potMaterial;
+                visual.AddComponent<MeshRenderer>().sharedMaterials = potMaterials;
                 var liquid = new GameObject("Liquid"); liquid.layer = copy.layer; liquid.transform.SetParent(visual.transform, false);
                 liquid.AddComponent<MeshFilter>().sharedMesh = liquidMesh;
                 liquid.AddComponent<MeshRenderer>().sharedMaterial = Liquids[(int)Contents.Water];

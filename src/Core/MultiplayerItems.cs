@@ -31,6 +31,7 @@ namespace WildWasteland.Core
         static Func<List<NamedVariable>, object> _new;
         static Func<object, IDictionary> _objects;
         static Func<object, bool> _owned, _changed;
+        static Func<object, ulong> _owner;
         static Func<object, float> _quiet;
         static Func<object, byte> _kind;
         static Func<object, uint> _sequence;
@@ -50,6 +51,7 @@ namespace WildWasteland.Core
             var world = Multiplayer.Type("Net.WorldObjects"); var tracked = Multiplayer.Type("Net.WorldObjects+Tracked");
             _objects = MultiplayerAccess.Get<IDictionary>(world, "objects");
             _owned = MultiplayerAccess.Get<bool>(tracked, "OwnedLocally"); _kind = MultiplayerAccess.Get<byte>(tracked, "Kind");
+            _owner = MultiplayerAccess.Get<ulong>(tracked, "Owner");
             _quiet = MultiplayerAccess.Get<float>(tracked, "QuietUntil");
             _sequence = MultiplayerAccess.Get<uint>(world, "stateSeq"); _setSequence = MultiplayerAccess.Set<uint>(world, "stateSeq");
             _capture = MultiplayerAccess.Call<Action<object>>(world, "Capture", tracked);
@@ -70,6 +72,9 @@ namespace WildWasteland.Core
                 throw new InvalidOperationException("MP condition reconciliation hooks could not be installed");
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(world, "ShouldSendVars"), prefix: AccessTools.Method(typeof(MultiplayerItems), "BeforeSendVars")))
                 throw new InvalidOperationException("MP item interaction authority hook could not be installed");
+            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(world, "OnRelease"),
+                prefix: AccessTools.Method(typeof(MultiplayerItems), "BeforeRelease"), postfix: AccessTools.Method(typeof(MultiplayerItems), "AfterRelease")))
+                throw new InvalidOperationException("MP dropped item publication hook could not be installed");
             MultiplayerEdits.Install();
         }
         static void Extend(GameObject __0, ref object __result)
@@ -121,6 +126,23 @@ namespace WildWasteland.Core
         {
             using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
             { writer.Write(kind); write(writer); MultiplayerReliable.Send(stream.ToArray(), null); }
+        }
+        static void BeforeRelease(ulong __0, BinaryReader __1, out object __state)
+        {
+            __state = null; if (!Multiplayer.Hosting || __0 == 0) return;
+            long position = __1.BaseStream.Position; int id;
+            try { id = __1.ReadInt32(); } finally { __1.BaseStream.Position = position; }
+            var state = Multiplayer.TrackedState(Multiplayer.ObjectById(id));
+            if (state != null && _owner(state) == __0) __state = state;
+        }
+        static void AfterRelease(object __state)
+        {
+            if (__state == null || _owner(__state) != 0) return;
+            var root = Multiplayer.TrackedObject(__state); if (root == null) return;
+            // GiveBackToHost captures the final pose, so native change detection may never publish it.
+            uint sequence = _sequence(null) + 1; _setSequence(null, sequence);
+            SendNative(8, w => { w.Write(sequence); w.Write(true); w.Write((ushort)1); w.Write(Multiplayer.ObjectId(root)); _writeState(w, __state); });
+            if (Log.Verbose) Log.Info("[Multiplayer] Released item state published to all clients: " + root.name);
         }
         internal static bool FlushInventory()
         {

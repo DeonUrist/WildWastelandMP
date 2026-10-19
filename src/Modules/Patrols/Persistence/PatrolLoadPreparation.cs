@@ -11,9 +11,7 @@ namespace WildWasteland.Modules.Patrols
         private static bool _loading;
         internal static void Install(Core.IModule owner)
         {
-            if (!Core.Patches.Patch(owner, Core.Patches.Method(typeof(Wait), "OnUpdate"),
-                prefix: Core.Patches.Method(typeof(PatrolLoadPreparation), "BeforeWait")))
-                throw new InvalidOperationException("Patrol load handoff hook failed");
+            Core.Hooks.WaitUpdate.Prefix(owner, BeforeWait);
         }
         internal static void StateChanged(string state, PlayMakerFSM save)
         {

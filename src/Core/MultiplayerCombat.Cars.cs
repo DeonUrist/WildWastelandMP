@@ -91,6 +91,7 @@ namespace WildWasteland.Core
                 || victim.transform.IsChildOf(car.transform)) return;
             float reach = 8f + speed * .2f;
             if ((victim.transform.position - car.transform.position).sqrMagnitude > reach * reach) return;
+            HostSaveCombat.Activity();
             CarImpact(car, victim, speed, from);
         }
     }

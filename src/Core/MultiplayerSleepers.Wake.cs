@@ -76,6 +76,7 @@ namespace WildWasteland.Core
         static bool Online(object record)
         { foreach (DictionaryEntry entry in _connections(null)) if (ReferenceEquals(_peerRecord(entry.Value), record)) return true; return false; }
         internal static bool WelcomedPeer(ulong peer) { return _recordOf != null && _recordOf(peer) != null; }
+        internal static bool ReadyPeer(ulong peer) { return WelcomedPeer(peer) && !Wakes.ContainsKey(peer) && !NewJoining.Contains(peer); }
         internal static bool JoiningPosition(ulong peer, out Vector3 position, out float yaw)
         {
             Wake wake; JoiningPlayer joining; Sleeper sleeper;

@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('both','host','client')][string]$Mode = 'both',
+    [ValidateSet('all','both','host','client','client2')][string]$Mode = 'all',
     [string]$GameDir = 'E:\SteamLibrary\steamapps\common\Apocalypter',
     [string]$World = 'WWMP_Local',
     [string]$Address = '127.0.0.1',
@@ -7,16 +7,20 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Apocalypter.exe')) { $GameDir = $PSScriptRoot }
+else {
+    $installedGame = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..'))
+    if (Test-Path -LiteralPath (Join-Path $installedGame 'Apocalypter.exe')) { $GameDir = $installedGame }
+}
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
 $mpDir = Join-Path $GameDir 'MP'
-$clientDir = Join-Path $mpDir 'Client'
-$roles = if ($Mode -eq 'both') { @('host','client') } else { @($Mode) }
+$roots = @{host=$GameDir;client=(Join-Path $mpDir 'Client');client2=(Join-Path $mpDir 'Client2')}
+$roles = if ($Mode -eq 'all') { @('host','client','client2') } elseif ($Mode -eq 'both') { @('host','client') } else { @($Mode) }
 foreach ($dll in @('BepInEx\plugins\WildWastelandMP\WildWastelandMP.dll','BepInEx\plugins\ApocalypterMP\ApocalypterMP.dll')) {
     if (!(Test-Path -LiteralPath (Join-Path $GameDir $dll))) { throw "Missing $dll. Build/deploy WildWastelandMP first." }
 }
 $running = @(Get-CimInstance Win32_Process -Filter "Name='Apocalypter.exe'")
 foreach ($role in $roles) {
-    $exe = if ($role -eq 'host') { Join-Path $GameDir 'Apocalypter.exe' } else { Join-Path $clientDir 'Apocalypter.exe' }
+    $exe = Join-Path $roots[$role] 'Apocalypter.exe'
     if ($running | Where-Object { $_.ExecutablePath -eq $exe }) { throw "$role is already running. Close its window before starting it again." }
 }
 function Copy-Default([string]$Source, [string]$Target) {
@@ -35,7 +39,8 @@ function Link-Directory([string]$Link, [string]$Target) {
     [IO.Directory]::CreateDirectory((Split-Path $Link)) | Out-Null
     New-Item -ItemType Junction -Path $Link -Target $Target | Out-Null
 }
-if ($roles -contains 'client') {
+foreach ($role in ($roles | Where-Object { $_ -ne 'host' })) {
+    $clientDir = $roots[$role]
     [IO.Directory]::CreateDirectory($clientDir) | Out-Null
     foreach ($file in @('Apocalypter.exe','UnityPlayer.dll','winhttp.dll','doorstop_config.ini','.doorstop_version')) {
         $source = Join-Path $GameDir $file; $target = Join-Path $clientDir $file
@@ -51,7 +56,7 @@ if ($roles -contains 'client') {
 [IO.Directory]::CreateDirectory((Join-Path $mpDir 'Logs')) | Out-Null
 $records = @()
 foreach ($role in $roles) {
-    $root = if ($role -eq 'host') { $GameDir } else { $clientDir }
+    $root = $roots[$role]
     $info = New-Object Diagnostics.ProcessStartInfo
     $info.FileName = Join-Path $root 'Apocalypter.exe'; $info.WorkingDirectory = $root
     $info.UseShellExecute = $false; $info.CreateNoWindow = $false
@@ -83,12 +88,12 @@ do {
         $process = Get-Process -Id $record.Pid -ErrorAction SilentlyContinue
         if (!$process -or $process.MainWindowHandle -eq [IntPtr]::Zero) { continue }
         [void][WWMPWindows]::SetWindowText($process.MainWindowHandle, ('WildWastelandMP - ' + $record.Role.ToUpperInvariant()))
-        $width = [int]([WWMPWindows]::GetSystemMetrics(0) / 2)
-        $x = if ($record.Role -eq 'host') { 0 } else { $width }
+        $width = [int]([WWMPWindows]::GetSystemMetrics(0) / 3)
+        $x = $width * @('host','client','client2').IndexOf($record.Role)
         [void][WWMPWindows]::MoveWindow($process.MainWindowHandle,$x,0,$width,[Math]::Min(800,[WWMPWindows]::GetSystemMetrics(1)-50),$true)
         $titled[$record.Pid] = $true
     }
     if ($titled.Count -lt $records.Count) { Start-Sleep -Milliseconds 250 }
 } while ($titled.Count -lt $records.Count -and [DateTime]::UtcNow -lt $deadline)
-Write-Host 'Host/client open at the title menu. Choose HOST or JOIN manually. Saves: ' (Join-Path $mpDir 'Saves')
+Write-Host 'Selected instances open at the title menu. Choose HOST or JOIN manually. Saves: ' (Join-Path $mpDir 'Saves')
 $records | Format-Table Role,Pid,World

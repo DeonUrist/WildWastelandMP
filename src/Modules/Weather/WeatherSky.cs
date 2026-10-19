@@ -25,9 +25,7 @@ namespace WildWasteland.Modules.Weather
         private bool _sunEnabled;
         private bool _applied;
         private static WeatherSky _active;
-        private static readonly int FogDensity = Shader.PropertyToID("_Azure_GlobalFogDensity"), HeightDensity = Shader.PropertyToID("_Azure_HeightFogDensity");
-        private float _fogDensity, _heightDensity;
-        private bool _fogActive, _fogOwnsSky, _fogLogged;
+        private bool _fogLogged;
 
         internal void Begin(Camera camera, float amount)
         {
@@ -76,36 +74,26 @@ namespace WildWasteland.Modules.Weather
             return Color.Lerp(source,tint,amount);
         }
         private void After(Camera camera) { if (camera == _camera) Restore(); }
-        internal static void NativeFogBefore(AzureFogScattering __instance, out WeatherSky __state)
+        internal static void NativeFogBefore(AzureFogScattering __instance, out Material __state)
         {
             __state = null;
+            if (!WeatherDiagnostics.FogScope) return;
+            var camera = GameRefs.MainCamera;
+            if (camera == null || camera.gameObject != __instance.gameObject) return;
+            // Use Azure's native unfiltered blit branch instead of its distance-scattering shader.
+            __state = __instance.fogScatteringMaterial;
+            __instance.fogScatteringMaterial = null;
             var sky = _active;
-            if (!WeatherDiagnostics.FogScope || sky == null || sky._camera == null || sky._camera.gameObject != __instance.gameObject || sky._amount < .001f || sky._fogActive) return;
-            sky._fogOwnsSky = !sky._applied;
-            if (sky._fogOwnsSky) sky.Before(sky._camera);
-            sky._fogDensity = Shader.GetGlobalFloat(FogDensity); sky._heightDensity = Shader.GetGlobalFloat(HeightDensity);
-            // WW already supplies regional extinction. Do not add the native pale scattering layer over it.
-            float nativeFog = 1-Mathf.SmoothStep(0,1,Mathf.Clamp01(sky._amount/.35f));
-            Shader.SetGlobalFloat(FogDensity,sky._fogDensity*nativeFog);
-            Shader.SetGlobalFloat(HeightDensity,sky._heightDensity*nativeFog);
-            sky._fogActive = true; __state = sky;
-            if (!sky._fogLogged)
+            if (sky != null && !sky._fogLogged)
             {
                 sky._fogLogged = true;
-                Log.Always("[Weather] Native Azure fog scoped: storm palette retained through image effect; pale distance/height haze fully fades during approach.");
+                Log.Always("[Weather] Native Azure distance haze bypassed: gameplay camera uses the unfiltered image; WW regional dust retained.");
             }
         }
-        internal static Exception NativeFogAfter(Exception __exception, WeatherSky __state)
+        internal static Exception NativeFogAfter(Exception __exception, AzureFogScattering __instance, Material __state)
         {
-            if (__state != null) __state.RestoreFog();
+            if (__instance != null && __state != null) __instance.fogScatteringMaterial = __state;
             return __exception;
-        }
-        private void RestoreFog()
-        {
-            if (!_fogActive) return;
-            Shader.SetGlobalFloat(FogDensity,_fogDensity); Shader.SetGlobalFloat(HeightDensity,_heightDensity);
-            _fogActive = false;
-            if (_fogOwnsSky) Restore();
         }
         private void Restore()
         {
@@ -123,7 +111,7 @@ namespace WildWasteland.Modules.Weather
         }
         internal void Suspend()
         {
-            RestoreFog(); Restore(); Camera.onPreCull -= Before; Camera.onPostRender -= After;
+            Restore(); Camera.onPreCull -= Before; Camera.onPostRender -= After;
             if (ReferenceEquals(_active,this)) _active = null;
             _camera = null; _sky = null; _sun = null; _amount = 0; _flash=0;
         }

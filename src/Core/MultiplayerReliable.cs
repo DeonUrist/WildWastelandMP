@@ -52,7 +52,8 @@ namespace WildWasteland.Core
                 Native.Add(Convert.ToByte(Enum.Parse(messages, name)));
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAll"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeAll"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeTo"))
-                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAllExcept"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeExcept")))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAllExcept"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeExcept"))
+                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "Relay"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeRelay")))
                 throw new InvalidOperationException("MP reliable part-state transport hooks could not be installed");
             Multiplayer.SessionChanged += Changed;
             Scheduler.Interval(Multiplayer.PatchOwner, "Reliable MP messages", .05f, Tick);
@@ -73,6 +74,16 @@ namespace WildWasteland.Core
         {
             if (!Wrap(__1)) return true;
             RefreshPeers(); foreach (ulong peer in Peers) if (peer != __0) To(peer, __1);
+            return false;
+        }
+        static bool BeforeRelay(ulong __0, byte[] __1, bool __2)
+        {
+            // Native has filtered ownership. Order final car poses before the next owner-save phase too.
+            if (!Multiplayer.Hosting || __1 == null || __1.Length < 8 || !(__1[0] == 8 && __2 || __1[0] == 18 && MultiplayerSaving.Frozen)) return true;
+            RefreshPeers(); if (!Peers.Contains(__0)) return false;
+            var relayed = new byte[__1.Length + 2]; relayed[0] = _relayed; relayed[1] = (byte)__0;
+            Array.Copy(__1, 0, relayed, 2, __1.Length);
+            foreach (ulong peer in Peers) if (peer != __0) To(peer, relayed);
             return false;
         }
         static void RefreshPeers()
@@ -173,7 +184,7 @@ namespace WildWasteland.Core
         {
             if (payload[0] == _relayed)
             {
-                if (!Multiplayer.Client || from != 0 || payload.Length < 3 || !Forward.Contains(payload[2])) return;
+                if (!Multiplayer.Client || from != 0 || payload.Length < 3 || !(Forward.Contains(payload[2]) || payload[2] == 8 || payload[2] == 18)) return;
                 var inner = new byte[payload.Length - 2]; Array.Copy(payload, 2, inner, 0, inner.Length);
                 Multiplayer.Deliver(payload[1], inner); return;
             }

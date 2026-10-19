@@ -12,6 +12,14 @@ namespace WildWasteland.Modules.CleanHUD
     // (measured from the mockup DOM), so the in-game result matches it.
     internal sealed class Hud : IDisposable
     {
+        static RectTransform _saveCompass;
+        internal static Vector2 SaveWarningAnchor()
+        {
+            if (_saveCompass == null || !_saveCompass.gameObject.activeInHierarchy) return new Vector2(Screen.width / 2f, Screen.height * 120f / 1080f);
+            var point = _saveCompass.TransformPoint(new Vector3(_saveCompass.rect.center.x, _saveCompass.rect.yMin, 0));
+            var screen = RectTransformUtility.WorldToScreenPoint(null, point);
+            return new Vector2(screen.x, Screen.height - screen.y);
+        }
         // ---- palette (mockup tokens) ----
         private static readonly Color Gold = C(0xe2, 0xbf, 0x6c, 1f);
         private static readonly Color HudWhite = C(0xf3, 0xef, 0xe4, 1f);
@@ -434,6 +442,7 @@ namespace WildWasteland.Modules.CleanHUD
         private void BuildCompass()
         {
             _cmp = _groups["compass"];
+            _saveCompass = _cmp;
             Raw(_cmp, "line shadow", 0, 25.5f, 1100, 16, Assets.CompassShadow(), Color.white);
             Raw(_cmp, "line", 0, 30, 1100, 3, Assets.CompassLine(), Color.white);
             for (int i = 0; i < 24; i++) Tick(i).enabled = false;
@@ -909,6 +918,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         public void Dispose()
         {
+            if (_saveCompass == _cmp) _saveCompass = null;
             if (_disposed) return; _disposed = true;
             MessageHook.Active = false;
             if (_quests != null) _quests.Dispose();

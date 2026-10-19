@@ -1047,6 +1047,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         private bool BeginLoad(string path)
         {
+            if (Core.HostSaveSystem.RecoveryError != null) { Confirm(Core.HostSaveSystem.RecoveryError, null); return false; }
             _loadingScreen.Begin();
             if (Click(path)) return true;
             _loadingScreen.End(); return false;
@@ -1055,8 +1056,25 @@ namespace WildWasteland.Modules.CleanHUD
         private static string SaveFile(int n) { return Path.Combine(Application.persistentDataPath, "SaveGame" + n + ".es3"); }
         private static bool SlotUsed(int n) { var f = new FileInfo(SaveFile(n)); return f.Exists && f.Length > 1024; }
 
+        private string _latestServerFile, _latestServerLabel;
+        private int _serverSaveVersion = -1;
         private string LatestSave(out int slot)
         {
+            if (Core.Multiplayer.Present)
+            {
+                if (_serverSaveVersion != Core.HostSaveSystem.CatalogueVersion)
+                {
+                    _serverSaveVersion = Core.HostSaveSystem.CatalogueVersion; _latestServerFile = null; _latestServerLabel = "";
+                    DateTime newest = DateTime.MinValue;
+                    foreach (var save in Core.MultiplayerHosting.Saves())
+                    {
+                        var stamp = File.GetLastWriteTimeUtc(Core.HostSaveFiles.WorldPath(save.File));
+                        if (stamp <= newest) continue;
+                        newest = stamp; _latestServerFile = save.File; _latestServerLabel = save.Name.Length > 26 ? save.Name.Substring(0, 25) + "…" : save.Name;
+                    }
+                }
+                slot = _latestServerFile == null ? 0 : 1; return _latestServerLabel;
+            }
             slot = 0; DateTime best = DateTime.MinValue;
             for (int n = 1; n <= 10; n++)
             {
@@ -1086,13 +1104,15 @@ namespace WildWasteland.Modules.CleanHUD
         {
             int slot; LatestSave(out slot);
             if (slot <= 0) return;
+            if (Core.Multiplayer.Present)
+            { if (Core.HostSaveSystem.Info(_latestServerFile).Multiplayer) Core.UI.ToolWindow.OpenHostSave(_latestServerFile); else Core.SinglePlayerSaving.Load(_latestServerFile); return; }
             BeginLoad("LoadGame_Canvas/LoadGame/load slot " + slot + "/load_game_" + slot);
         }
 
         private void OpenSave()
         {
             if (Core.Multiplayer.Client) { Core.MultiplayerSaving.RequestClientSave(); Resume(); return; }
-            if (Core.Multiplayer.Hosting) { Core.MultiplayerSaving.RequestSave(); Resume(); return; }
+            if (Core.HostSaveSystem.Ready) { Core.UI.ToolWindow.OpenSaves(true); return; }
             var incar = Fsm("Player", "InCar");
             if (incar != null && incar.ActiveStateName == "InCar") { Confirm("GET OUT OF THE CAR TO SAVE", null); return; }
             ShowSlots(false);
@@ -1170,6 +1190,7 @@ namespace WildWasteland.Modules.CleanHUD
         // ---------------------------------------------------------------- load / save slots
         private void ShowSlots(bool load)
         {
+            if (Core.HostSaveSystem.Ready) { Core.UI.ToolWindow.OpenSaves(!load); return; }
             ResetToMain();
             _screen = load ? "load" : "save";
             _main.gameObject.SetActive(false);

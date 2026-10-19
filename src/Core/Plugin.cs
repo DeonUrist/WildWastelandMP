@@ -15,6 +15,7 @@ namespace WildWasteland
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("ApocalypterMP", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocasetter", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("com.denis.apocalypter.apocasaver", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocaplayer", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.apocaclimber", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("com.denis.apocalypter.npcai", BepInDependency.DependencyFlags.SoftDependency)]
@@ -44,7 +45,7 @@ namespace WildWasteland
     {
         public const string GUID = "com.denis.apocalypter.wildwasteland";
         public const string NAME = "WildWastelandMP";
-        public const string VERSION = "0.1.36";
+        public const string VERSION = "0.1.37";
 
         public static Plugin Instance;
         public static ConfigFile Main, Settings, Tools;
@@ -95,6 +96,7 @@ namespace WildWasteland
                 FrameBudgetMs.SettingChanged += (s, a) => Core.Scheduler.FrameBudgetMs = FrameBudgetMs.Value;
 
                 Core.Runner.Ensure();
+                Core.ApocasaverExclusion.Install();
                 RegisterCoreJobs();
                 Core.SaveTypes.Install();
                 Core.ReplacementGuard.Prepare();
@@ -112,6 +114,7 @@ namespace WildWasteland
                 if (audioVoices != null) ApplyAudioVoices(audioVoices.Value);
                 Core.ModuleHost.StartAll();
                 Core.MultiplayerLaunch.Install();
+                Core.HostSaveSystem.RecoverFiles();
                 Core.Log.Always(Core.ModuleHost.Summary());
             }
             catch (Exception e)

@@ -31,7 +31,7 @@ namespace WildWasteland.Modules.CleanHUD
         private Transform _nativeGame, _nativeTitle, _nativeSlots;
         private ScreenImage _current;
         private string _currentTip = "";
-        private int _width, _height;
+        private float _screenSince, _driftTime;
         private float _nextFind;
         private bool _completed;
         private bool _saving, _autosaving, _saveFinished;
@@ -158,6 +158,8 @@ namespace WildWasteland.Modules.CleanHUD
             Reload();
             _saving = saving; _autosaving = autosaving; _saveFinished = false;
             _nextProgress = _shownProgress = 0f;
+            _screenSince = Time.unscaledTime;
+            _driftTime = 0f;
             _current = _screens.Count > 0 ? _screens[_random.Next(_screens.Count)] : null;
             _currentTip = "";
             if (_current != null) _tips.TryGetValue(_current.Name, out _currentTip);
@@ -170,7 +172,6 @@ namespace WildWasteland.Modules.CleanHUD
         {
             _background.texture = _current != null ? _current.Texture : null;
             _background.enabled = _background.texture != null;
-            _width = _height = 0;
             _label.Set((_autosaving ? AutosavingLabels : _saving ? SavingLabels : Labels)[0]);
             foreach (var line in _tipLines) { line.Set(""); line.gameObject.SetActive(false); }
             int index = 0; var current = new StringBuilder(); var font = GlyphFont.Get();
@@ -250,17 +251,36 @@ namespace WildWasteland.Modules.CleanHUD
             var labels = _autosaving ? AutosavingLabels : _saving ? SavingLabels : Labels;
             _label.Set(labels[(int)(Time.unscaledTime * 2f) % labels.Length]);
             if (Time.unscaledTime >= _nextProgress) { _nextProgress = Time.unscaledTime + .2f; UpdateProgress(); }
-            if (_background.texture != null && (_width != Screen.width || _height != Screen.height))
+            UpdateBackground();
+        }
+        private void UpdateBackground()
+        {
+            float now = Time.unscaledTime;
+            if (_screens.Count > 1 && now - _screenSince >= 10f)
             {
-                _width = Screen.width; _height = Screen.height;
-                float imageAspect = _background.texture.width / (float)_background.texture.height, screenAspect = _width / (float)Mathf.Max(1, _height);
-                if (screenAspect > imageAspect) { float h = imageAspect / screenAspect; _background.uvRect = new UnityEngine.Rect(0, (1 - h) / 2, 1, h); }
-                else { float w = screenAspect / imageAspect; _background.uvRect = new UnityEngine.Rect((1 - w) / 2, 0, w, 1); }
+                int index = _random.Next(_screens.Count - 1);
+                if (index >= _screens.IndexOf(_current)) index++;
+                _current = _screens[index];
+                _currentTip = ""; _tips.TryGetValue(_current.Name, out _currentTip);
+                _screenSince = now;
+                ShowScreen();
             }
+            if (_background.texture == null) return;
+            float imageAspect = _background.texture.width / (float)_background.texture.height;
+            float screenAspect = Mathf.Max(1, Screen.width) / (float)Mathf.Max(1, Screen.height);
+            // A small overscan keeps the slow pan inside the image; the opaque black backing stays full-screen.
+            float w = .96f * Mathf.Min(1f, screenAspect / imageAspect), h = .96f * Mathf.Min(1f, imageAspect / screenAspect);
+            // Keep motion continuous across slides and limit jumps after a loading hitch.
+            _driftTime += Mathf.Min(Time.unscaledDeltaTime, .05f);
+            float phase = _driftTime - (1f - Mathf.Exp(-_driftTime));
+            float x = (1f - w) * .5f + Mathf.Sin(phase * .12f) * .015f;
+            float y = (1f - h) * .5f + Mathf.Sin(phase * .084f) * .01f;
+            _background.uvRect = new UnityEngine.Rect(x, y, w, h);
         }
         private void DrawSaving()
         {
             if (_root == null) { Build(); ShowScreen(); _root.SetActive(true); }
+            UpdateBackground();
             _label.Set(SavingLabels[(int)(Time.unscaledTime * 2f) % SavingLabels.Length]);
             _stage.Set("Server is saving the world");
             _progressFill.gameObject.SetActive(false);

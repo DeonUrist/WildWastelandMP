@@ -2055,7 +2055,7 @@ namespace WildWasteland.Modules.NPC
                         if (!string.IsNullOrEmpty(s)) _co = Core.Scheduler.StartCoroutine(Restore(s));
                     }
                 }
-                catch (Exception e) { NpcModule.Log.LogError("Senses persistence: " + e); }
+                catch (Exception e) { Core.SaveBus.ReportFailure("NPC senses persistence failed: " + e.Message); NpcModule.Log.LogError("Senses persistence: " + e); }
             }
 
             private static string Slot()

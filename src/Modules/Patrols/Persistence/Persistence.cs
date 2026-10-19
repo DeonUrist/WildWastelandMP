@@ -478,11 +478,12 @@ namespace WildWasteland.Modules.Patrols
             _pendingData = null; _pendingSlot = null; _flushAt = -1f;
             int ok = 0;
             try { ES3.Save<string>(EsKey, value, EsSettings(slot, ES3.Location.Cache)); ok++; }
-            catch (Exception e) { Core.Log.Warn("[Patrols] " + "Persistence: save into " + slot + " (cache): " + e.Message); }
+            catch (Exception e) { Core.SaveBus.ReportFailure("Patrol cache write failed: " + e.Message); Core.Log.Warn("[Patrols] " + "Persistence: save into " + slot + " (cache): " + e.Message); }
             try { ES3.Save<string>(EsKey, value, EsSettings(slot, ES3.Location.File)); ok++; }
-            catch (Exception e) { Core.Log.Warn("[Patrols] " + "Persistence: save into " + slot + " (file): " + e.Message); }
+            catch (Exception e) { Core.SaveBus.ReportFailure("Patrol disk write failed: " + e.Message); Core.Log.Warn("[Patrols] " + "Persistence: save into " + slot + " (file): " + e.Message); }
             PatrolsModule.Verbose("Persistence: raider data written into " + slot + " (" + ok + "/2)");
         }
+        internal static void CancelPendingSave() { _pendingData = _pendingSlot = null; _flushAt = -1f; }
 
         private static ES3Settings EsSettings(string slot, ES3.Location loc)
         {

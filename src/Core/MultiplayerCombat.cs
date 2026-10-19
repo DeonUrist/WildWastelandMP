@@ -81,6 +81,7 @@ namespace WildWasteland.Core
                     var hp = health != null ? health.FsmVariables.FindFsmFloat("Health") : null;
                     if (bodypart == null || bodypart.FsmVariables.FindFsmFloat("Damage") == null || hp == null || hp.Value < 1f) return false;
                     // Notify before the native event can kill/destroy the victim, using this peer rather than the host.
+                    HostSaveCombat.Activity();
                     var npc = Services.Npc;
                     if (npc != null)
                         try { npc.Hurt(part.gameObject, player); }

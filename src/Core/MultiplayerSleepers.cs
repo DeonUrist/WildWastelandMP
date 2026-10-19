@@ -26,6 +26,7 @@ namespace WildWasteland.Core
     internal static partial class MultiplayerSleepers
     {
         internal const string SleepingKey = "ww.sleeping", ChoiceKey = "ww.bodyChoice";
+        const string RemovedBodyKey = "ww.sleepRemoved";
         const byte Full = 159, Pose = 160, Remove = 161, Carry = 162;
         const ulong Nobody = ulong.MaxValue;
         const int BoneCount = 11, Limit = 512;
@@ -40,6 +41,31 @@ namespace WildWasteland.Core
             internal readonly Quaternion[] Rotations = new Quaternion[BoneCount];
         }
         static readonly Dictionary<int, Sleeper> Bodies = new Dictionary<int, Sleeper>();
+        internal static bool PendingRecord(object record)
+        { foreach (var sleeper in Bodies.Values) if (ReferenceEquals(sleeper.Record, record)) return true; return false; }
+        internal static void Roster(List<MultiplayerRoster.Player> rows)
+        {
+            foreach (var sleeper in Bodies.Values) if (sleeper.Record != null)
+            {
+                var row = MultiplayerRoster.Saved(sleeper.Record, sleeper.Name, sleeper.Positions[0] + Vector3.up * .8f);
+                row.SleeperId = sleeper.Id; rows.Add(row);
+            }
+        }
+        internal static bool CanRemoveBody(int id, object record)
+        {
+            Sleeper sleeper;
+            return Multiplayer.Hosting && Bodies.TryGetValue(id, out sleeper) && ReferenceEquals(record, sleeper.Record) && !Online(record);
+        }
+        internal static bool RemoveBody(int id, object record)
+        {
+            if (!CanRemoveBody(id, record) || MultiplayerSaving.Frozen || SaveBus.Busy) return false;
+            var sleeper = Bodies[id]; Store(sleeper);
+            var stats = _stats(record); stats.Remove(SleepingKey); stats[RemovedBodyKey] = 1;
+            Destroy(sleeper); Bodies.Remove(id); Removed.Add(id);
+            ulong epoch = MultiplayerParts.Epoch; Multiplayer.Send(Remove, w => { w.Write(epoch); w.Write(id); });
+            MultiplayerRecovery.Checkpoint();
+            Log.Always("[Multiplayer] Host removed sleeping body: " + sleeper.Name + " [id " + id + "]; saved character retained"); return true;
+        }
         static readonly HashSet<int> Removed = new HashSet<int>();
         static readonly Vector3[] IncomingPositions = new Vector3[BoneCount];
         static readonly Quaternion[] IncomingRotations = new Quaternion[BoneCount];
@@ -112,6 +138,7 @@ namespace WildWasteland.Core
             if (!Multiplayer.Hosting || !Multiplayer.WorldReady || record == null || !_hasPosition(record) || _closing(null) || _stopping) return;
             float health; var stats = _stats(record);
             if (stats.TryGetValue("p.Health", out health) && health < 1) return;
+            stats.Remove(RemovedBodyKey);
             foreach (var existing in Bodies.Values) if (ReferenceEquals(existing.Record, record)) return;
             stats[SleepingKey] = 1; Add(record, false); _nextFull = 0;
         }
@@ -127,6 +154,7 @@ namespace WildWasteland.Core
         internal static void Waking(object record)
         {
             if (!Multiplayer.Hosting || record == null || !_hasPosition(record)) return;
+            if (_stats(record).ContainsKey(RemovedBodyKey)) return;
             if (_epoch != MultiplayerParts.Epoch) { Clear(); _epoch = MultiplayerParts.Epoch; }
             Add(record, _stats(record).ContainsKey(SleepingKey));
             foreach (var sleeper in Bodies.Values) if (ReferenceEquals(sleeper.Record, record)) { Store(sleeper); break; }
@@ -138,7 +166,7 @@ namespace WildWasteland.Core
         {
             if (sleeper.Record == null) return;
             _stats(sleeper.Record)[SleepingKey] = 1;
-            if (sleeper.Body != null) sleeper.Positions[0] = Origin.World(sleeper.Body.Bodies[0].position);
+            if (sleeper.Body != null && sleeper.Body.Bodies[0] != null) sleeper.Positions[0] = Origin.World(sleeper.Body.Bodies[0].position);
             _setPosition(sleeper.Record, sleeper.Positions[0] + Vector3.up * .8f); _setHasPosition(sleeper.Record, true);
         }
         static void Tick()
@@ -168,7 +196,7 @@ namespace WildWasteland.Core
                         MultiplayerNames.AddSleeper(sleeper.Label);
                         if (Multiplayer.Hosting) Capture(sleeper);
                         else if (sleeper.HasPose) Apply(sleeper, 1f);
-                        Log.Always("[Multiplayer] Sleeping body ready: " + sleeper.Name);
+                        Log.Always("[Multiplayer] Sleeping body ready: " + sleeper.Name + " [id " + sleeper.Id + "] at world " + sleeper.Positions[0].ToString("F2"));
                     }
                     catch (Exception error) { Destroy(sleeper); Log.Error("[Multiplayer] Sleeping body could not be built", error); }
                 }
@@ -188,6 +216,7 @@ namespace WildWasteland.Core
         static void Capture(Sleeper sleeper)
         {
             var bodies = sleeper.Body.Bodies;
+            for (int i = 0; i < BoneCount; i++) if (bodies[i] == null) return;
             for (int i = 0; i < BoneCount; i++) { sleeper.Positions[i] = Origin.World(bodies[i].position); sleeper.Rotations[i] = bodies[i].rotation; }
             sleeper.HasPose = true;
         }
@@ -206,7 +235,7 @@ namespace WildWasteland.Core
             if (!Multiplayer.Hosting) return;
             foreach (var sleeper in Bodies.Values)
             {
-                if (sleeper.Body == null) continue;
+                if (sleeper.Body == null || sleeper.Body.Root == null) continue;
                 var bones = sleeper.Body.Bodies; var hip = bones[0]; var carrier = sleeper.Carrier != Nobody ? Multiplayer.PlayerFor(sleeper.Carrier) : null;
                 if (sleeper.Carrier != Nobody && (carrier == null || !carrier.activeInHierarchy || (sleeper.Carrier == 0 ? !Multiplayer.LocalTargetable || _localInCar() || _passenger(null) != null : !MultiplayerPlayers.Targetable(sleeper.Carrier) || MultiplayerPlayers.Car(sleeper.Carrier) != null)))
                 { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
@@ -271,7 +300,7 @@ namespace WildWasteland.Core
         static void LateTick()
         {
             if (!Multiplayer.WorldReady) { Hint(null); return; }
-            foreach (var sleeper in Bodies.Values) if (sleeper.Body != null)
+            foreach (var sleeper in Bodies.Values) if (sleeper.Body != null && sleeper.Body.Root != null)
             {
                 if (Multiplayer.Client && sleeper.HasPose) Apply(sleeper, 1f - Mathf.Exp(-Time.unscaledDeltaTime * 20f));
                 sleeper.Body.Apply();

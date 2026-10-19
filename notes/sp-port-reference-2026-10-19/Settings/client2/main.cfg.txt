@@ -1,0 +1,351 @@
+## Settings file was created by plugin WildWastelandMP v0.1.36
+## Plugin GUID: com.denis.apocalypter.wildwasteland
+
+[Debug]
+
+VerboseLog = true
+
+[General]
+
+## Lists Wild Wasteland in the Apocasetter Mods menu (F6).
+# Setting type: Boolean
+# Default value: true
+Apocasetter = true
+
+## Show Debug in Wild Wasteland settings: logging, switches, patrol editor access and the optional Developer menu.
+# Setting type: Boolean
+# Default value: false
+Enable Debug = false
+
+[Guns]
+
+Enabled = true
+
+Projectiles = true
+
+PerGunMagazines = true
+
+Unloading = true
+
+BackpackOverflow = true
+
+ArmorOverflow = true
+
+BossHealth = true
+
+MonsterProjectilesHitWalls = true
+
+MeleeOnWheels = true
+
+NpcAim = true
+
+IronsightWheelZoom = true
+
+ToggleIronsights = false
+
+SmoothWeaponSwitch = true
+
+[Guns / Ammo]
+
+HoldSeconds = 0.35
+
+[Guns / Bosses]
+
+AdjustHumanBossHP = 5
+
+[Guns / Projectiles]
+
+BulletSpeed = 250
+
+BoltSpeed = 60
+
+HeadshotMultiplier = 1.5
+
+Tracers = true
+
+PlayerGunTracers = true
+
+VehicleDamage = true
+
+WheelPopOff = true
+
+[Guns / Ranges]
+
+PistolRange = 60
+
+SmgRange = 70
+
+RifleRange = 120
+
+SniperRange = 250
+
+ShotgunRange = 35
+
+CrossbowRange = 90
+
+[HUD]
+
+Enabled = true
+
+Crosshair = 3
+
+SelectionDot = true
+
+HitFeedback = true
+
+HitMarker = true
+
+FloatingDamage = 2
+
+HeadshotSound = true
+
+HeadshotVolume = 100
+
+[Keys]
+
+## Opens Wild Wasteland settings: Game, Modules and, when enabled, Debug.
+# Setting type: Key
+# Default value: F3
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+In-Game Settings Button = F3
+
+Tool window = F7
+
+Observe (third person) = LeftAlt
+
+Climb (alternative key) = None
+
+Cassette start/stop = Z
+
+Cassette volume down = Minus
+
+Cassette volume up = Equals
+
+NPC shout = Q
+
+NPC shout modifier = LeftAlt
+
+NPC test web = None
+
+Guns: unload fallback key = R
+
+Patrol editor = None
+
+Template recorder = None
+
+Bus passenger pose editor = None
+
+Merchant item editor = None
+
+[NPC]
+
+Enabled = true
+
+EnableNpcDetection = true
+
+EnableNpcPathfinding = true
+
+NpcAim = true
+
+EnableIdleBehavior = true
+
+CoyotesIdle = false
+
+FriendsPassThrough = true
+
+Storms = true
+
+Burrow = true
+
+Ambush = true
+
+Pounce = true
+
+SpiderNests = true
+
+DogBite = true
+
+DogAnimations = true
+
+DogsLieDown = true
+
+DogJumpAttack = false
+
+DogCompanionCompat = true
+
+[NPC / Detection]
+
+SightCone = 100
+
+SightRange = 100
+
+DarkSightRange = 5
+
+[NPC / Pathfinding]
+
+ScaleWithActors = false
+
+[Patrols]
+
+Enabled = true
+
+Automatic spawns = true
+
+World traffic = true
+
+Faction battles = true
+
+Merchants = true
+
+Human turrets = true
+
+Ranged combat = true
+
+Ram damage = true
+
+Ram damage in car = false
+
+Raider music = true
+
+Spawn warning = true
+
+Custom paintjobs = true
+
+Always explode cars = false
+
+Cleanup = true
+
+Raiders overheat = false
+
+Fury Road = true
+
+Simple convoy bandits AI = true
+
+Tactical driving = true
+
+War Rig spawns = true
+
+War Rig ground recovery = false
+
+[Patrols / Balance]
+
+MinPartHealth = 80
+
+MaxPartHealth = 100
+
+ExplodedCarPartsPercent = 20
+
+[Patrols / Combat]
+
+NPC ram damage multiplier = 4
+
+ShootDistance = 40
+
+WitnessMeChance = 10
+
+[Patrols / Merchants]
+
+Max merchants = 3
+
+Merchant spawn chance = 100
+
+Merchant check interval (minutes) = 5
+
+[Patrols / Spawning]
+
+MinConvoyCooldown = 5
+
+MaxConvoyCooldown = 60
+
+PatrolSpawnChancePercent = 80
+
+PatrolSizePercent = 100
+
+Max patrols = 3
+
+Max convoys = 1
+
+Car spawn limit = true
+
+Max cars in event = 5
+
+Max cars in double event = 6
+
+[Patrols / War Rig]
+
+WarRigPercent = 100
+
+[Patrols / World traffic]
+
+PatrolSpeedKmh = 55
+
+ConvoySpeedKmh = 38
+
+Camp traffic range = 2500
+
+[PlayerBody]
+
+Enabled = true
+
+Character = Female
+
+ThirdPerson = true
+
+ToggleObserving = false
+
+DynamicCrosshair = true
+
+BodyFirstPerson = true
+
+FirstPersonArms = true
+
+FirstPersonArmSkin = true
+
+ReplaceDriver = true
+
+EquipmentOnBody = true
+
+FemalePainSounds = true
+
+SmoothWeaponSway = true
+
+FirstPersonJumpLegs = true
+
+SmoothAimDownSights = true
+
+PickAssist = true
+
+[PlayerBody / Camera culling]
+
+CameraCulling = true
+
+CameraCullingInVehicles = false
+
+[PlayerBody / Climbing]
+
+Climbing = true
+
+JumpTriggersClimbing = true
+
+AutomaticStepUp = false
+
+[PlayerBody / Vehicles]
+
+VehicleStatusHint = true
+
+VehicleHotkeyHint = true
+
+IgnitionKey = true
+
+RustlinerDoorways = true
+
+LanceIgnoresOwnCar = true
+
+[POI]
+
+Enabled = true
+
+[POI / World]
+
+Spawn chance (%) = 2
+

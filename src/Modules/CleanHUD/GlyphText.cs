@@ -17,9 +17,9 @@ namespace WildWasteland.Modules.CleanHUD
 
         private static GlyphFont _game, _clean;
         internal static void Reset() { _game = _clean = null; }
-        internal static GlyphFont Get()
+        internal static GlyphFont Get(bool gameOnly = false)
         {
-            bool clean = CleanHudModule.CleanFont != null && CleanHudModule.CleanFont.Value;
+            bool clean = !gameOnly && CleanHudModule.CleanFont != null && CleanHudModule.CleanFont.Value;
             var cached = clean ? _clean : _game;
             if (cached != null && cached.Atlas != null) return cached;
             string name = clean ? "font" : "game_font";
@@ -61,6 +61,12 @@ namespace WildWasteland.Modules.CleanHUD
         {
             if (Event.current.type != EventType.Repaint || string.IsNullOrEmpty(text)) return;
             var font = Get(); if (font == null || font.Atlas == null) return;
+            font.DrawRange(rect, text, 0, text.Length, size, color, align);
+        }
+        internal static void DrawGame(Rect rect, string text, float size, Color color, TextAnchor align)
+        {
+            if (Event.current.type != EventType.Repaint || string.IsNullOrEmpty(text)) return;
+            var font = Get(true); if (font == null || font.Atlas == null) return;
             font.DrawRange(rect, text, 0, text.Length, size, color, align);
         }
 

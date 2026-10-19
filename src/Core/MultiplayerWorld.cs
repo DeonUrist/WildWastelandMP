@@ -24,7 +24,7 @@ namespace WildWasteland.Core
         internal static void Receive(ulong peer, byte kind, BinaryReader reader)
         {
             if (kind == 5 && Multiplayer.Hosting && SaveBus.Slot != null)
-            { string slot = SaveBus.Slot; Multiplayer.Send(6, w => w.Write(slot), peer); return; }
+            { string slot = HostSaveSystem.Lineage(SaveBus.Slot); Multiplayer.Send(6, w => w.Write(slot), peer); return; }
             if (kind != 6 || peer != 0 || !Multiplayer.Client || _slot != null) return;
             string name = reader.ReadString();
             if (name.Length > 100 || !MultiplayerHosting.IsSaveFile(name)) return;

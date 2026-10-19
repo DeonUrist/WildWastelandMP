@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "screens": [
+    {
+      "image": "Screen1.png",
+      "text": "To survive in the wasteland, always pay attention to your surroundings. The compass can help if you turn the compass indicators on."
+    },
+    {
+      "image": "Screen2.png",
+      "text": "Beware of warboys. They use blast lances and can jump to their death."
+    },
+    {
+      "image": "Screen3.png",
+      "text": "Enemy vehicle patrols roam the wastes. Stay away, fight or flee."
+    },
+    {
+      "image": "Screen4.png",
+      "text": "To stop a travelling Coyotes merchant, honk or yell."
+    },
+    {
+      "image": "Screen5.png",
+      "text": "Beware! In Wild Wasteland, animals and mutants have learnt some new tricks."
+    },
+    {
+      "image": "Screen6.png",
+      "text": "If you add water and raw food to a stew pot and boil it periodically, it never spoils. Eternal stew!"
+    },
+    {
+      "image": "Screen7.png",
+      "text": "Press 'crawl' to get to hard to reach places."
+    },
+    {
+      "image": "Screen8.png",
+      "text": "Hold Reload to unload the gun in your hands. You can also drop equipment, ammo and nuts from your inventory screen."
+    },
+    {
+      "image": "Screen9.png",
+      "text": "Binoculars help you see the location name and allegiance. They also help to uncover more of the 'fog of war' on the map."
+    },
+    {
+      "image": "Screen10.png",
+      "text": "Excess armor drops as plates when changing to lower-capacity armor; each complete 50 excess points produces one plate."
+    },
+    {
+      "image": "Screen11.png",
+      "text": "Pick up matching bandages or first aid to refill a partially used pack to three uses. Any excess stays on the ground."
+    },
+    {
+      "image": "Screen12.png",
+      "text": "Open the inventory screen and click equipped gearm ammo, nuts or first aid items to drop them."
+    },
+    {
+      "image": "Screen13.png",
+      "text": "Gunshots, explosions, engines, horns, shouts and thrown items can draw enemies."
+    },
+    {
+      "image": "Screen14.png",
+      "text": "Enemies investigate your last known position after losing sight. Moving away can shake a search. Hounds and other tracking creatures can follow you more effectively."
+    },
+    {
+      "image": "Screen15.png",
+      "text": "Darkness reduces enemy sight range, but your flashlight can reveal you."
+    },
+    {
+      "image": "Screen16.png",
+      "text": "Scrapyard patrols can include working two-wheel motorcycles."
+    },
+    {
+      "image": "Screen17.png",
+      "text": "The War Rig tanker has an accessible interior and hitches to the Rustchief. Inside the War Rig tank, you are protected from storm damage and tornado forces."
+    },
+    {
+      "image": "Screen18.png",
+      "text": "Aim at a friendly human nearby and press F to ask about work or hiring. Press J to review your jobs and deadlines."
+    }
+  ]
+}

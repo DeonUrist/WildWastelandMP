@@ -1,0 +1,4299 @@
+[Core]
+
+## Sliced background work (bakes, scans) stops for the frame once Wild Wasteland used this much time.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.5 to 8
+Frame budget (ms) = 2
+
+[Guns / Ammo]
+
+## Seconds to wait for an unload animation phase before completing it.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 1 to 10
+AnimationTimeout = 4
+
+[Guns / Ballistics]
+
+## Your own guns follow the same rules: visible bullets with travel time, the same range falloff and vehicle-part hits.
+# Setting type: Boolean
+# Default value: true
+PlayerGuns = true
+
+## Every gun (NPC and yours) does full damage until this % of its range, then the damage falls off to 0 at the range. 0 = falloff from the muzzle (half damage at 50 %).
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 99
+FullDamageUntil = 50
+
+## Thickness of NPC bullets, m, added to the target's hitbox (your body/head shapes, other targets' colliders). 0 = hairline. Your own bullets are always a hairline.
+# Setting type: Single
+# Default value: 0.05
+# Acceptable value range: From 0 to 0.5
+NpcHitRadius = 0.05
+
+## Damage multiplier for NPC shotgun pellets (the game's shotgunners do 5-8 per ray x 4 rays per blast, a third of a rifle burst).
+# Setting type: Single
+# Default value: 1.7
+# Acceptable value range: From 0 to 5
+NpcShotgunDamage = 1.7
+
+## Pellets per vanilla shotgun ray (a vanilla blast is 4 rays; 3 = 12 pellets). The blast's damage is split between them.
+# Setting type: Int32
+# Default value: 3
+# Acceptable value range: From 1 to 8
+ShotgunPellets = 3
+
+## Extra spread of each pellet, degrees.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 15
+ShotgunPelletSpread = 1
+
+## Player shotgun pellet distribution, %: 0 favours the rim, 50 is uniform across the circle, 100 favours the centre. Full spread remains possible; applies to the next shot.
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 0 to 100
+PlayerAccuracy = 100
+
+## NPC shotgun pellet distribution, %: 0 favours the rim, 50 is uniform across the circle, 100 favours the centre. Applies to extra pellet spread; NPC aim and lead are separate.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 100
+NpcAccuracy = 50
+
+## Your body as NPC bullets see it: a capsule from your feet to your neck with this radius, m (the game's own collider is only 0.17-0.20).
+# Setting type: Single
+# Default value: 0.22
+# Acceptable value range: From 0.05 to 0.6
+PlayerBodyRadius = 0.22
+
+## Your head as NPC bullets see it: a sphere of this radius at the top of your body, m.
+# Setting type: Single
+# Default value: 0.14
+# Acceptable value range: From 0.05 to 0.4
+PlayerHeadRadius = 0.14
+
+## Bullet damage that takes 1 % off a vehicle part condition.
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 1 to 1000
+VehicleDamagePer1 = 20
+
+## Wheels (and tyres) lose this many times more condition per bullet - and per blow of your melee weapons - than other vehicle parts, so shooting or slashing the wheels is the way to stop a car.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 100
+WheelDamageMultiplier = 5
+
+[Guns / Melee]
+
+## Melee weapons (name contains one of these) that use StabSound when hitting living actors or corpses instead of the game's knife hit. Every melee hit on a corpse shows blood.
+# Setting type: String
+# Default value: knife,shiv,machete
+StabWeapons = knife,shiv,machete
+
+## The stab sound for blades on living actors and corpses (WAV, relative to BepInEx\plugins\WildWasteland\Guns\; the old Gunplay plugin folder is used as a fallback). Missing file: the game's knife hit.
+# Setting type: String
+# Default value: Sounds/knifestab.wav
+StabSound = Sounds/knifestab.wav
+
+[Guns / NPC aim]
+
+## NPCs aim at the centre of your body. Off = the game's own aim point, your head, which with the game's aim jitter sends many shots over your head. (Also needs F6 [Guns] NpcAim.)
+# Setting type: Boolean
+# Default value: true
+NpcAimAtBody = true
+
+## NPCs aim where a moving target will be when the bullet arrives (the game's hitscan never had to). Changing direction still beats them. (Also needs F6 [Guns] NpcAim.)
+# Setting type: Boolean
+# Default value: true
+LeadTargets = true
+
+## How much of the ideal lead NPCs apply: 1 = perfect prediction, 0 = none. Each NPC rolls a personal skill between half of this and all of it.
+# Setting type: Single
+# Default value: 0.75
+# Acceptable value range: From 0 to 1
+LeadAccuracy = 0.75
+
+## Random error on the NPC's estimate of your speed, +/- %, per shot.
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 100
+LeadError = 30
+
+## Longest flight time NPCs lead for, s (bolts at long range).
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0 to 5
+MaxLeadTime = 1.5
+
+[Guns / Tracers]
+
+## Bullet tracer colour (RGBA hex). Unlit: same brightness day and night.
+# Setting type: Color
+# Default value: FFC759FF
+TracerColor = FFC759FF
+
+## Brightness multiplier of tracers and bolts.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0 to 8
+Glow = 1.5
+
+## Tracer line length, m.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 0.1 to 30
+TracerLength = 4
+
+## Tracer line width, m.
+# Setting type: Single
+# Default value: 0.1
+# Acceptable value range: From 0.005 to 0.5
+TracerWidth = 0.1
+
+## Crossbow bolt colour (RGBA hex).
+# Setting type: Color
+# Default value: D9B880FF
+BoltColor = D9B880FF
+
+## Bolt line length, m.
+# Setting type: Single
+# Default value: 0.8
+# Acceptable value range: From 0.1 to 5
+BoltLength = 0.8
+
+## Bolt line width, m.
+# Setting type: Single
+# Default value: 0.04
+# Acceptable value range: From 0.005 to 0.5
+BoltWidth = 0.04
+
+## Most bullets in flight at once; shots above this hit instantly (vanilla style) instead.
+# Setting type: Int32
+# Default value: 300
+# Acceptable value range: From 16 to 2000
+MaxTracers = 300
+
+## NPC bullets that hit the world show the same impact (sparks, sound) your own hits do; the game showed nothing for their misses.
+# Setting type: Boolean
+# Default value: true
+ImpactEffects = true
+
+## Extra sparks, smoke and a bullet mark on anything that is part of a car - attached parts, the body and frame, loose parts - except wheels (any bullet), using the game's MetalImpact effect.
+# Setting type: Boolean
+# Default value: true
+MetalSparks = true
+
+## Size of the metal sparks effect (1 = the prefab's own, demo-scene size).
+# Setting type: Single
+# Default value: 0.1
+# Acceptable value range: From 0.05 to 4
+MetalSparksScale = 0.1
+
+[HUD / Crosshair]
+
+## Size of the dot crosshair (style 3) relative to the vanilla crosshair.
+# Setting type: Single
+# Default value: 0.3
+# Acceptable value range: From 0.1 to 2
+DotScale = 0.3
+
+## While the game's Canvas/MousePoint and MouseCrosshair are not found (menus, loading), look for them at most this often, s.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 1 to 10
+SearchSeconds = 1
+
+[HUD / Headshot sound]
+
+## Sample gain applied once when headshot.mp3 is decoded (AudioSource volume cannot exceed 1). Applies on the next load (module off/on).
+# Setting type: Single
+# Default value: 1.3
+# Acceptable value range: From 0.5 to 3
+Gain = 1.3
+
+## Headshots closer together than this play one sound, s.
+# Setting type: Single
+# Default value: 0.075
+# Acceptable value range: From 0 to 0.5
+MinInterval = 0.075
+
+[HUD / Hit feedback]
+
+## Font size of the damage list, px; floating numbers use +4.
+# Setting type: Int32
+# Default value: 14
+# Acceptable value range: From 8 to 40
+DamageFontSize = 14
+
+## Hit marker size, px.
+# Setting type: Int32
+# Default value: 22
+# Acceptable value range: From 6 to 100
+HitMarkerSize = 22
+
+## Lifetime of a floating damage number, s.
+# Setting type: Single
+# Default value: 1.2
+# Acceptable value range: From 0.3 to 5
+NumberSeconds = 1.2
+
+## Lifetime of a line in the top-right damage list, s.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 1 to 15
+ListSeconds = 4
+
+## Maximum lines in the top-right damage list.
+# Setting type: Int32
+# Default value: 8
+# Acceptable value range: From 1 to 20
+ListLines = 8
+
+## How long the hit marker shows, s.
+# Setting type: Single
+# Default value: 0.18
+# Acceptable value range: From 0.05 to 1
+MarkerSeconds = 0.18
+
+## Hits on the same target within this time are merged into one number (shotgun pellets), s.
+# Setting type: Single
+# Default value: 0.05
+# Acceptable value range: From 0 to 0.5
+MergeSeconds = 0.05
+
+[NPC / Ambush]
+
+## Creatures that lie in wait (exact prefab names).
+# Setting type: String
+# Default value: Scorpion_Small,Scorpion_Big,Spider_Small,Spider_Big
+Prefabs = Scorpion_Small,Scorpion_Big,Spider_Small,Spider_Big
+
+## They let a target come this close at the least before attacking, m (chosen at random each time they settle).
+# Setting type: Single
+# Default value: 3
+# Acceptable value range: From 0.5 to 50
+MinDistance = 3
+
+## ... and at the most, m.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0.5 to 50
+MaxDistance = 5
+
+[NPC / Behaviour]
+
+## Idle quadrupeds stand or lie at least this long before switching, s.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 2 to 300
+DogIdlePoseMinSeconds = 10
+
+## ... and at the most, s.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 2 to 300
+DogIdlePoseMaxSeconds = 25
+
+## Lying quadrupeds: the front half (chest, front legs, head) is tilted up at the waist until the shoulders stand as high over the hips as they do standing. This adds to (or, negative, takes from) that height, m.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.15 to 0.3
+DogLieFrontLift = 0
+
+[NPC / Brain]
+
+## How quickly NPCs think and react, as % of the default: every wait of the brain (looks, backing out of a stuck, resting, keeping a way around an obstacle, rechecks while holding) is scaled by this. 50 = twice as quick, 500 = five times slower.
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 1 to 500
+ReactionTime = 100
+
+## How fast an NPC turns its body, degrees per second - also to face you for a shot (the game snapped instantly).
+# Setting type: Single
+# Default value: 210
+# Acceptable value range: From 30 to 720
+TurnRate = 210
+
+## A gunman holding a shooting position keeps the gun up and aimed at you between bursts (the game lowered it to the idle pose and raised it only for the shot).
+# Setting type: Boolean
+# Default value: true
+AimPose = true
+
+## % chance that a gunman kneels when he takes a shooting position (humans only; he stands up when he moves again). He is harder to hit kneeling: his hitbox shrinks with him.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 100
+CrouchChance = 50
+
+## How far ahead a moving NPC looks for obstacles, m.
+# Setting type: Single
+# Default value: 3.5
+# Acceptable value range: From 1 to 10
+FeelerLength = 3.5
+
+## How far ahead a melee NPC looks, m (they turn quicker than a gunman needs).
+# Setting type: Single
+# Default value: 2.5
+# Acceptable value range: From 1 to 10
+MeleeFeelerLength = 2.5
+
+## Half-angle of the feeler fan around the direction to the target, degrees.
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 15 to 120
+FeelerAngle = 60
+
+## Feeler rays per look (odd; fewer = cheaper, coarser).
+# Setting type: Int32
+# Default value: 7
+# Acceptable value range: From 3 to 15
+FeelerCount = 7
+
+## A moving NPC also checks for ground 1.5 m along its chosen direction and picks another when there is a drop (one extra ray).
+# Setting type: Boolean
+# Default value: true
+DropCheck = true
+
+## A gunman holding a shooting position rolls this % at every hold recheck (1-4 s) to run toward you for AdvanceMin..AdvanceMax s instead.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 100
+AdvanceChance = 10
+
+## Shortest advance, s.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.5 to 20
+AdvanceMin = 2
+
+## Longest advance, s.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 0.5 to 20
+AdvanceMax = 4
+
+## A stuck NPC backs up this long, s, before trying another way.
+# Setting type: Single
+# Default value: 0.8
+# Acceptable value range: From 0.1 to 5
+StuckBackupSeconds = 0.8
+
+## How long the heading it got stuck on is avoided, s.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 60
+StuckMemorySeconds = 5
+
+## Stucks within 10 s after which the NPC stands still for a second (facing you) before trying again.
+# Setting type: Int32
+# Default value: 3
+# Acceptable value range: From 1 to 20
+StuckGiveUpCount = 3
+
+## With Apocaplayer 2.2.0+ installed: gunmen are animated by its ModAPI - the player's own clips and logic (8-way walk / run / sprint, crouch for rifles and pistols, aim and fire, reloads incl. one round at a time, pump / bolt after a burst, turns in place, hops) with the gun in the right hand at the player's weapon poses. false = the game's own clips (also a quick A/B for performance).
+# Setting type: Boolean
+# Default value: true
+ApocaplayerClips = true
+
+## (with Apocaplayer's clips) A chasing gunman whose way round something is within this many degrees of the line to his target keeps facing the target and strafes along it instead of turning his body. 0 = always turn.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 90
+StrafeAngle = 50
+
+## A fighting human whose health drops below this % runs to cover (a cover object of the camp, or a spot its map shows breaks your line of sight, within CoverRange) and fights from there for CoverMin..CoverMax s. 0 = off.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 100
+CoverBelow = 50
+
+## How far a cover spot may be, m.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 3 to 100
+CoverRange = 25
+
+## Shortest stay in cover, s (it leaves early when you come within 8 m).
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 1 to 300
+CoverMin = 20
+
+## Longest stay in cover, s.
+# Setting type: Single
+# Default value: 40
+# Acceptable value range: From 1 to 300
+CoverMax = 40
+
+## NPCs farther than this from their target move the game's way (no cost).
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 20 to 1000
+MaxDistance = 150
+
+[NPC / Burrow]
+
+## Creatures that burrow (exact prefab names).
+# Setting type: String
+# Default value: Scorpion_Small
+Prefabs = Scorpion_Small
+
+## Shortest time between burrowing and coming up, s.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 1 to 600
+MinSeconds = 10
+
+## Longest time between burrowing and coming up, s.
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 1 to 600
+MaxSeconds = 30
+
+## A burrowed creature lets you come this close (m) at the least before it comes up and attacks; chosen at random per burrowing.
+# Setting type: Single
+# Default value: 3
+# Acceptable value range: From 0.5 to 30
+AmbushMin = 3
+
+## ... and at the most, m.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0.5 to 30
+AmbushMax = 5
+
+## Other NPCs notice a burrowed creature only from this close, m (the player sees its tail regardless).
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0.5 to 100
+SeenFrom = 5
+
+## How long sinking takes, s.
+# Setting type: Single
+# Default value: 0.9
+# Acceptable value range: From 0.1 to 5
+BurrowSeconds = 0.9
+
+## How long coming up takes, s (half of it when alerted).
+# Setting type: Single
+# Default value: 0.7
+# Acceptable value range: From 0.1 to 5
+RiseSeconds = 0.7
+
+## How much of the body goes under, 0.2-1.
+# Setting type: Single
+# Default value: 0.75
+# Acceptable value range: From 0.2 to 1
+Depth = 0.75
+
+## A terrain texture layer whose name (or texture name) contains one of these counts as sand.
+# Setting type: String
+# Default value: sand
+SandKeywords = sand
+
+## Also require the terrain texture under the creature to be a sand-named layer (see SandKeywords). Off: any open ground (terrain, not an object) is sand.
+# Setting type: Boolean
+# Default value: false
+UseTextureLayers = false
+
+## When a terrain has no layer named like the keywords (or no readable layers) its ground counts as sand; meshes (rock, floors, roads) never do.
+# Setting type: Boolean
+# Default value: true
+TerrainIsSand = true
+
+## Size of the sand puff compared with the worm's.
+# Setting type: Single
+# Default value: 0.3
+# Acceptable value range: From 0.05 to 1
+FxScale = 0.3
+
+## Volume of the burrow sound.
+# Setting type: Single
+# Default value: 0.35
+# Acceptable value range: From 0 to 1
+FxVolume = 0.35
+
+## Pitch of the burrow sound (higher = smaller creature).
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.5 to 3
+FxPitch = 1.5
+
+## No puff or sound when the camera is farther than this, m.
+# Setting type: Single
+# Default value: 45
+# Acceptable value range: From 5 to 300
+FxRange = 45
+
+## Log burrowing and the terrain layers found.
+# Setting type: Boolean
+# Default value: false
+Log = false
+
+[NPC / Debug]
+
+## Detailed NPC logs (hits, detection, movement, maps) - also written when the global [Debug] VerboseLog is off.
+# Setting type: Boolean
+# Default value: false
+VerboseLog = false
+
+## Map pictures (BMP) of every camp map made, and of NPCs that find no route, in config/WildWasteland/NPC/NavDump (0.5-4 MB each; for troubleshooting). With VerboseLog also a per-second Trace line for every moving NPC and a trace picture of its trail when a chase ends or it rests (cyan = the map's route, white = walked on the map, orange = walked without the map, red = backing up / resting).
+# Setting type: Boolean
+# Default value: false
+NavDump = false
+
+## Draw the detection ghosts, NPC states and the structure maps' waypoints in the world.
+# Setting type: Boolean
+# Default value: false
+ShowNavigation = false
+
+## Bake-collection aid: map POIs without a completed saved bake are light purple regardless of allegiance. Turn off to restore normal map colors immediately. Does not reveal fog or change compass colors.
+# Setting type: Boolean
+# Default value: false
+HighlightUnbakedMapPois = false
+
+[NPC / Detection]
+
+## Field of view of spiders, scorpions, wasps, arachnids, degrees.
+# Setting type: Single
+# Default value: 210
+# Acceptable value range: From 10 to 360
+SightConeInsects = 210
+
+## Field of view of rats, hounds, skinwals, nightwalkers, degrees.
+# Setting type: Single
+# Default value: 190
+# Acceptable value range: From 10 to 360
+SightConeBeasts = 190
+
+## Field of view of professors, teachers, juggernauts, degrees.
+# Setting type: Single
+# Default value: 210
+# Acceptable value range: From 10 to 360
+SightConeBrutes = 210
+
+## Field of view of bosses (creatures with the BossUI FSM), degrees.
+# Setting type: Single
+# Default value: 300
+# Acceptable value range: From 10 to 360
+SightConeBosses = 300
+
+## Field of view of the sand worms, degrees.
+# Setting type: Single
+# Default value: 360
+# Acceptable value range: From 10 to 360
+SightConeBurrowers = 360
+
+## Prefab name parts of the insect group.
+# Setting type: String
+# Default value: Spider,Scorpion,Wasp,Arachnid
+ConeInsects = Spider,Scorpion,Wasp,Arachnid
+
+## Prefab name parts of the beast group.
+# Setting type: String
+# Default value: Rat,Hound,Skinwal,Nightwalker
+ConeBeasts = Rat,Hound,Skinwal,Nightwalker
+
+## Prefab name parts of the brute group.
+# Setting type: String
+# Default value: Professor,Teacher,Juggernaut
+ConeBrutes = Professor,Teacher,Juggernaut
+
+## Prefab name parts of the burrower group.
+# Setting type: String
+# Default value: Burrower
+ConeBurrowers = Burrower
+
+[NPC / Dogs]
+
+## Creatures handled as dogs (exact prefab names).
+# Setting type: String
+# Default value: Wild Hound,Yard Hound,Grimhound,Nightwalker,Alpha_Nightwalker
+Prefabs = Wild Hound,Yard Hound,Grimhound,Nightwalker,Alpha_Nightwalker
+
+## Log each dog's reach and the head / neck bones found.
+# Setting type: Boolean
+# Default value: false
+Log = false
+
+[NPC / Hunt]
+
+## Creatures that burrow AND hunt underground: they travel under the sand and come up behind the enemy (exact prefab names).
+# Setting type: String
+# Default value: Scorpion_Big
+Prefabs = Scorpion_Big
+
+## Burrowed, a hunter engages anything within this distance; fighting, it dives when the target is farther than this, m.
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 2 to 100
+Range = 15
+
+## No dive after a target farther than this, m (it chases or loses it as usual).
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 5 to 300
+MaxDistance = 60
+
+## It comes up this far behind the enemy, m.
+# Setting type: Single
+# Default value: 2.5
+# Acceptable value range: From 0.5 to 10
+Behind = 2.5
+
+## Travel speed underground when the creature's own run speed is not known yet, m/s.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0.5 to 30
+Speed = 5
+
+## After coming up it fights above ground at least this long before it dives again, s.
+# Setting type: Single
+# Default value: 6
+# Acceptable value range: From 0 to 120
+Cooldown = 6
+
+## How long going fully under takes, s.
+# Setting type: Single
+# Default value: 1.6
+# Acceptable value range: From 0.1 to 5
+DiveSeconds = 1.6
+
+## How long bursting out takes, s.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.1 to 5
+RiseSeconds = 1
+
+## No room behind the enemy (2 spots tried): it comes back up where it went down after at least this long, s.
+# Setting type: Single
+# Default value: 3
+# Acceptable value range: From 0 to 60
+FallbackMin = 3
+
+## ... and at the most, s.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 60
+FallbackMax = 5
+
+## Underground it travels this many times faster than it runs.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.25 to 10
+TravelSpeedFactor = 2
+
+## A hunter's ordinary burrowing and coming up (lying in wait) take this many times longer than a small scorpion's.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.25 to 10
+BurrowSlowdown = 2
+
+## Size of a hunter's sand puff compared with the worm's.
+# Setting type: Single
+# Default value: 0.9
+# Acceptable value range: From 0.05 to 1
+FxScale = 0.9
+
+## Volume of a hunter's burrow sound.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 1
+FxVolume = 1
+
+## Pitch of a hunter's burrow sound.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.5 to 3
+FxPitch = 1
+
+[NPC / Idle]
+
+## Seconds an NPC stays where it lost track of everything before it heads home.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From 0 to 300
+ReturnDelay = 0
+
+## Failed attempts to get home before the NPC forgets its home.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 1 to 100
+ReturnTries = 10
+
+## Pause between two attempts to get home, s.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 60
+RetrySeconds = 5
+
+## NPCs sent somewhere by another module (convoy crews back to their car, foot patrols) run while farther than this from the goal and walk the rest, m. 0 = always run.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 0 to 5000
+TravelRunBeyond = 25
+
+## Camp walks only for NPCs within this distance of the camera, m.
+# Setting type: Single
+# Default value: 200
+# Acceptable value range: From 20 to 1000
+WalkRadius = 200
+
+[NPC / Movement]
+
+## A moving NPC runs at full speed while its body faces within this many degrees of where it wants to go.
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 180
+FullSpeedAngle = 30
+
+## At this many degrees off (and beyond) it moves at SlowestSpeed - a big turn is made almost on the spot instead of as an arc.
+# Setting type: Single
+# Default value: 120
+# Acceptable value range: From 1 to 180
+SlowestAngle = 120
+
+## Speed factor (0-1) at SlowestAngle; between the two angles it goes linearly.
+# Setting type: Single
+# Default value: 0.1
+# Acceptable value range: From 0 to 1
+SlowestSpeed = 0.1
+
+## A chasing NPC that covers less than this share of the distance it is driven (running in place, grinding along a wall) is blocked: it hops or steps back and picks another way.
+# Setting type: Single
+# Default value: 0.33
+# Acceptable value range: From 0.05 to 0.9
+BlockedRatio = 0.33
+
+## Over how many seconds that share is measured.
+# Setting type: Single
+# Default value: 0.5
+# Acceptable value range: From 0.2 to 3
+BlockedSeconds = 0.5
+
+## For how many seconds the direction it was blocked in is not taken again (on a map route).
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0 to 10
+BlockedMemory = 1.5
+
+[NPC / Nav]
+
+## A structure is mapped when you come within this distance of it, m.
+# Setting type: Single
+# Default value: 200
+# Acceptable value range: From 30 to 1000
+BakeRange = 200
+
+## Map resolution, m (smaller = narrower gaps found, slower mapping). Very large structures get coarser cells automatically.
+# Setting type: Single
+# Default value: 0.5
+# Acceptable value range: From 0.25 to 2
+CellSize = 0.5
+
+## Open ground mapped around a structure's outline, m.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 1 to 20
+Margin = 4
+
+## Largest height step between neighbouring map cells (0.5 m apart) an NPC can walk, m. An NPC's body can't climb much more than a kerb.
+# Setting type: Single
+# Default value: 0.25
+# Acceptable value range: From 0.1 to 2
+MaxStep = 0.25
+
+## CPU time per frame spent mapping a structure, ms.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.2 to 10
+BakeBudgetMs = 1
+
+## How long a computed route to one goal is reused by every NPC heading there, s.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.2 to 10
+FieldSeconds = 1
+
+[NPC / Nests]
+
+## Creatures that make a place a nest and answer its alarm (exact prefab names).
+# Setting type: String
+# Default value: Spider_Small,Spider_Big
+Prefabs = Spider_Small,Spider_Big
+
+## Creatures that sit in the hanging webs, one per web.
+# Setting type: String
+# Default value: Spider_Big
+Sitters = Spider_Big
+
+## A nest is built when you are this close, m (the game spawns its spiders at 500 m).
+# Setting type: Single
+# Default value: 520
+# Acceptable value range: From 50 to 2000
+BuildRange = 520
+
+## A nest's webs are removed when you are farther than this, m (rebuilt the same when you come back).
+# Setting type: Single
+# Default value: 750
+# Acceptable value range: From 100 to 5000
+FreeRange = 750
+
+## A spider belongs to the nearest cave / wreck / camp within this distance, m.
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 10 to 300
+PlaceRadius = 80
+
+## Webs are spread at most this far from the nest's middle, m.
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 8 to 100
+MaxRadius = 35
+
+## Hanging webs per nest at the least (where the place has room for them).
+# Setting type: Int32
+# Default value: 3
+# Acceptable value range: From 0 to 30
+MinHangingWebs = 3
+
+## ... and at the most (big spiders + 1-3).
+# Setting type: Int32
+# Default value: 7
+# Acceptable value range: From 0 to 30
+MaxHangingWebs = 7
+
+## Ground webs per nest at the least.
+# Setting type: Int32
+# Default value: 4
+# Acceptable value range: From 0 to 30
+MinGroundWebs = 4
+
+## ... and at the most.
+# Setting type: Int32
+# Default value: 7
+# Acceptable value range: From 0 to 30
+MaxGroundWebs = 7
+
+## Spots looked at for hanging webs per nest (each: 1 + 16 short rays).
+# Setting type: Int32
+# Default value: 70
+# Acceptable value range: From 5 to 500
+SpotsTried = 70
+
+## Building a nest takes at most about this much time per frame, ms.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.2 to 20
+FrameBudgetMs = 1
+
+## Alarmed by a touched web, the nest's spiders run this many times faster.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 1 to 4
+AlarmSpeed = 1.5
+
+## ... for this long, s.
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 1 to 300
+AlarmSeconds = 20
+
+## A nest is alarmed again by its webs at most this often, s.
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 1 to 120
+AlarmCooldown = 5
+
+## A spider sitting in its web attacks only what comes this close, m (shot or alarmed: at once).
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.3 to 20
+SitterReach = 1
+
+## Log seating, drops and nests freed (the nest summary and alarms are always logged).
+# Setting type: Boolean
+# Default value: false
+Log = false
+
+[NPC / NpcAim]
+
+## How long NPCs take to aim between bursts, as % of the game's own pause (3-5 s, plus the distance delay): 50 = half the time, 100 = as the game, 300 = three times slower.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 1 to 300
+AimTimeScale = 50
+
+## An NPC fires only once its body faces you within this many degrees (it turns at [Brain] TurnRate); until then it keeps turning and checks again every 0.1-0.2 s.
+# Setting type: Single
+# Default value: 8
+# Acceptable value range: From 0 to 90
+FacingTolerance = 8
+
+## NPCs open fire once the target is within this % of the gun's reach; farther away they keep closing in. Never beyond the reach itself.
+# Setting type: Single
+# Default value: 85
+# Acceptable value range: From 1 to 100
+EngagePercent = 85
+
+## Gunmen reload: after the magazine of their gun (MagazineTable: the player's own weapons' capacities) they stop firing for the reload (Apocaplayer's RifleReload / PistolReload clip when its animations are in use, else ReloadSeconds). They reload standing, kneeling or in cover, not while running.
+# Setting type: Boolean
+# Default value: true
+Magazines = true
+
+## Shots per magazine by weapon model (the game's own Reload FSM capacities of the player's weapons, 2026-10-06; the 22_pipe_smg's 165 is cut to 30 here). A gun not listed never reloads.
+# Setting type: String
+# Default value: 22_pipe_pistol=1, 22_pipe_revolver=5, 22_pipe_smg=30, akm_drum=70, akm_trash=30, akms=30, borz_smg=25, crossbow=1, folk_17=17, m16a1=30, redmark_m11=4, redmark_m11_scoped=4, rochester_m24=2, rochester_m24_chopped=2, slamberg_500=5, slamberg_500_chopped=5, slamfire_shotgun=1
+MagazineTable = 22_pipe_pistol=1, 22_pipe_revolver=5, 22_pipe_smg=30, akm_drum=70, akm_trash=30, akms=30, borz_smg=25, crossbow=1, folk_17=17, m16a1=30, redmark_m11=4, redmark_m11_scoped=4, rochester_m24=2, rochester_m24_chopped=2, slamberg_500=5, slamberg_500_chopped=5, slamfire_shotgun=1
+
+## Reload time of a gun with a magazine of 1-2 (pipe pistol, slam-fire shotgun, crossbow, the Rochesters): the reload clip is sped up to it, s.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.3 to 5
+SingleShotReload = 1
+
+## Volume of a gunman's reload sounds (the clips the player's copy of the gun plays while reloading). 0 = silent.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 1
+ReloadVolume = 1
+
+## How far a reload is heard, m (linear falloff from 2 m).
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 5 to 100
+ReloadSoundRange = 35
+
+## Guns loaded one round at a time (revolver, shotguns, bolt rifle, double barrel - as the player's copy of the gun): seconds per round; the reload clip's round part plays once per round.
+# Setting type: Single
+# Default value: 0.6
+# Acceptable value range: From 0.2 to 3
+RoundSeconds = 0.6
+
+## Reload time without a reload clip, s.
+# Setting type: Single
+# Default value: 2.5
+# Acceptable value range: From 0.5 to 10
+ReloadSeconds = 2.5
+
+[NPC / Pounce]
+
+## Creatures that pounce (exact prefab names).
+# Setting type: String
+# Default value: Spider_Small
+Prefabs = Spider_Small
+
+## It starts zigzagging this close at the least, m (chosen at random per try).
+# Setting type: Single
+# Default value: 8
+# Acceptable value range: From 1 to 30
+ZigzagFromMin = 8
+
+## ... and at the most, m.
+# Setting type: Single
+# Default value: 11
+# Acceptable value range: From 1 to 20
+ZigzagFromMax = 11
+
+## It leaps from this distance at the least, m (chosen at random per try).
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0.5 to 12
+LeapFromMin = 5
+
+## ... and at the most, m.
+# Setting type: Single
+# Default value: 6
+# Acceptable value range: From 0.5 to 12
+LeapFromMax = 6
+
+## How far off the straight line each zigzag leg turns, degrees.
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 0 to 80
+ZigzagAngle = 35
+
+## Length of one zigzag leg, s (+-30 %).
+# Setting type: Single
+# Default value: 0.35
+# Acceptable value range: From 0.1 to 2
+ZigzagSeconds = 0.35
+
+## Zigzag and run-off speed as a multiple of its run speed.
+# Setting type: Single
+# Default value: 1.3
+# Acceptable value range: From 0.5 to 4
+ZigzagSpeed = 1.3
+
+## Speed of the leap, m/s (sets the flight time).
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 1 to 30
+LeapSpeed = 10
+
+## How far the body rears back in the air, degrees (belly towards the player).
+# Setting type: Single
+# Default value: 70
+# Acceptable value range: From 0 to 110
+Pitch = 70
+
+## After a bite it runs away at least this long, s.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.2 to 20
+RunOffMin = 1.5
+
+## ... and at the most, s.
+# Setting type: Single
+# Default value: 2.5
+# Acceptable value range: From 0.2 to 20
+RunOffMax = 2.5
+
+## Then it chases as usual at least this long before the next pounce, s.
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 0 to 120
+CooldownMin = 4
+
+## ... and at the most, s.
+# Setting type: Single
+# Default value: 7
+# Acceptable value range: From 0 to 120
+CooldownMax = 7
+
+## Log every zigzag, leap, bite and miss.
+# Setting type: Boolean
+# Default value: false
+Log = false
+
+[NPC / Senses]
+
+## How bright it is to NPC eyes by the game clock, hour=percent of daylight (100 = SightRange, 0 = DarkSightRange), straight lines in between, wrapping at midnight.
+# Setting type: String
+# Default value: 20=100, 21=75, 22=35, 23=0, 4=35, 5=75, 6=100
+NightHours = 20=100, 21=75, 22=35, 23=0, 4=35, 5=75, 6=100
+
+## A human going to check a spot at least this far away does not walk straight at it: it comes in from one side (FlankWidth m off the line, 60 % of the way), the side alternating between NPCs. 0 = off. Trackers go straight.
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 0 to 200
+FlankDistance = 15
+
+## See FlankDistance, m.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 50
+FlankWidth = 10
+
+## How long a target has to be in view before the NPC reacts, s (up close, within 15 m).
+# Setting type: Single
+# Default value: 0.2
+# Acceptable value range: From 0 to 5
+NoticeSeconds = 0.2
+
+## ... and at the edge of its sight, s (in between it scales with the distance; up to twice as long in the dark).
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0 to 10
+NoticeFar = 2
+
+## How long a target can be out of view before the NPC counts it as lost and goes to where it last saw it, s (at least 5).
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 5 to 10
+LoseSeconds = 5
+
+## A convoy crew member that fought the player (engaged him, was hit by him, heard his shots, or its car's crew fought him) knows where he is for this long after the last contact, s: losing sight does not drop him meanwhile (it follows his real position, out of caves too). Camp NPCs lose and search for him as usual. Convoy crews on foot target the player only after noticing him (sight, his shots, his hits) or while they remember him.
+# Setting type: Single
+# Default value: 90
+# Acceptable value range: From 10 to 600
+FoughtMemorySeconds = 90
+
+## How many times an NPC that lost you from sight goes to a new spot (a guess for humans, your real position for trackers) before it gives up and searches where it stands.
+# Setting type: Int32
+# Default value: 3
+# Acceptable value range: From 0 to 10
+Guesses = 3
+
+## A human that reaches the spot it last saw you and finds nothing guesses where you went: this far off (m) the first time, twice that the second, three times the third (PursuitMin..Max guesses). Trackers follow your real position instead.
+# Setting type: Single
+# Default value: 8
+# Acceptable value range: From 0 to 50
+GuessRadius = 8
+
+## NPC types (name parts) that track you by smell: they go to where you really are when they lose sight, and know exactly where a hit came from.
+# Setting type: String
+# Default value: Hound,Grimhound,Pup,Nightwalker,Spider,Arachnid,Scorpion
+Trackers = Hound,Grimhound,Pup,Nightwalker,Spider,Arachnid,Scorpion
+
+## An NPC shouts only while it sees you: at once when it spots you, then after a pause of TauntMin..TauntMax seconds (the game shouted every 0.1-4 s while it had any target).
+# Setting type: Single
+# Default value: 12
+# Acceptable value range: From 1 to 120
+TauntMin = 12
+
+## See TauntMin.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 1 to 120
+TauntMax = 25
+
+## How many NPCs go to check a gunshot or an explosion: the nearest this many, plus everyone within GunshotNearRange. 0 = everyone in earshot.
+# Setting type: Int32
+# Default value: 4
+# Acceptable value range: From 0 to 50
+GunshotResponders = 4
+
+## See GunshotResponders, m.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 0 to 300
+GunshotNearRange = 25
+
+## How long an NPC looks around at the place it went to check before it loses interest, s.
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 120
+SearchSeconds = 30
+
+## An NPC walking to a spot it goes to check (a ghost) keeps going until it gets there; only if this many seconds pass with no news about that spot (the ghost not renewed or moved) does it give up the walk and search from where it is, s.
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 5 to 600
+GhostTimeout = 60
+
+## How close to the remembered spot counts as being there, m.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.5 to 10
+ArriveDistance = 1.5
+
+## How often each NPC looks, s (a couple of rays per look).
+# Setting type: Single
+# Default value: 0.15
+# Acceptable value range: From 0.05 to 2
+LookInterval = 0.15
+
+## A pistol or revolver shot is heard this far, m.
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 0 to 1000
+ShotRangePistol = 80
+
+## An SMG shot is heard this far, m.
+# Setting type: Single
+# Default value: 120
+# Acceptable value range: From 0 to 1000
+ShotRangeSmg = 120
+
+## A rifle or machine-gun shot is heard this far, m.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+ShotRangeRifle = 150
+
+## A sniper rifle shot is heard this far, m.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+ShotRangeSniper = 150
+
+## A shotgun blast is heard this far, m.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+ShotRangeShotgun = 150
+
+## A crossbow shot is heard this far, m.
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 0 to 1000
+ShotRangeCrossbow = 15
+
+## How far each NPC type's gunfire is heard, m, as Type=metres pairs; a type not listed uses the range of its weapon class above.
+# Setting type: String
+# Default value: Flexa=150, Gungirl=150, Lugnut=150, Scrud=150, Boltjaw=120, Sprokka=80, Shoota=80, Pistoleer=80, Gunnar=150, Lugger=150
+NpcShotRanges = Flexa=150, Gungirl=150, Lugnut=150, Scrud=150, Boltjaw=120, Sprokka=80, Shoota=80, Pistoleer=80, Gunnar=150, Lugger=150
+
+## A human that searched a spot and found nothing tells same-faction humans within this range who are going to (or searching) the same spot: they give up and go back too.
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 200
+AllClearRange = 30
+
+## A human's shout passes on what it knows to same-faction humans within this range - what it sees (as sight) or the spot it is going to check (at that spot's own rank) - and tells its enemies where it stands, m. 0 = off.
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 0 to 200
+TauntRange = 15
+
+## The game's input buttons (Input Manager names) ignored while ShoutModifier is held.
+# Setting type: String
+# Default value: Kick,ShiftDown
+ShoutBlocksButtons = Kick,ShiftDown
+
+## How far your shout carries, m.
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 0 to 300
+PlayerShoutRange = 25
+
+## Shortest time between two of your shouts, s.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0 to 30
+ShoutCooldown = 1.5
+
+## Sight range in a sandstorm, % of normal: when the NPC looking or what it looks at is inside one (applied once, not twice).
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 0 to 100
+StormSight = 80
+
+## Hearing range in a sandstorm, % of normal: gunfire, explosions, shouts and engines, when the sound or the listener is inside one (applied once, not twice).
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 100
+StormHearing = 50
+
+## A sandstorm covers this far around its centre, m (the game's own distance for the sand around the player).
+# Setting type: Single
+# Default value: 2500
+# Acceptable value range: From 100 to 10000
+StormRadius = 2500
+
+## Volume of your shout.
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 1
+ShoutVolume = 1
+
+## Which factions (object tags) count as humans for taunts.
+# Setting type: String
+# Default value: Scrapyard,Coyotes
+HumanFactions = Scrapyard,Coyotes
+
+## Your running engine is heard this far with the weakest engine (EngineMinHp), m.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 1000
+EngineMinRange = 50
+
+## ... and this far with the strongest (EngineMaxHp), m.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+EngineMaxRange = 150
+
+## Horsepower that counts as the weakest engine.
+# Setting type: Single
+# Default value: 40
+# Acceptable value range: From 1 to 2000
+EngineMinHp = 40
+
+## Horsepower that counts as the strongest engine.
+# Setting type: Single
+# Default value: 300
+# Acceptable value range: From 1 to 2000
+EngineMaxHp = 300
+
+## Engine range while idling (no throttle, standing), % of the driving range. A switched-off engine is silent.
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From 0 to 100
+EngineIdleFactor = 50
+
+## With Apocapatrol: a raider bailing out of a car keeps what its crew knew - it fights at once if it sees you, otherwise it heads for where you were and searches.
+# Setting type: Boolean
+# Default value: true
+BailOutAware = true
+
+## With Apocapatrol: a crew bailing out knows where you are if you are within this range of its car, m.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+BailOutAwareRange = 150
+
+## With Apocapatrol: an exploding raider car is heard this far (like a gunshot), m. 0 = silent.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+ExplosionRange = 150
+
+## Grenades, blast lances, Blast Rats and Blast Zombies exploding are heard this far (like a gunshot), m. 0 = silent.
+# Setting type: Single
+# Default value: 150
+# Acceptable value range: From 0 to 1000
+BlastRange = 150
+
+## Explosion prefabs heard within BlastRange when the game spawns them (Explosion_Grenade = grenade + blast lance, Explosion_Can = stronger blast lance, Explosion_BlastRat / Explosion_BlastZombie = the exploding creatures).
+# Setting type: String
+# Default value: Explosion_Grenade,Explosion_Can,Explosion_BlastRat,Explosion_BlastZombie
+BlastPrefabs = Explosion_Grenade,Explosion_Can,Explosion_BlastRat,Explosion_BlastZombie
+
+## An item you throw draws NPCs within this range of where it lands, m. 0 = off.
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 200
+ThrowRange = 10
+
+[Patrols / AI]
+
+## Maximum throttle the driving AI uses (0..1); also the throttle of a stuck pedal
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0.05 to 1
+Throttle = 1
+
+## When the target may not be rammed (the template's ramsTargets), the car aims this far beside it and drives past instead, m
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 1 to 20
+DriveByOffset = 5
+
+## Aim this many seconds ahead of the target's movement (intercept), s
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 4
+LeadTime = 1
+
+## The aim point is re-taken only this often, so the car commits to a heading instead of twitching after the target, s
+# Setting type: Single
+# Default value: 0.5
+# Acceptable value range: From 0.05 to 3
+CommitSeconds = 0.5
+
+## How fast the wheel turns: full-lock units per second (1.5 = straight to full lock in 0.67 s). Lower = lazier, wider turns
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.2 to 10
+SteerRate = 1.5
+
+## Angle to the aim point at which the driver asks for full lock, degrees (smaller = sharper corrections)
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 5 to 90
+SteerAngle = 30
+
+## Steering limit at 72 km/h and above (0..1); full lock is allowed below 18 km/h, blended in between. Keeps the car on its wheels
+# Setting type: Single
+# Default value: 0.35
+# Acceptable value range: From 0.05 to 1
+MaxSteerAtSpeed = 0.35
+
+## Above this speed (m/s) the driver lifts off and brakes lightly when the target is more than 40 degrees off the nose
+# Setting type: Single
+# Default value: 18
+# Acceptable value range: From 3 to 40
+TurnSafeSpeed = 18
+
+## Within this distance of the target (m), obstacle avoidance is switched off: go straight for the ram
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 0 to 50
+RamDistance = 15
+
+## The target counts as passed when it is behind the car and within this many metres of the car's track
+# Setting type: Single
+# Default value: 12
+# Acceptable value range: From 2 to 40
+PassWidth = 12
+
+## After passing or ramming the target the car keeps going this far before turning around, m
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 200
+RunOutMeters = 30
+
+## ... or at most this long, s
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 0.5 to 20
+RunOutMaxSeconds = 4
+
+## How long the car reverses after hitting an obstacle or getting stuck, s (grows with repeated attempts)
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.5 to 10
+ReverseSeconds = 2
+
+## Throttle used while reversing
+# Setting type: Single
+# Default value: 0.6
+# Acceptable value range: From 0.1 to 1
+ReverseThrottle = 0.6
+
+## Not moving for this long while trying to drive forward = stuck, reverse out
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0.5 to 10
+StuckSeconds = 2
+
+## Recoveries closer together than this count as repeated attempts, s
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 1 to 60
+RecoverWindow = 30
+
+## After this many repeated recoveries the car gives up: the crew bails (Driving StuckBailChance) or the car waits WaitSeconds
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 1 to 20
+MaxRecovers = 2
+
+## How long a car that gave up sits still before trying again, s
+# Setting type: Single
+# Default value: 4
+# Acceptable value range: From 1 to 60
+WaitSeconds = 4
+
+## Base length of the centre obstacle feeler ray, m (side rays are shorter)
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 2 to 40
+FeelerRange = 10
+
+## Extra feeler length per m/s of speed
+# Setting type: Single
+# Default value: 0.6
+# Acceptable value range: From 0 to 2
+FeelerSpeedFactor = 0.6
+
+## Feelers start this far in front of the car's centre of mass, m (should be just outside the bumper)
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 0 to 5
+FrontOffset = 2
+
+## Surfaces flatter than this are driven over, steeper ones are obstacles (rocks, walls), degrees
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 10 to 80
+MaxSlopeDeg = 35
+
+## How hard the feelers steer away from obstacles
+# Setting type: Single
+# Default value: 1.2
+# Acceptable value range: From 0 to 4
+AvoidGain = 1.2
+
+## Loose physics objects lighter than this (kg) are not obstacles; the car drives through them
+# Setting type: Single
+# Default value: 40
+# Acceptable value range: From 0 to 1000
+IgnoreMassBelow = 40
+
+## Beyond this distance from the player the car stops chasing and coasts until the player comes closer, m
+# Setting type: Single
+# Default value: 700
+# Acceptable value range: From 20 to 2000
+GiveUpDistance = 700
+
+## Flip the steering sign if the car turns away from the target instead of toward it
+# Setting type: Boolean
+# Default value: false
+InvertSteering = false
+
+[Patrols / Audio]
+
+## How many sounds the game can play at once (Unity's real voices; the game ships with 32). A firefight with several raider cars needs more: every shot and every hit is a sound, and beyond the limit sounds - the player's own shots too - cut out. 64 is a good value; 0 leaves the game's own setting. Applied at game start (restart the game after a change)
+# Setting type: Int32
+# Default value: 64
+# Acceptable values: 0, 32, 48, 64, 96, 128
+AudioVoices = 64
+
+[Patrols / Cleanup]
+
+## A raider car farther than MinDistance for this long is removed with its crew and cargo (0 = never by time)
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From 0 to 600
+RemoveAfterMinutes = 10
+
+## With more raider cars than this in the world, the farthest ones beyond MinDistance are removed first (0 = no limit)
+# Setting type: Int32
+# Default value: 30
+# Acceptable value range: From 0 to 200
+MaxCars = 30
+
+## Cars closer than this are never removed (m)
+# Setting type: Single
+# Default value: 800
+# Acceptable value range: From 100 to 5000
+MinDistance = 800
+
+[Patrols / Combat tuning]
+
+## Occupants may fire this many degrees left or right of the car's forward direction
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 0 to 180
+FireArcHalfAngle = 100
+
+## Maximum upper-body aim angle up or down (degrees)
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 0 to 80
+MaxAimPitch = 35
+
+## How quickly an occupant turns its upper body toward or away from a target (degrees/second)
+# Setting type: Single
+# Default value: 180
+# Acceptable value range: From 1 to 720
+AimTurnSpeed = 180
+
+## How long one of the driver's bursts lasts (shooting pose, vanilla Attack inside the fire arc), s
+# Setting type: Single
+# Default value: 3
+# Acceptable value range: From 0.5 to 30
+FireBurstSeconds = 3
+
+## Shortest pause between two bursts of the driver, s
+# Setting type: Single
+# Default value: 8
+# Acceptable value range: From 0 to 120
+FireIntervalMin = 8
+
+## Longest pause between two bursts of the driver, s
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 0 to 300
+FireIntervalMax = 20
+
+## Ram damage scale: at 1 a full-speed hit takes 30 health with a small car, 50 with a Junker, 70 with a truck (RamDamageByBody)
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 3
+RamDamageMultiplier = 1
+
+## Full-speed damage per car body, 'Body=damage' pairs; * = prefix. Bodies not listed take 30. Applied before the multiplier
+# Setting type: String
+# Default value: Junker=50, Rust*=70, Scrapwagon=70, PigPen=50
+RamDamageByBody = Junker=50, Rust*=70, Scrapwagon=70, PigPen=50
+
+## Impact speed (km/h, relative) for the full damage. At half that speed the hit does half damage; below half it does nothing
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 5 to 200
+RamFullSpeedKmh = 30
+
+## A damaging hit also shoves you (on foot) in the car's direction: 1 = about the impact speed plus a hop; 0 = off
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 4
+RamPushStrength = 1
+
+## With Ram damage in car: damage factor while you sit in your own car (1 = same as on foot)
+# Setting type: Single
+# Default value: 1
+# Acceptable value range: From 0 to 1
+RamInCarFactor = 1
+
+## A blast-lance rider throws at a target closer than this, m (and only when a flat throw reaches it)
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 5 to 150
+RiderRange = 35
+
+## The rider only throws when the lance reaches the predicted spot with at most this many degrees up (a throw, not a lob)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 0 to 45
+RiderMaxThrowAngle = 20
+
+## "Witness me!": the rider leaps when your car is closer than this, m
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 3 to 30
+RiderJumpRange = 15
+
+## Shortest pause between two of a rider's throws, s
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 1 to 60
+RiderIntervalMin = 5
+
+## Longest pause between two of a rider's throws, s
+# Setting type: Single
+# Default value: 9
+# Acceptable value range: From 1 to 120
+RiderIntervalMax = 9
+
+## "Witness me!": the Warboy only leaps at a car within this % of his longest jump (RiderLeapSpeed x 1.2 s, the speeds of both cars counted)
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 10 to 100
+RiderLeapReachPercent = 80
+
+## A Warboy on a motorcycle who cannot turn to you jumps off when you are closer than this, m
+# Setting type: Single
+# Default value: 6
+# Acceptable value range: From 1 to 30
+RiderBailRange = 6
+
+## A raider car with a suspension lift kit carries its centre of mass lower (0.3 m, plus 1.5 x any extra lift of the body), so tall cars on big wheels do not flip in turns (Part Adjustment uses the same rule)
+# Setting type: Boolean
+# Default value: true
+SuspensionLiftCenterOfMass = true
+
+## "Witness me!": the leap's ground speed relative to the rider's car, m/s - a long, flat jump, no lob
+# Setting type: Single
+# Default value: 11
+# Acceptable value range: From 5 to 40
+RiderLeapSpeed = 11
+
+## "Witness me!": damage of the rider's blast at its centre (in your car too); falls to a third at the edge
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 0 to 300
+RiderBlastDamage = 60
+
+## "Witness me!": reach of the rider's blast, m (damage and the shove of your car)
+# Setting type: Single
+# Default value: 7
+# Acceptable value range: From 1 to 20
+RiderBlastRadius = 7
+
+## Throw speed of a rider's lance, m/s (the player's is 30)
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 5 to 80
+RiderLanceSpeed = 30
+
+[Patrols / Debug]
+
+## Glowing markers on the human turret spots of the nearest raider car and numpad keys to move them: 8/2 forward/back, 4/6 left/right, 7/9 down/up (Shift = x5), 0 = next turret, 5 = save the spot into the car's template file, . = markers on/off
+# Setting type: Boolean
+# Default value: false
+TurretSpotEditor = false
+
+## Live arm, leg and seat adjustment for the nearest bus passenger. Num0 selects joint, Num/ selects side, Num8/2 bends, Num4/6 swings sideways, Num7/9 twists, Num5 saves. Disable other numpad editors while using this tool.
+# Setting type: Boolean
+# Default value: false
+Bus passenger pose editor = false
+
+## The in-car merchant object editor (numpad). Disable TurretSpotEditor while using it.
+# Setting type: Boolean
+# Default value: false
+Merchant item editor = false
+
+## Show Spawn Template, S group buttons and SPAWN in the patrol editor
+# Setting type: Boolean
+# Default value: true
+AllowDebugSpawns = true
+
+## On-screen line per AI car: state, speed, target angle, steering, feeler distances. With no raider car driving: the time until the next spawn roll
+# Setting type: Boolean
+# Default value: false
+AiOverlay = false
+
+## The game's "Could not find FSM: ID on GameObject: ..." warnings are not printed (QuietFsm)
+# Setting type: Boolean
+# Default value: true
+Hide missing-FSM warnings = true
+
+## You can leave your car below this speed (km/h). The game's own limit is 6 m/s = 21.6 km/h, too low to get out of a car a truck keeps shoving
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 5 to 200
+ExitSpeedKmh = 30
+
+[Patrols / Driving]
+
+## % chance that a killed driver's gas pedal stays stuck; otherwise the gas is released and the car rolls to a stop
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From 0 to 100
+StuckPedalChance = 5
+
+## % chance that a passenger who outlives the driver gets out and fights on foot once the car stands still; otherwise it takes the wheel. If the player took the car first it always gets out
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 0 to 100
+BailChance = 25
+
+## % chance that, when the driving AI gives up on a stuck car (after AI MaxRecovers), the whole crew gets out and fights on foot instead of the car waiting WaitSeconds and trying again
+# Setting type: Single
+# Default value: 100
+# Acceptable value range: From 0 to 100
+StuckBailChance = 100
+
+[Patrols / Loot]
+
+## Lowest fill (% of capacity) of a spawned car's tank (gas/diesel), engine oil and radiator water
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From 0 to 100
+MinPartsFill = 15
+
+## Highest fill (%) of tank, oil and water; each rolled separately, weighted toward two thirds of the way from Min to Max
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 0 to 100
+MaxPartsFill = 60
+
+[Patrols / Pose]
+
+## Where each occupant's hips go: offset from its seat anchor, right (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+OffsetX = 0
+
+## Where each occupant's hips go: offset from its seat anchor, up (m)
+# Setting type: Single
+# Default value: -0.3
+# Acceptable value range: From -2 to 2
+OffsetY = -0.3
+
+## Where each occupant's hips go: offset from its seat anchor, forward (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+OffsetZ = 0
+
+## Seated pose for live occupants
+# Setting type: Boolean
+# Default value: true
+Enabled = true
+
+## Thigh angle
+# Setting type: Single
+# Default value: 85
+# Acceptable value range: From 0 to 130
+ThighAngle = 85
+
+## Knee angle
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 0 to 130
+KneeAngle = 30
+
+## Fallback arm angle
+# Setting type: Single
+# Default value: 65
+# Acceptable value range: From 0 to 130
+ArmAngle = 65
+
+## Left leg inward angle
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -60 to 60
+LeftLegCloser = 10
+
+## Right leg inward angle
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -60 to 60
+RightLegCloser = 10
+
+## Fallback left arm inward angle
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -60 to 60
+LeftArmCloser = 10
+
+## Fallback right arm inward angle
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -60 to 60
+RightArmCloser = 10
+
+## Motorcycle riders (Motorcycle, Halfbreed): arm angle down to the handlebar
+# Setting type: Single
+# Default value: 55
+# Acceptable value range: From 0 to 130
+BikeArmAngle = 55
+
+## Motorcycle riders: each arm this far outward, hands on the handlebar grips
+# Setting type: Single
+# Default value: 22
+# Acceptable value range: From -60 to 60
+BikeArmSpread = 22
+
+## Fallback elbow angle
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From 0 to 130
+ElbowAngle = 25
+
+[Patrols / Pose.Boltjaw]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 80
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 35
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -15.6
+# Acceptable value range: From -180 to 180
+LeftArmRotation = -15.6
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 25
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: -20
+# Acceptable value range: From -180 to 180
+RightArmVertical = -20
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = 50
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -20
+# Acceptable value range: From -180 to 180
+RightArmRotation = -20
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 125
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 125
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 25
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 25
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -25
+# Acceptable value range: From -180 to 180
+RightHandRotation = -25
+
+## Weapon local position along the hand's X axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionX = 0
+
+## Weapon local position along the hand's Y axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionY = 0
+
+## Weapon local position along the hand's Z axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionZ = 0
+
+## Weapon local rotation around its X axis (degrees)
+# Setting type: Single
+# Default value: -15
+# Acceptable value range: From -180 to 180
+WeaponRotationX = -15
+
+## Weapon local rotation around its Y axis (degrees)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From -180 to 180
+WeaponRotationY = 20
+
+## Weapon local rotation around its Z axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationZ = 0
+
+[Patrols / Pose.Flexa]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 80
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 35
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -15.652
+# Acceptable value range: From -180 to 180
+LeftArmRotation = -15.652
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 25
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From -180 to 180
+RightArmVertical = 5
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -10
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = -10
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightArmRotation = 0
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 120
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 120
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 25
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -45
+# Acceptable value range: From -180 to 180
+RightHandRotation = -45
+
+## Weapon local position along the hand's X axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionX = 0
+
+## Weapon local position along the hand's Y axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionY = 0
+
+## Weapon local position along the hand's Z axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionZ = 0
+
+## Weapon local rotation around its X axis (degrees)
+# Setting type: Single
+# Default value: -15
+# Acceptable value range: From -180 to 180
+WeaponRotationX = -15
+
+## Weapon local rotation around its Y axis (degrees)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From -180 to 180
+WeaponRotationY = 20
+
+## Weapon local rotation around its Z axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationZ = 0
+
+[Patrols / Pose.Lugnut]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 85
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 85
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 34
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 34
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftArmRotation = 0
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 0
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 5
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 5
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 15
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -10
+# Acceptable value range: From -180 to 180
+LeftHandRotation = -10
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From -180 to 180
+RightArmVertical = 80
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = 60
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From -180 to 180
+RightArmRotation = 20
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 20
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -140
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = -140
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: -40
+# Acceptable value range: From -180 to 180
+RightHandVertical = -40
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 50
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 50
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandRotation = 0
+
+## Weapon local position along the hand's X axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionX = 0
+
+## Weapon local position along the hand's Y axis (m)
+# Setting type: Single
+# Default value: -0.1
+# Acceptable value range: From -2 to 2
+WeaponPositionY = -0.1
+
+## Weapon local position along the hand's Z axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionZ = 0
+
+## Weapon local rotation around its X axis (degrees)
+# Setting type: Single
+# Default value: -15
+# Acceptable value range: From -180 to 180
+WeaponRotationX = -15
+
+## Weapon local rotation around its Y axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationY = 0
+
+## Weapon local rotation around its Z axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationZ = 0
+
+[Patrols / Pose.Scraffa]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 65
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 65
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 10
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftArmRotation = 0
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 25
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 65
+# Acceptable value range: From -180 to 180
+RightArmVertical = 65
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -10
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = -10
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightArmRotation = 0
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 25
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 0
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandRotation = 0
+
+[Patrols / Pose.Scrud]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 78
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 78
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 20
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From -180 to 180
+LeftArmRotation = 30
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 25
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 75
+# Acceptable value range: From -180 to 180
+RightArmVertical = 75
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -20
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = -20
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -30
+# Acceptable value range: From -180 to 180
+RightArmRotation = -30
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 25
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 0
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandRotation = 0
+
+## Weapon local position along the hand's X axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionX = 0
+
+## Weapon local position along the hand's Y axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionY = 0
+
+## Weapon local position along the hand's Z axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionZ = 0
+
+## Weapon local rotation around its X axis (degrees)
+# Setting type: Single
+# Default value: -25
+# Acceptable value range: From -180 to 180
+WeaponRotationX = -25
+
+## Weapon local rotation around its Y axis (degrees)
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From -180 to 180
+WeaponRotationY = 35
+
+## Weapon local rotation around its Z axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationZ = 0
+
+[Patrols / Pose.Spanna]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 65
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 65
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 10
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftArmRotation = 0
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 25
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 65
+# Acceptable value range: From -180 to 180
+RightArmVertical = 65
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -10
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = -10
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightArmRotation = 0
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 25
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 0
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandRotation = 0
+
+[Patrols / Pose.Sprokka]
+
+## LeftArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 105
+# Acceptable value range: From -180 to 180
+LeftArmVertical = 105
+
+## LeftArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 10
+# Acceptable value range: From -180 to 180
+LeftArmHorizontal = 10
+
+## LeftArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftArmRotation = 0
+
+## LeftElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowVertical = 0
+
+## LeftElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowHorizontal = 0
+
+## LeftElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftElbowRotation = 0
+
+## LeftHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandVertical = 0
+
+## LeftHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandHorizontal = 0
+
+## LeftHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+LeftHandRotation = 0
+
+## RightArm vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From -180 to 180
+RightArmVertical = 15
+
+## RightArm horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: -27
+# Acceptable value range: From -180 to 180
+RightArmHorizontal = -27
+
+## RightArm axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: -30
+# Acceptable value range: From -180 to 180
+RightArmRotation = -30
+
+## RightElbow vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 25
+# Acceptable value range: From -180 to 180
+RightElbowVertical = 25
+
+## RightElbow horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowHorizontal = 0
+
+## RightElbow axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightElbowRotation = 0
+
+## RightHand vertical angle: positive swings forward/up (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandVertical = 0
+
+## RightHand horizontal angle: positive turns toward the occupant's right (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandHorizontal = 0
+
+## RightHand axial rotation around the limb/joint (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+RightHandRotation = 0
+
+## Weapon local position along the hand's X axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionX = 0
+
+## Weapon local position along the hand's Y axis (m)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -2 to 2
+WeaponPositionY = 0
+
+## Weapon local position along the hand's Z axis (m)
+# Setting type: Single
+# Default value: 0.03
+# Acceptable value range: From -2 to 2
+WeaponPositionZ = 0.03
+
+## Weapon local rotation around its X axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationX = 0
+
+## Weapon local rotation around its Y axis (degrees)
+# Setting type: Single
+# Default value: 15
+# Acceptable value range: From -180 to 180
+WeaponRotationY = 15
+
+## Weapon local rotation around its Z axis (degrees)
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -180 to 180
+WeaponRotationZ = 0
+
+[Patrols / Spawner]
+
+## How far away a spawn appears (m): ahead of your car, up to 45 degrees left or right; behind you when on foot
+# Setting type: Single
+# Default value: 350
+# Acceptable value range: From 50 to 1000
+SpawnDistance = 350
+
+[Patrols / Traffic tuning]
+
+## Draw traffic routes only on the game's debug map when it is open
+# Setting type: Boolean
+# Default value: true
+DebugMap = true
+
+## Use each group's actual name on the game debug map; off labels groups Patrol or Convoy
+# Setting type: Boolean
+# Default value: true
+Real patrol names = true
+
+## Draw every traffic route and marker gray and label it Distant traffic; overrides Real patrol names
+# Setting type: Boolean
+# Default value: false
+hide route type = false
+
+## Influence sparse patrol waypoints with cached road hints; missing hints use a cached snake route
+# Setting type: Boolean
+# Default value: true
+FollowRoads = true
+
+## Maximum distance a coarse waypoint is attracted toward a cached road hint, m
+# Setting type: Single
+# Default value: 350
+# Acceptable value range: From 25 to 1000
+MaxRoadConnectorMetres = 350
+
+## Maximum simulated plus real groups
+# Setting type: Int32
+# Default value: 24
+# Acceptable value range: From 1 to 128
+MaxGroups = 24
+
+## Budget for nearby physical traffic cars; pending builds reserve slots
+# Setting type: Int32
+# Default value: 24
+# Acceptable value range: From 1 to 100
+MaxRealCars = 24
+
+## Load traffic within this distance of the player, m
+# Setting type: Single
+# Default value: 750
+# Acceptable value range: From 100 to 2000
+LoadRange = 750
+
+## Unload only once every group member is this far away; always at least LoadRange + 100 m
+# Setting type: Single
+# Default value: 1000
+# Acceptable value range: From 200 to 4000
+UnloadRange = 1000
+
+## An arrived group waits this long without a nearby player before removal; proximity resets the clock
+# Setting type: Single
+# Default value: 180
+# Acceptable value range: From 10 to 3600
+DestinationGraceSeconds = 180
+
+## Escort drivers attack within this range of the convoy; truck drivers keep travelling, m
+# Setting type: Single
+# Default value: 300
+# Acceptable value range: From 20 to 1000
+ConvoyGuardRange = 300
+
+## Search last known player position this long after losing sight/sound, then resume the route
+# Setting type: Single
+# Default value: 20
+# Acceptable value range: From 0 to 120
+PatrolMemorySeconds = 20
+
+## Most generated foot patrols at once (crew left without a usable car may add a few more)
+# Setting type: Int32
+# Default value: 2
+# Acceptable value range: From 0 to 8
+FootPatrolMaxActive = 2
+
+## Chance (%) per check that a foot patrol leaves a nearby camp
+# Setting type: Single
+# Default value: 35
+# Acceptable value range: From 0 to 100
+FootPatrolSpawnChance = 35
+
+## Seconds between foot patrol spawn checks
+# Setting type: Single
+# Default value: 60
+# Acceptable value range: From 5 to 1800
+FootPatrolCheckSeconds = 60
+
+## Simulated walking speed of a foot patrol, m/s
+# Setting type: Single
+# Default value: 1.3
+# Acceptable value range: From 0.5 to 4
+FootPatrolSpeed = 1.3
+
+## Foot patrols become real NPCs within this distance of the player, m
+# Setting type: Single
+# Default value: 280
+# Acceptable value range: From 80 to 600
+FootPatrolLoadRange = 280
+
+## Real foot patrols become simulated again once every walker is this far away; at least load range + 80 m
+# Setting type: Single
+# Default value: 400
+# Acceptable value range: From 150 to 1200
+FootPatrolUnloadRange = 400
+
+## A generated foot patrol walks out to a point of interest at least this far from its camp (anywhere within one map chunk) and back, m
+# Setting type: Single
+# Default value: 1000
+# Acceptable value range: From 300 to 8000
+FootPatrolMinPoiMetres = 1000
+
+## A generated foot patrol leaves only from a camp at least this far from you (out of sight; it walks simulated until it comes within FootPatrolLoadRange), m
+# Setting type: Single
+# Default value: 500
+# Acceptable value range: From 300 to 5000
+FootPatrolMinSourceDistance = 500
+
+## Crew left without a usable car wait this long out of combat before walking to the nearest camp of their faction, s
+# Setting type: Single
+# Default value: 30
+# Acceptable value range: From 5 to 600
+StrandedIdleSeconds = 30
+
+## Crew walking back to their car: the car leaves with whoever is aboard after this long (the rest become a foot patrol), s
+# Setting type: Single
+# Default value: 120
+# Acceptable value range: From 20 to 900
+ReturnToCarTimeoutSeconds = 120
+
+## Crew farther than this from their car when the fight is over do not walk back, m
+# Setting type: Single
+# Default value: 300
+# Acceptable value range: From 30 to 1500
+ReturnToCarMaxDistance = 300
+
+## Crew that fought or detected the player from the car still know where he is this long after getting out, s
+# Setting type: Single
+# Default value: 90
+# Acceptable value range: From 0 to 600
+DismountMemorySeconds = 90
+
+## On-foot crew and foot patrols are offered the player as a target only within this distance (they still need to see, hear or remember him), m
+# Setting type: Single
+# Default value: 350
+# Acceptable value range: From 50 to 1000
+FootTargetRange = 350
+
+[Patrols / Turret pose]
+
+## Crouched human turret gunner: thigh angle forward, degrees
+# Setting type: Single
+# Default value: 80
+# Acceptable value range: From 0 to 150
+TurretThigh = 80
+
+## Crouched human turret gunner: knee bend, degrees
+# Setting type: Single
+# Default value: 130
+# Acceptable value range: From 0 to 170
+TurretKnee = 130
+
+## Crouched human turret gunner: hips above the spot (feet), m
+# Setting type: Single
+# Default value: 0.4
+# Acceptable value range: From 0 to 1.2
+TurretHipHeight = 0.4
+
+## Warboy's lance prop: position in the throwing hand, hand-local metres x, y, z
+# Setting type: String
+# Default value: 0, 0, 0
+RiderLanceOffset = 0, 0, 0
+
+## Warboy's lance prop: rotation in the throwing hand, degrees x, y, z
+# Setting type: String
+# Default value: 0, 0, 0
+RiderLanceRotation = 0, 0, 0
+
+[Performance / Game logic]
+
+## CT1 Sliced item culling. The game's 5/10-second item culling and cleanup sweeps run a few entries per frame instead of the whole list in one frame (same rules).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Culler = On
+
+## CT3 Event-driven vehicle hinges. Vehicle hinge FSMs that check every frame whether a part is attached sleep until the part count actually changes (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Hinge polls = On
+
+## CT4 Direct NWH access for car FSMs. Pedal, RPM/gear and handbrake FSMs read and write the vehicle physics directly instead of by reflection (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Vehicle reflection = On
+
+## CT5 Sleeping wait-until polls. Item, vehicle and NPC FSMs that only wait for a value to change sleep until it does (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Wait-until polls = On
+
+## CT6 Light flicker manager. Flickering camp lights update at a fixed rate and only near the camera instead of every frame everywhere.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Light flicker = On
+
+## CT7 Player sheet texts and day clock. Hidden player-sheet ammo/armor texts refresh twice a second while the sheet is closed; the day clock runs at its intended 0.2 s instead of every frame.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+HUD FSMs = On
+
+## CT8 Coyote faction broadcast. Repeated hits on Coyotes no longer re-broadcast the hostility event to every FSM in the game, only to those still friendly.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Coyote broadcast = On
+
+## CT9 No duplicate Rigidbody adds. Car parts no longer try to add a second Rigidbody on every spawn (same result, no error spam).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Duplicate Rigidbody = On
+
+## CT9 No restart for empty data FSMs. Item data FSMs (one empty state) are not restarted every time an item is re-activated (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Data FSM restart = On
+
+## CT11 Sleeping option toggles. Settings-menu toggles stop checking their value every frame while it does not change (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Option toggles = On
+
+## CT10 Player collider height writes. The player's collider height is written only when it changes (crouch/stand), not twice every frame (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Player capsule = On
+
+[Performance / PlayMaker]
+
+## PM2 Fast targeted events. Events sent to an object no longer search every FSM in the game (stalls on POI entry, save and load). Shadow = vanilla runs, the optimized result is only compared (mismatches shown in Developer).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Targeted events = On
+
+## PM3 Fast FSM disable/destroy. Disabling or destroying an FSM searched the whole list of enabled FSMs (slow Unity comparisons). Same result, found by reference.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Fast FSM list removal = On
+
+## PM4 Broadcast without list copies. Game-wide events (Save/Load settings, day change, faction changes) reuse one buffer instead of copying every FSM.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Broadcast events = On
+
+## PM5 PlayMaker GUI loop and visibility events. PlayMaker's GUI pass visits only the few FSMs that draw anything, unused OnGUI helpers stop running, and unhandled became-visible events are skipped. Same result.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+GUI loop = On
+
+## PM6 Skip unhandled trigger/collision events. Trigger and collision callbacks no longer push an event nobody listens to through the whole FSM event path. Same result.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Trigger events = On
+
+## PM7 One camera pick raycast per frame. The ~40 cursor raycasts the game's FSMs make every frame (one per layer mask) share one raycast. Same hits. Shadow = vanilla runs, the optimized result is only compared (mismatches shown in Developer).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Shared camera pick = On
+
+## PM10 Reuse unchanged number strings. HUD FSMs format the same number into a new string every frame; the previous string is reused while the number is unchanged. Same text, less garbage. Shadow = vanilla runs, the optimized result is only compared (mismatches shown in Developer).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Number to text = On
+
+## FS1 Idle FSMs skip their update. FSMs waiting for an event (doors, items, switches, parked cars) stop running their per-frame update until something happens to them. Shadow = vanilla runs, the optimized result is only compared (mismatches shown in Developer).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+FSM sleep = On
+
+## FS2 Compiled Get/Set Property. Get/Set Property actions (vehicle input, wheels, rigidbodies) use compiled accessors instead of reflection. Same values, no garbage. Shadow = vanilla runs, the optimized result is only compared (mismatches shown in Developer).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Compiled properties = On
+
+## FS3 Compiled Call Method actions. Call Method actions call the target method through a compiled delegate instead of reflection. Same calls, same results.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Compiled CallMethod = On
+
+## FS4 Faster FSM loading on spawn. Spawning objects with FSMs (vehicles, items, camps) creates their actions with compiled constructors and field setters instead of reflection. Same values.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Fast action loading = On
+
+[Performance / Preset]
+
+## PERFORMANCE (Low), BALANCED, VISUALS (Max), VANILLA (default). Vanilla preserves original visuals, simulation settings and item cleanup; exact optimizations (no visible change) are not affected. Saved Low/Max values remain compatible.
+# Setting type: PerfPreset
+# Default value: Vanilla
+# Acceptable values: Vanilla, Low, Balanced, Max
+Preset = Vanilla
+
+[Performance / Rendering]
+
+## EN1 Point-light shadows, budget and distance culling. Point lights lose their cube shadows except the nearest few; far point lights are switched off; headlights reach less far; fewer per-pixel lights.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Light shadows = On
+
+## EN2 Skip zero-intensity screen-space shadows, lean Sharpen. Exact: no visible change. Skips the PPU screen-space-shadow effect while its intensity is 0 and renders Sharpen without its unused render texture.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Dead post effects = On
+
+## EN2 Replace the no-op TAA with SMAA / FXAA. The game's TAA has zero blending (costs time, smooths nothing). Performance uses FXAA, Balanced/Visuals SMAA.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Anti-aliasing = On
+
+## EN3 Sun shadow distance, cascades, resolution, layer culling. Shorter, cheaper sun shadows; small items, food, weapons and NPCs stop casting sun shadows a few dozen metres away.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Sun shadows = On
+
+## EN4 Terrain pixel error, base map and grass distance. Coarser far terrain mesh, earlier low-res base map, grass drawn less far and slightly thinner.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Terrain detail = On
+
+## EN5 Particle prewarm, off-screen culling, collision, lights. Fires and smoke no longer pre-simulate when a camp spawns, pause off-screen, collide cheaper and drop their particle lights.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Particles = On
+
+## RC1 No shadows from tiny objects. Objects smaller than a few centimetres to decimetres (cans, bolts, small props) stop casting shadows.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Small shadow casters = On
+
+## RC2 Cull-only LOD groups and LOD bias. Props and buildings without LODs stop rendering when they are only a few pixels tall; LOD bias follows the preset.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Size culling = On
+
+## RC3 Per-layer view distances. Car parts stop rendering beyond 300 m, NPCs beyond 600 m, cars beyond 2.5 km. Items, food and weapons retain their original camera distances.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Layer cull distances = On
+
+## RC4 Shorter far clip plane (Performance). Performance preset: the view ends at 6 km instead of 10 km.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Far clip = On
+
+## RC8 Texture resolution and anisotropic filtering (Low). Performance preset: half-resolution textures and non-forced anisotropic filtering (saves video memory).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Texture quality = On
+
+[Performance / Telemetry]
+
+## Write an FSM/scene census to BepInEx\config\WildWasteland\Performance\ every 60 s (for measurements; off for normal play).
+# Setting type: Boolean
+# Default value: false
+Periodic census = false
+
+[Performance / Tuning]
+
+## Flicker update rate. -1 = follow the preset (Performance 15, Balanced 20, Visuals 30, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Light flicker / Rate (Hz) = -1
+
+## Lamps farther from the camera keep their last intensity. -1 = follow the preset (Performance 120, Balanced 200, Visuals 300, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Light flicker / Distance (m) = -1
+
+## Point lights that keep their shadow (nearest first). -1 = follow the preset (Performance 0, Balanced 2, Visuals 4, Vanilla 99).
+# Setting type: Single
+# Default value: -1
+Light shadows / Shadowed point lights = -1
+
+## Only point lights within this distance (m) keep a shadow. -1 = follow the preset (Performance 0, Balanced 25, Visuals 35, Vanilla 10000).
+# Setting type: Single
+# Default value: -1
+Light shadows / Shadow radius = -1
+
+## Shadow map size (px) of the kept point-light shadows; 0 = quality default. -1 = follow the preset (Performance 256, Balanced 256, Visuals 512, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Light shadows / Shadow resolution = -1
+
+## Point lights farther than factor x range are switched off; 0 = never. -1 = follow the preset (Performance 12, Balanced 20, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Light shadows / Cull factor = -1
+
+## Minimum distance (m) before a point light is switched off. -1 = follow the preset (Performance 60, Balanced 0, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Light shadows / Cull minimum = -1
+
+## QualitySettings.pixelLightCount cap. -1 = follow the preset (Performance 4, Balanced 6, Visuals 8, Vanilla 20).
+# Setting type: Single
+# Default value: -1
+Light shadows / Pixel lights = -1
+
+## Range (m) of headlight spot lights (vanilla 200-300). -1 = follow the preset (Performance 60, Balanced 80, Visuals 120, Vanilla 300).
+# Setting type: Single
+# Default value: -1
+Light shadows / Headlight range = -1
+
+## 1 = headlights within 8 m of the camera (your car) keep their shadow. -1 = follow the preset (Performance 0, Balanced 1, Visuals 1, Vanilla 1).
+# Setting type: Single
+# Default value: -1
+Light shadows / Headlight shadow = -1
+
+## 1 = FXAA, 2 = SMAA, 3 = keep TAA. -1 = follow the preset (Performance 1, Balanced 2, Visuals 2, Vanilla 3).
+# Setting type: Single
+# Default value: -1
+Anti-aliasing / Mode = -1
+
+## 0 Low, 1 Medium, 2 High. -1 = follow the preset (Performance 0, Balanced 1, Visuals 2, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Anti-aliasing / SMAA quality = -1
+
+## 1 = keep PPv2 stopNaN propagation. -1 = follow the preset (Performance 0, Balanced 0, Visuals 1, Vanilla 1).
+# Setting type: Single
+# Default value: -1
+Anti-aliasing / Stop NaN = -1
+
+## Sun shadow distance cap (m). -1 = follow the preset (Performance 80, Balanced 120, Visuals 160, Vanilla 200).
+# Setting type: Single
+# Default value: -1
+Sun shadows / Distance = -1
+
+## Shadow cascades cap (1, 2 or 4). -1 = follow the preset (Performance 1, Balanced 2, Visuals 4, Vanilla 4).
+# Setting type: Single
+# Default value: -1
+Sun shadows / Cascades = -1
+
+## Shadow resolution cap: 0 Low, 1 Medium, 2 High, 3 VeryHigh. -1 = follow the preset (Performance 1, Balanced 2, Visuals 3, Vanilla 3).
+# Setting type: Single
+# Default value: -1
+Sun shadows / Resolution = -1
+
+## Bones per vertex cap (1, 2 or 4). -1 = follow the preset (Performance 2, Balanced 2, Visuals 4, Vanilla 4).
+# Setting type: Single
+# Default value: -1
+Sun shadows / Skin weights = -1
+
+## Scale of the per-layer sun shadow distances (Item 30, Food 20, Weapon 20, Hinge 40, Actor 60 m); 0 = off. -1 = follow the preset (Performance 0.6, Balanced 1, Visuals 1.5, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Sun shadows / Layer cull scale = -1
+
+## Terrain heightmap pixel error. -1 = follow the preset (Performance 8, Balanced 5, Visuals 3, Vanilla 1).
+# Setting type: Single
+# Default value: -1
+Terrain detail / Pixel error = -1
+
+## Distance (m) where the terrain switches to the base map. -1 = follow the preset (Performance 350, Balanced 600, Visuals 1000, Vanilla 1000).
+# Setting type: Single
+# Default value: -1
+Terrain detail / Base map distance = -1
+
+## Detail (grass) draw distance (m). -1 = follow the preset (Performance 50, Balanced 70, Visuals 100, Vanilla 100).
+# Setting type: Single
+# Default value: -1
+Terrain detail / Grass distance = -1
+
+## Detail density 0..1. -1 = follow the preset (Performance 0.6, Balanced 0.8, Visuals 1, Vanilla 1).
+# Setting type: Single
+# Default value: -1
+Terrain detail / Grass density = -1
+
+## 1 = switch prewarm off. -1 = follow the preset (Performance 1, Balanced 1, Visuals 1, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Particles / No prewarm = -1
+
+## Looping AlwaysSimulate systems: 0 keep, 1 PauseAndCatchup, 2 Pause. -1 = follow the preset (Performance 2, Balanced 1, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Particles / Off-screen culling = -1
+
+## 1 = world collision quality High -> Low. -1 = follow the preset (Performance 1, Balanced 1, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Particles / Low collision = -1
+
+## 1 = Lights module off. -1 = follow the preset (Performance 1, Balanced 1, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Particles / No particle lights = -1
+
+## Cap of maxParticles per system; 0 = no cap. -1 = follow the preset (Performance 200, Balanced 0, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Particles / Max particles = -1
+
+## Renderers with a world half extent below this stop casting shadows. -1 = follow the preset (Performance 0.35, Balanced 0.15, Visuals 0.08, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Small shadow casters / Half extent (m) = -1
+
+## QualitySettings.lodBias cap (vanilla Ultra 2). -1 = follow the preset (Performance 0.8, Balanced 1.2, Visuals 2, Vanilla 2).
+# Setting type: Single
+# Default value: -1
+Size culling / LOD bias = -1
+
+## Multiplier of the injected screen heights (higher = culled earlier); applied to newly injected groups. -1 = follow the preset (Performance 1, Balanced 1, Visuals 1, Vanilla 1).
+# Setting type: Single
+# Default value: -1
+Size culling / Injected scale = -1
+
+## Multiplier of the layer distances (Hinge 300, Actor 600, Car 2500 m); 0 = off. Items, food and weapons are unchanged. -1 = follow the preset (Performance 0.6, Balanced 1, Visuals 1.5, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Layer cull distances / Scale = -1
+
+## Far clip plane cap (m); 0 = unchanged. -1 = follow the preset (Performance 6000, Balanced 0, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Far clip / Far plane = -1
+
+## Minimum masterTextureLimit (0 full, 1 half, 2 quarter resolution). -1 = follow the preset (Performance 1, Balanced 0, Visuals 0, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Texture quality / Texture limit = -1
+
+## 0 Disable, 1 Enable (per texture), 2 ForceEnable (= no cap). -1 = follow the preset (Performance 1, Balanced 2, Visuals 2, Vanilla 2).
+# Setting type: Single
+# Default value: -1
+Texture quality / Anisotropic cap = -1
+
+## Parked cars freeze (and stop simulating wheels) beyond this distance from the player (vanilla 2000). -1 = follow the preset (Performance 150, Balanced 250, Visuals 500, Vanilla 2000).
+# Setting type: Single
+# Default value: -1
+Car LOD / Kinematic distance (m) = -1
+
+## Pedal/gauge/handbrake FSMs of parked cars pause beyond this distance. -1 = follow the preset (Performance 30, Balanced 50, Visuals 80, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Car LOD / Presentation distance (m) = -1
+
+## Terrain generation threads (0 = a quarter of the CPU threads, 1..3). -1 = follow the preset (Performance 1, Balanced 0, Visuals 0, Vanilla -2).
+# Setting type: Single
+# Default value: -1
+MapMagic budget / Threads = -1
+
+## Objects MapMagic instantiates per frame when applying a tile (vanilla 500). -1 = follow the preset (Performance 25, Balanced 40, Visuals 80, Vanilla 500).
+# Setting type: Single
+# Default value: -1
+MapMagic budget / Objects per frame = -1
+
+## Main-thread time MapMagic may use per frame to apply tiles (vanilla 3). -1 = follow the preset (Performance 2, Balanced 2, Visuals 3, Vanilla 3).
+# Setting type: Single
+# Default value: -1
+MapMagic budget / Apply budget (ms) = -1
+
+## Time.maximumDeltaTime (vanilla 0.333). -1 = follow the preset (Performance 0.1, Balanced 0.1, Visuals 0.15, Vanilla 0.3333333).
+# Setting type: Single
+# Default value: -1
+Time and sleep / Max delta time = -1
+
+## Physics.sleepThreshold for new bodies (vanilla 0.005; NWH sets 0.14 on all bodies after the first origin jump). -1 = follow the preset (Performance 0.14, Balanced 0.14, Visuals 0.14, Vanilla 0.005).
+# Setting type: Single
+# Default value: -1
+Time and sleep / Sleep threshold = -1
+
+## 1 = AlwaysAnimate NPC animators become CullUpdateTransforms (prefabs). -1 = follow the preset (Performance 1, Balanced 1, Visuals 1, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Animator culling / Cull NPC animators = -1
+
+## FastIK runs only within this distance (m) and while visible; 0 = always. -1 = follow the preset (Performance 25, Balanced 40, Visuals 60, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Animator culling / IK distance = -1
+
+## Weather evaluation interval outside transitions (vanilla: every physics step). -1 = follow the preset (Performance 0.25, Balanced 0.2, Visuals 0.1, Vanilla 0).
+# Setting type: Single
+# Default value: -1
+Azure weather / Interval (s) = -1
+
+## Incremental GC time slice per frame. -1 = follow the preset (Performance 1, Balanced 1.5, Visuals 2, Vanilla 3).
+# Setting type: Single
+# Default value: -1
+GC time slice / Slice (ms) = -1
+
+[Performance / World]
+
+## CT2 Parked car simulation LOD. Cars nobody uses stop running their dashboard/pedal FSMs when far away and their wheel physics while frozen.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Car LOD = On
+
+## RC5 Terrain streaming budget. Fewer, lower-priority terrain generation threads and fewer objects placed per frame when a tile appears (smaller hitches, objects pop in a little later).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+MapMagic budget = On
+
+## RC7 Resting items use cheaper CCD. Loose items lying still use speculative continuous collision; fast-moving ones keep full continuous collision.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+CCD sweep = On
+
+## EN6 Physics step cap and sleep threshold. Caps physics catch-up after a slow frame (the game slows down instead of stalling) and lets resting bodies sleep from the start.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Time and sleep = On
+
+## RC6 Off-screen NPC animation and IK. NPC skeletons stop updating while off-screen; leg/arm IK of NPCs runs only when visible and near.
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Animator culling = On
+
+## EN6 Floating-origin jump body scan. Floating-origin jumps scan the scene's rigidbodies once instead of twice (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Origin jump = On
+
+## EN7 Sky sun position once per frame. The sky's sun position is computed once per rendered frame instead of on every physics step (exact).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Azure sun = On
+
+## EN7 Sky weather evaluation rate. Sky/fog weather curves are re-evaluated a few times per second instead of on every physics step (every frame during weather changes).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+Azure weather = On
+
+## EN8 Incremental GC time slice. Shorter incremental garbage-collection slices per frame (smoother frame times while the GC runs).
+# Setting type: FeatureMode
+# Default value: On
+# Acceptable values: Off, On, Shadow
+GC time slice = On
+
+[PlayerBody / Animation]
+
+## Jump / RifleJump / PistolJump clips start this far in (share of the clip): Mixamo jumps crouch first, the game's jump leaves the ground at once.
+# Setting type: Single
+# Default value: 0.2
+JumpClipStart = 0.2
+
+## Melee / bare hands: seconds the wind-up takes before the blow lands (the game hits the moment the swing starts).
+# Setting type: Single
+# Default value: 0.08
+StrikeWindup = 0.08
+
+## Bundle clips: how far (m) the hips may move away from the player sideways/forward (room for the idle sway).
+# Setting type: Single
+# Default value: 0.25
+HipsDrift = 0.25
+
+## Ground speed (m/s) at which the bundle's walk clips play at normal speed.
+# Setting type: Single
+# Default value: 1.4
+BundleWalkSpeed = 1.4
+
+## Ground speed (m/s) at which the bundle's run clips play at normal speed.
+# Setting type: Single
+# Default value: 3.8
+BundleRunSpeed = 3.8
+
+## Ground speed (m/s) at which the bundle's crouch walk plays at normal speed.
+# Setting type: Single
+# Default value: 1
+BundleCrouchSpeed = 1
+
+## Ground speed (m/s) at which the rifle pack's sprint clips play at normal speed (when the clip has no root motion of its own).
+# Setting type: Single
+# Default value: 5.5
+BundleSprintSpeed = 5.5
+
+## From this speed (m/s) the run clips take over from the walk.
+# Setting type: Single
+# Default value: 3.2
+RunFrom = 3.2
+
+## Ground speed (m/s) above which the rifle pack's sprint clips replace its run clips (the game runs at 5).
+# Setting type: Single
+# Default value: 4.3
+SprintFrom = 4.3
+
+## Walking / running upper-body clips play in step with the rifle legs; this shifts them (0..1 of a stride, 0.5 = the other foot).
+# Setting type: Single
+# Default value: 0
+UpperPhase = 0
+
+## 0 = no turn-in-place clips; any other value = on (the clips start with the first degree, see TurnStartRate).
+# Setting type: Single
+# Default value: 70
+TurnClipAngle = 70
+
+## Standing still: turning faster than this (degrees per second) steps the feet with the turn-in-place clips.
+# Setting type: Single
+# Default value: 8
+TurnStartRate = 8
+
+## ShotgunPump (cocking the pump shotgun / bolt rifle) plays this fast (x normal).
+# Setting type: Single
+# Default value: 2
+PumpClipSpeed = 2
+
+## How fast (degrees per second) the legs' walking direction turns when the movement keys change.
+# Setting type: Single
+# Default value: 360
+DirBlendSpeed = 360
+
+## Unity's humanoid foot IK on the bundle's idle and walking clips (never on run / sprint / jump clips).
+# Setting type: Boolean
+# Default value: true
+FootIK = true
+
+## Running (bundle animations): each thigh turned this many degrees toward the middle, the feet kept flat.
+# Setting type: Single
+# Default value: 10
+RunLegsIn = 10
+
+## Relaxed walking forward and stopping: the RifleWalkToStop clip's last step settles the feet.
+# Setting type: Boolean
+# Default value: true
+WalkToStop = true
+
+## Relaxed running (not aiming): the legs turn up to this many degrees toward the way she runs; the chest keeps facing the camera.
+# Setting type: Single
+# Default value: 75
+RunLegsTurn = 75
+
+## How far the hips go down when crouched, m.
+# Setting type: Single
+# Default value: 0.42
+CrouchDrop = 0.42
+
+## Share of the camera pitch the spine follows (aiming up/down).
+# Setting type: Single
+# Default value: 0.9
+AimPitch = 0.9
+
+[PlayerBody / Animation (fallback clips)]
+
+## Without the animation bundle: humanoid clip for standing (the game has: merchant_idle, enemy_1_idle, zombie_idle).
+# Setting type: String
+# Default value: merchant_idle
+IdleClip = merchant_idle
+
+## Without the bundle: humanoid clip for running.
+# Setting type: String
+# Default value: enemy_1_run
+RunClip = enemy_1_run
+
+## Without the bundle: upper-body clip with a rifle / SMG / shotgun / crossbow drawn.
+# Setting type: String
+# Default value: enemy_machinegun
+RifleClip = enemy_machinegun
+
+## Without the bundle: upper-body clip with a pistol / revolver drawn.
+# Setting type: String
+# Default value: sprokka_shoot
+PistolClip = sprokka_shoot
+
+## Upper-body clip played once per melee swing (when the bundle has no Melee clip).
+# Setting type: String
+# Default value: enemy_1_attack
+MeleeClip = enemy_1_attack
+
+## Without the bundle: ground speed (m/s) at which the run clip plays at normal speed.
+# Setting type: Single
+# Default value: 4.5
+RunClipSpeed = 4.5
+
+## Procedural walk: length of one full walk cycle (two steps), m.
+# Setting type: Single
+# Default value: 1.25
+WalkStride = 1.25
+
+## Procedural walk: thigh swing, degrees.
+# Setting type: Single
+# Default value: 26
+ThighSwing = 26
+
+## Procedural walk: knee bend in the swing phase, degrees.
+# Setting type: Single
+# Default value: 38
+KneeBend = 38
+
+## Procedural walk: arm swing without a weapon, degrees.
+# Setting type: Single
+# Default value: 16
+ArmSwing = 16
+
+## Procedural walk: hip bob, m.
+# Setting type: Single
+# Default value: 0.025
+HipBob = 0.025
+
+## Raider-clip mode only: mirror the body so the gun is in the right hand.
+# Setting type: Boolean
+# Default value: true
+RightHanded = true
+
+[PlayerBody / Camera]
+
+## Third person on foot: camera distance, m (the mouse wheel changes and remembers it).
+# Setting type: Single
+# Default value: 3.26
+# Acceptable value range: From 0.8 to 8
+ThirdPersonDistance = 2.23
+
+## Third person in a car: camera distance, m (mouse wheel).
+# Setting type: Single
+# Default value: 5.38
+# Acceptable value range: From 2 to 15
+ThirdPersonCarDistance = 4.17
+
+## Third person on foot: camera height above the eyes, m.
+# Setting type: Single
+# Default value: 0.25
+ThirdHeight = 0.25
+
+## Third person on foot: sideways offset (over the right shoulder), m.
+# Setting type: Single
+# Default value: 0.45
+ThirdShoulder = 0.45
+
+## Third person in a car: camera height above the eyes, m.
+# Setting type: Single
+# Default value: 1.1
+ThirdCarHeight = 1.1
+
+## Third person: degrees per mouse step while the observing key orbits the camera.
+# Setting type: Single
+# Default value: 3
+OrbitSpeed = 3
+
+## Third person: the middle mouse button also orbits the camera (off: the game rotates a held item with it).
+# Setting type: Boolean
+# Default value: false
+EnableMMB = false
+
+## First person (SmoothAimDownSights): seconds the gun takes between hip and sights; 0 = the game's own (instant).
+# Setting type: Single
+# Default value: 0.2
+AimDownSightsTime = 0.2
+
+## Third person (PickAssist): an item / part / switch this close to the cursor on screen (share of the screen height) is picked even if the eye ray misses it.
+# Setting type: Single
+# Default value: 0.06
+PickAssistRadius = 0.06
+
+[PlayerBody / Camera culling]
+
+## Opacity of blocking geometry inside the cutaway window: 0 = clear, 0.2 = faintly visible.
+# Setting type: Single
+# Default value: 0.2
+# Acceptable value range: From 0 to 0.9
+OcclusionOpacity = 0.2
+
+## Width around the character cleared by the cutaway, in metres. The rest of a large object remains visible.
+# Setting type: Single
+# Default value: 0.55
+# Acceptable value range: From 0.2 to 1.5
+OcclusionRadius = 0.55
+
+[PlayerBody / Car seat]
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonDrivingX = 0
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonDrivingY = 0
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonDrivingZ = 0
+
+## Driving in first person with the body shown: the view is drawn this far (m) in front of the game's eye.
+# Setting type: Single
+# Default value: 0.12
+CarCameraForward = 0.12
+
+## Driver's seat: the body sits this much (m) lower than the game's seated man (his pose put her a bit high for the steering wheel).
+# Setting type: Single
+# Default value: 0.05
+SeatDrop = 0.05
+
+[PlayerBody / Climbing]
+
+## Climbing: minimum ledge height above the feet, metres.
+# Setting type: Single
+# Default value: 0.45
+# Acceptable value range: From 0.36 to 1
+MinimumHeight = 0.45
+
+## Climbing: maximum ledge height above the feet, metres.
+# Setting type: Single
+# Default value: 2.5
+# Acceptable value range: From 1 to 2.6
+MaximumHeight = 2.5
+
+## Climbing: maximum distance to the obstacle face, metres.
+# Setting type: Single
+# Default value: 0.85
+# Acceptable value range: From 0.35 to 1.2
+Reach = 0.85
+
+## Climbing: higher ledges use the high-climb animation.
+# Setting type: Single
+# Default value: 1.25
+# Acceptable value range: From 0.8 to 1.5
+WaistHeightLimit = 1.25
+
+## Climbing: climb playback speed.
+# Setting type: Single
+# Default value: 1.5
+# Acceptable value range: From 0.6 to 2.5
+AnimationSpeed = 1.5
+
+[PlayerBody / Editors]
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad0
+Pose key: Select weapon / arm = Keypad0
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad5
+Pose key: Move / rotate = Keypad5
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad8
+Pose key: Up / pitch up = Keypad8
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad2
+Pose key: Down / pitch down = Keypad2
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad6
+Pose key: Right / yaw right = Keypad6
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad4
+Pose key: Left / yaw left = Keypad4
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad7
+Pose key: Forward / roll right = Keypad7
+
+## Weapon pose editor only. Bind from its F7 buttons; None disables this key.
+# Setting type: String
+# Default value: Keypad1
+Pose key: Back / roll left = Keypad1
+
+## Weapon pose editor (third person, weapon drawn): numpad 8/2 6/4 7/1 move the weapon in the hand, 5 move/rotate, 9/3 pick the animation, - / * delete/copy/paste. Aiming: Page Up/Down lift the hands, Home/End tilt the head, Insert/Delete push the hands forward. Saved to config/WildWasteland/PlayerBody/weapon-poses.txt and aim-lift.txt. These keys do nothing while this is off.
+# Setting type: Boolean
+# Default value: false
+WeaponAdjustment = false
+
+[PlayerBody / First person]
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonBodyX = 0
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonBodyY = 0
+
+## First-person view offset (m, view right / up / forward): the body moves the opposite way under the camera.
+# Setting type: Single
+# Default value: 0
+# Acceptable value range: From -0.3 to 0.3
+FirstPersonBodyZ = 0
+
+## First person on foot: the head sits this far (m) behind the camera.
+# Setting type: Single
+# Default value: 0.08
+FirstPersonBodyBack = 0.08
+
+## First person: extra distance behind the camera when looking straight down, m (blended in with the pitch).
+# Setting type: Single
+# Default value: 0.08
+BodyBackDown = 0.08
+
+## First person with a weapon drawn: the body moves this much (m) further back.
+# Setting type: Single
+# Default value: 0.08
+FirstPersonWeaponBack = 0.08
+
+## First person with a weapon drawn: the chest bends back by this many degrees.
+# Setting type: Single
+# Default value: 20
+FirstPersonChestLean = 20
+
+[PlayerBody / ModAPI]
+
+## Log every decision of every ModAPI character (very chatty; needs [Debug] VerboseLog).
+# Setting type: Boolean
+# Default value: false
+VerboseModApi = false
+
+[PlayerBody / Model]
+
+## Female body model (.glb/.gltf) relative to plugins/WildWasteland/PlayerBody, rigged to Flexa's skeleton (22 mixamorig bones). Restart the module to reload.
+# Setting type: String
+# Default value: Models/Player_female.glb
+Model = Models/Player_female.glb
+
+## Female body texture relative to the module folder.
+# Setting type: String
+# Default value: Models/Player_female.png
+Texture = Models/Player_female.png
+
+## Female replacement for the game's Player2 texture atlas, used only on the first-person arms and kick leg.
+# Setting type: String
+# Default value: Models/Player2_female_arms.png
+ArmsTexture = Models/Player2_female_arms.png
+
+## AssetBundle with the humanoid (Mixamo) clips; loaded once per game start.
+# Setting type: String
+# Default value: Models/apocaplayer_anims.bundle
+AnimationBundle = Models/apocaplayer_anims.bundle
+
+[Quests / Advanced]
+
+## Name of the PlayMaker global int that holds your nuts. Leave empty to detect it; the log lists all global ints on first use.
+# Setting type: String
+# Default value: 
+MoneyVariable = 
+
+[Quests / Debug]
+
+## Troubleshooting: press near NPCs and enemies to write faction_dump.txt (next to the DLL) with every detail that might show which faction they belong to. None = off.
+# Setting type: Key
+# Default value: None
+# Acceptable values: None, Space, Enter, Tab, Backquote, Quote, Semicolon, Comma, Period, Slash, Backslash, LeftBracket, RightBracket, Minus, Equals, A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z, Digit1, Digit2, Digit3, Digit4, Digit5, Digit6, Digit7, Digit8, Digit9, Digit0, LeftShift, RightShift, LeftAlt, RightAlt, AltGr, LeftCtrl, RightCtrl, LeftMeta, LeftWindows, LeftCommand, LeftApple, RightCommand, RightMeta, RightWindows, RightApple, ContextMenu, Escape, LeftArrow, RightArrow, UpArrow, DownArrow, Backspace, PageDown, PageUp, Home, End, Insert, Delete, CapsLock, NumLock, PrintScreen, ScrollLock, Pause, NumpadEnter, NumpadDivide, NumpadMultiply, NumpadPlus, NumpadMinus, NumpadPeriod, NumpadEquals, Numpad0, Numpad1, Numpad2, Numpad3, Numpad4, Numpad5, Numpad6, Numpad7, Numpad8, Numpad9, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, OEM1, OEM2, OEM3, OEM4, OEM5, IMESelected
+FactionDumpKey = None
+
+## For quest writers: log every NPC you talk to and keep lists of their names and home camps in npc_names.txt and npc_locations.txt next to the DLL.
+# Setting type: Boolean
+# Default value: false
+RecordNpcNames = false
+
+[Quests / Deliver]
+
+## Deliveries go to a friendly camp at least this far (m) from the giver.
+# Setting type: Single
+# Default value: 400
+MinDistance = 400
+
+## Deliveries go to a friendly camp at most this far (m) from the giver.
+# Setting type: Single
+# Default value: 3000
+MaxDistance = 3000
+
+## Time limit of a delivery: this many IN-GAME hours (the game clock, not real time)...
+# Setting type: Single
+# Default value: 24
+GameHoursBase = 24
+
+## ...plus this many in-game hours per km to the camp (straight line). Pausing stops it; sleeping uses it up.
+# Setting type: Single
+# Default value: 4
+GameHoursPerKm = 4
+
+## Talk to someone friendly within this many metres of the camp to hand the goods over.
+# Setting type: Single
+# Default value: 120
+CampRadius = 120
+
+[Quests / Factions]
+
+## A person without a faction tag counts as living at the nearest camp / building / cave within this many metres, and takes that place's faction.
+# Setting type: Single
+# Default value: 120
+HomeRadius = 120
+
+## Unity tags the game uses for human factions (taken from NPCAI). NPCs with one of these tags belong to that faction; camps with an EnemySpawn_<Faction> child belong to it too.
+# Setting type: String
+# Default value: Scrapyard,Coyotes
+HumanFactions = Scrapyard,Coyotes
+
+## Names that count as people (not animals) when working out who lives where. Enemies with these names are protected from kill quests of their own faction.
+# Setting type: String
+# Default value: bodyguard,pistoleer,pup,merchant,bolter,lugger,scout,scraper,chieftain,elder
+PeopleNames = bodyguard,pistoleer,pup,merchant,bolter,lugger,scout,scraper,chieftain,elder
+
+[Quests / Goto]
+
+## Generated go-to quests pick points of interest at least this far from the giver.
+# Setting type: Single
+# Default value: 150
+MinDistance = 150
+
+## Generated go-to quests pick points of interest at most this far from the giver.
+# Setting type: Single
+# Default value: 1800
+MaxDistance = 1800
+
+[Quests / Hire]
+
+## Who can be hired and for how much reputation (with their own faction): name part = cost, comma separated. 0 or a missing name = not for hire.
+# Setting type: String
+# Default value: Bodyguard=5,Pup=1,Bolter=5,Pistoleer=5,Gunnar=15,Lugger=10
+Hirable = Bodyguard=5,Pup=1,Bolter=5,Pistoleer=5,Gunnar=15,Lugger=10
+
+## How long a hire lasts, in in-game hours (24 = one day).
+# Setting type: Single
+# Default value: 24
+DurationGameHours = 24
+
+## Reputation lost with the NPC's faction when your hired help dies.
+# Setting type: Int32
+# Default value: 1
+DeathPenalty = 1
+
+## Metres the follower keeps behind you.
+# Setting type: Single
+# Default value: 6
+FollowDistance = 6
+
+## A follower this far behind you for a few seconds (walls, a car you drove off in) pops back next to you. 0 = never.
+# Setting type: Single
+# Default value: 70
+CatchUpDistance = 70
+
+## Small animals the follower will not go hunting on its own (comma separated name parts). It still fights them if they hurt you.
+# Setting type: String
+# Default value: Lizard
+IgnoreCritters = Lizard
+
+## The follower gives up a fight and comes back when its target is further than this many metres from you. 0 = no limit.
+# Setting type: Single
+# Default value: 28
+LeashDistance = 28
+
+## In the car, let the follower's own Detection/Attack/Damage Ranged chain shoot, as it does on foot. The mod's ShotDamage is only a backup for when that chain does not fire.
+# Setting type: Boolean
+# Default value: true
+RealShooting = true
+
+## Play the follower's whole shooting animation on each shot from the car. Off by default: it lifts his arms over Apocapatrol's aiming pose. The muzzle flash is shown on its own instead.
+# Setting type: Boolean
+# Default value: false
+ShotAnimation = false
+
+## How far a follower's gun arm kicks up on each shot from the car (degrees). 0 = no recoil.
+# Setting type: Single
+# Default value: 10
+RecoilDegrees = 10
+
+## Normally a follower's magazine size comes from the player's version of the gun he holds. Name=shots pairs here override it (e.g. Gunnar=20).
+# Setting type: String
+# Default value: 
+MagazineOverride = 
+
+## Normally a follower's reload time comes from the reload animation of the player's version of his gun. Name=seconds pairs here override it (e.g. Bolter=2).
+# Setting type: String
+# Default value: 
+ReloadOverride = 
+
+## Whose reload sounds a follower uses when his gun is not recognised (Name=player weapon, e.g. akm_trash, slamberg_500, crossbow). Others use the sounds of the player's version of the gun they hold.
+# Setting type: String
+# Default value: Bolter=crossbow
+ReloadSoundFrom = Bolter=crossbow
+
+## Damage of each shot a follower fires from the car (the mod delivers the hit itself, because the follower's own sensors cannot see your enemies). 0 = no damage.
+# Setting type: Single
+# Default value: 7
+ShotDamage = 7
+
+## Seconds between a follower's shots from the car.
+# Setting type: Single
+# Default value: 0.9
+ShotInterval = 0.9
+
+## Hirable people who shoot from the car even though their ranged parts are not recognised (comma separated name parts). Gunnar, Pistoleer and Lugger are found automatically.
+# Setting type: String
+# Default value: Bolter
+RangedHires = Bolter
+
+## Apocapatrol only has gun-arm poses for its own humans (Boltjaw, Flexa, Lugnut, Scrud, Sprokka, Scraffa, Spanna). A ranged follower borrows the pose of this one so its arms aim and shoot. Use Name=Template pairs for different people, e.g. Gunnar=Scrud,Pistoleer=Lugnut; a lone name applies to everyone.
+# Setting type: String
+# Default value: Pistoleer=Scrud,Gunnar=Flexa,Lugger=Lugnut,Bolter=Boltjaw,Lugnut
+ArmPoseLike = Pistoleer=Scrud,Gunnar=Flexa,Lugger=Lugnut,Bolter=Boltjaw,Lugnut
+
+## When you get in a car, a follower within this many metres gets in too.
+# Setting type: Single
+# Default value: 35
+RideRange = 35
+
+[Quests / Items]
+
+## Fetch quests also count matching items lying on the ground within this many metres of you.
+# Setting type: Single
+# Default value: 10
+HandInRadius = 10
+
+## Cans and other containers only count for fetch quests when they are at least this full (0.5 = half). 0 = any amount, even empty.
+# Setting type: Single
+# Default value: 0.5
+MinLiquidFraction = 0.5
+
+[Quests / Kills]
+
+## Kill jobs: bodies of the kills count when they lie within this many metres of the giver as you report in.
+# Setting type: Single
+# Default value: 35
+BodyRadius = 35
+
+## Kill jobs: bringing a body back to the giver adds this fraction of the reward for each body (0.10 = 10%), up to the number of kills asked for. Without bodies you get the normal reward. 0 = off.
+# Setting type: Single
+# Default value: 0.1
+BodyBonus = 0.1
+
+## Enemy deaths farther than this from you are ignored.
+# Setting type: Single
+# Default value: 300
+KillRadius = 300
+
+## Kill quests only target enemies within this many metres of the giver, and only kills inside that area count. 0 = anywhere. Hand-written quests can override it with 'range'.
+# Setting type: Single
+# Default value: 1000
+QuestRange = 1000
+
+[Quests / Legacy]
+
+## Show this mod in the Apocasetter Mods menu
+# Setting type: Boolean
+# Default value: true
+Apocasetter = true
+
+[Quests / Quests]
+
+## After you take a job from an NPC, or turn one down, that NPC has no new job for you for this many in-game days (sleeping counts). 1 = one day. 0 = no limit.
+# Setting type: Single
+# Default value: 1
+GiverCooldownDays = 1
+
+## A fetch quest is only offered when at least that many of the item exist within this many metres of the giver (items in the loaded part of the world, your own and the ones lying around; merchant stock never counts). 0 = no check.
+# Setting type: Single
+# Default value: 4000
+ItemRange = 4000
+
+## Every job except a delivery has a time limit of at least this many in-game hours (24 = one day). When it runs out the job fails and costs FailPenalty reputation.
+# Setting type: Single
+# Default value: 24
+MinimumHours = 24
+
+## Added to the time limit for every km between the giver and the target (go-to, camp and talk jobs).
+# Setting type: Single
+# Default value: 4
+ExtraHoursPerKm = 4
+
+## The most time any job is given (hand-written jobs with an hours = line may go over it).
+# Setting type: Single
+# Default value: 96
+MaximumHours = 96
+
+## An NPC will not offer the same quest (same camp, same enemy kind, same item...) that another NPC within this many metres has offered recently. 0 = off.
+# Setting type: Single
+# Default value: 400
+NoRepeatDistance = 400
+
+## How long (in-game hours) an offered quest counts as taken for the neighbours.
+# Setting type: Single
+# Default value: 12
+NoRepeatGameHours = 12
+
+## A step of a quest chain (hand-written quests with chain / after) is always offered by an NPC that may give it, unless a different NPC offered that same step within this many in-game hours.
+# Setting type: Single
+# Default value: 24
+ChainOfferGameHours = 24
+
+## How close you must be (metres) to where you last saw a quest giver for them to be brought back if they are gone.
+# Setting type: Single
+# Default value: 500
+GiverRespawnDistance = 500
+
+[Quests / Reputation]
+
+## Reputation lost with the giver's faction when a delivery runs out of time (you kept the goods).
+# Setting type: Int32
+# Default value: 3
+StolenPenalty = 3
+
+## When a job fails (its time limit runs out) or you give it up, you lose this many times the reputation it would have given you for finishing it (at least 1). 0 = no penalty. A giver who dies costs nothing.
+# Setting type: Single
+# Default value: 2
+FailPenaltyMultiplier = 2
+
+## At or below this reputation (a negative number, the scale is -100 to +100) a faction's people turn hostile to you (the game's own PlayerIsEnemy switch). 0 = never (the default): bad reputation only lowers the pay. Factions always give work, whatever your reputation.
+# Setting type: Int32
+# Default value: 0
+HostileAtRep = 0
+
+## Bad reputation creeps back by 1 every this many in-game hours. 0 = never.
+# Setting type: Single
+# Default value: 24
+RecoverGameHours = 24
+
+## Jobs for a faction pay this fraction more for every point of positive reputation with it, and this fraction less for every negative point (0.005 = 0.5%). 0 = reputation does not change the pay.
+# Setting type: Single
+# Default value: 0.005
+PayPerRep = 0.005
+
+## Bad reputation never cuts the pay below this fraction of the normal reward.
+# Setting type: Single
+# Default value: 0.1
+MinimumPayFraction = 0.1
+
+## Good reputation never raises the pay above this many times the normal reward. 0 = no limit.
+# Setting type: Single
+# Default value: 0
+MaximumPayMultiplier = 0
+
+[Quests / RepVendor]
+
+## Nuts you pay for 1 reputation point.
+# Setting type: Int32
+# Default value: 20
+# Acceptable value range: From 0 to 100000
+BuyPrice = 20
+
+## Nuts you get for selling 1 reputation point.
+# Setting type: Int32
+# Default value: 10
+# Acceptable value range: From 0 to 100000
+SellPrice = 10
+
+## The most reputation one 'all' button buys or sells at a time.
+# Setting type: Int32
+# Default value: 100
+# Acceptable value range: From 1 to 200
+MaxPerDeal = 100
+
+## Names of the NPCs who trade reputation (part of the name is enough, comma separated). They trade the reputation of the faction they belong to; an NPC with no faction does not.
+# Setting type: String
+# Default value: merchant
+Npcs = merchant
+
+[Quests / Takeover]
+
+## Kills of the camp's people within this many metres of the camp count towards a takeover quest.
+# Setting type: Single
+# Default value: 120
+CampRadius = 120
+
+## Generated takeover quests pick camps at least this far from the giver.
+# Setting type: Single
+# Default value: 200
+MinDistance = 200
+
+## Generated takeover quests pick camps at most this far from the giver.
+# Setting type: Single
+# Default value: 4000
+MaxDistance = 4000
+
+## How many of the camp's people you must kill (generated takeover quests).
+# Setting type: Int32
+# Default value: 4
+KillsNeeded = 4
+
+## After the camp is cleared, the winning faction's people appear about this far from it and walk in.
+# Setting type: Single
+# Default value: 250
+WalkerSpawnDistance = 250
+
+## How many people walk in.
+# Setting type: Int32
+# Default value: 5
+GroupSize = 5
+
+## If they have not arrived after this long, they are placed at the camp.
+# Setting type: Single
+# Default value: 300
+WalkSeconds = 300
+
+## When you come near a camp you took and none of its new owner's people are there, this many of them are created. 0 = off.
+# Setting type: Int32
+# Default value: 4
+GarrisonSize = 4
+
+## How close you must be (metres) for an empty camp you took to get its garrison.
+# Setting type: Single
+# Default value: 500
+GarrisonRange = 500
+
+## When one of a camp's garrison is killed while you are near, the camp is not refilled for this many in-game hours.
+# Setting type: Single
+# Default value: 12
+GarrisonCooldownGameHours = 12
+
+## A camp's head count is only known once you are this close (metres); the quest log is updated then.
+# Setting type: Single
+# Default value: 250
+ScoutRange = 250
+
+## People who moved into a camp you took walk around it a little. Off = they stand where they arrive.
+# Setting type: Boolean
+# Default value: true
+PatrolAtCamp = true
+
+[Quests / Voice]
+
+## 0 = the voice plays flat in your ears (best for dialogue), 1 = it comes from the NPC and gets quieter with distance.
+# Setting type: Single
+# Default value: 0
+Spatial = 0
+
+[Survival / Debug]
+
+## Log Stew Pot filling, drinking, pouring, cooking and spoilage.
+# Setting type: Boolean
+# Default value: false
+VerboseLog = false
+
+## Allow tilted stew pots to spill their contents, including pouring into another pot. Applies immediately.
+# Setting type: Boolean
+# Default value: false
+AllowStewPotSpilling = false
+
+[Survival / Model]
+
+## Pot model scale. Restart to apply.
+# Setting type: Single
+# Default value: 0.2
+# Acceptable value range: From 0.1 to 0.5
+Scale = 0.2
+
+[Survival / Stew Pot]
+
+## Cooked nutrition produced per raw nutrition point.
+# Setting type: Single
+# Default value: 2
+# Acceptable value range: From 1 to 10
+Nutrition conversion multiplier = 2
+
+## Raw nutrition converted per unpaused second. Dog meat: 5 nutrition / 20 seconds.
+# Setting type: Single
+# Default value: 0.25
+# Acceptable value range: From 0.001 to 100
+Cooking rate = 0.25
+
+## Insanity removed per unpaused second over a native Fire trigger.
+# Setting type: Single
+# Default value: 0.25
+# Acceptable value range: From 0 to 100
+Insanity boilaway rate = 0.25
+
+## Spoiled nutrition accumulated per unpaused second.
+# Setting type: Single
+# Default value: 0.002604167
+# Acceptable value range: From 0 to 100
+Spoiling rate = 0.002604167
+

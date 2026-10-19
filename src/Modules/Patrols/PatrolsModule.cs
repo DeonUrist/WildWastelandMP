@@ -57,7 +57,30 @@ namespace WildWasteland.Modules.Patrols
             Running = true;   // last: per-object loops only run once everything is in place
             Services.FollowerVehicles = new QuestFollowers();
             Services.Camps = new TrafficCamps.Status();
+            Services.VehicleCombatActive = VehicleCombatActive;
             LoadingProgress.Register(this, VehicleBuildCache.LoadWork);
+            SaveBus.CleanupSettings -= DrawSaveCleanupSettings; SaveBus.CleanupSettings += DrawSaveCleanupSettings;
+            SaveBus.SaveCancelled -= PatrolPersistence.CancelPendingSave; SaveBus.SaveCancelled += PatrolPersistence.CancelPendingSave;
+        }
+        static void DrawSaveCleanupSettings(ToolLayout l)
+        {
+            l.Heading("Existing abandoned-patrol cleanup");
+            l.Text("Runs during gameplay. Player-entered cars, remote-owned cars and selected respawn vehicles are protected. Traffic unloads separately and retains its virtual state.");
+            l.Toggle(CleanupEnabled, "Abandoned patrol vehicles"); l.Entry(CleanupDistance); l.Entry(CleanupMinutes); l.Entry(CleanupMaxCars);
+        }
+        static bool VehicleCombatActive()
+        {
+            foreach (var marker in PatrolMarker.All)
+                if (marker != null && marker.gameObject.activeInHierarchy && !marker.Exploded && !marker.SetupOnly
+                    && marker.FactionTarget != null && marker.FactionTarget.activeInHierarchy && HasCombatCrew(marker)
+                    && (!TrafficFactions.IsPlayer(marker.FactionTarget) || Core.Multiplayer.PlayerDistance(marker.transform.position, Core.GameRefs.Player != null ? Core.GameRefs.Player.transform : null) <= 600f)) return true;
+            return false;
+        }
+        static bool HasCombatCrew(PatrolMarker marker)
+        {
+            if (marker.Driver != null && !marker.DriverDied && !marker.DriverBailed || marker.Passenger != null) return true;
+            foreach (var rider in marker.Riders) if (rider != null) return true;
+            return false;
         }
 
         void InitInner()
@@ -110,6 +133,9 @@ namespace WildWasteland.Modules.Patrols
 
         public override void Shutdown()
         {
+            Services.VehicleCombatActive = null;
+            SaveBus.CleanupSettings -= DrawSaveCleanupSettings;
+            SaveBus.SaveCancelled -= PatrolPersistence.CancelPendingSave;
             Ram.StopNetwork();
             NetworkMerchants.Stop();
             WorldTraffic.StopNetwork();

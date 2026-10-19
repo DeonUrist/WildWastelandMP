@@ -1,0 +1,8 @@
+Library/
+Logs/
+Temp/
+obj/
+UserSettings/
+Build/
+Assets/LowCrawl.anim*
+ProjectSettings/*.asset

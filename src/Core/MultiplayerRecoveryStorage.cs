@@ -35,6 +35,7 @@ namespace WildWasteland.Core
         static readonly object WriteLock = new object();
         static readonly Dictionary<string, string[]> Writes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         static bool _writing, _writeSuccess;
+        internal static bool CheckpointWriting { get { return WriteBusy(); } }
         static string _writeError;
 
         static void StorageInstall()
@@ -186,7 +187,7 @@ namespace WildWasteland.Core
         }
         internal static bool Checkpoint()
         {
-            if (_file == null || !Multiplayer.Hosting || !Multiplayer.WorldReady) return false;
+            if (_file == null || !Multiplayer.Hosting || !Multiplayer.WorldReady || HostSaveSystem.Busy || MultiplayerSaving.Frozen || MultiplayerPlayerReset.Pending) return false;
             try { QueueWrite(_file, CaptureLines()); return true; }
             catch (Exception error) { Log.Error("[Multiplayer] Player checkpoint capture failed", error); _warning = "Player checkpoint could not be captured. Check the log."; return false; }
         }

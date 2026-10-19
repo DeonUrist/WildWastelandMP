@@ -811,6 +811,7 @@ namespace WildWasteland.Modules.PlayerBody
                 Turn("mixamorig:Spine2", Vector3.right, pitch * 0.3f);
                 Turn("mixamorig:Neck", Vector3.right, pitch * 0.1f);
             }
+            Turn("mixamorig:Head", Vector3.right, camPitch * (1f - _prone) - pitch);
             ApplyAimLift(weapon, kind, dt);
             ThrowAim();
             PunchAim();

@@ -50,9 +50,15 @@ namespace WildWasteland.Core
         static GameObject _looked;
         static int _networkAnchor, _anchorNumber;
         static ulong _epoch;
+        internal static bool Resetting { get; private set; }
+        internal static bool ResetSucceeded { get; private set; }
+        static Func<GameObject, IEnumerator> _leaveCar;
+        static Action<GameObject> _kickOut;
         internal static void Install()
         {
             var survival = Multiplayer.Type("Game.Survival"); var world = Multiplayer.Type("Net.WorldObjects"); var session = Multiplayer.Type("Net.NetSession");
+            _leaveCar = MultiplayerAccess.Call<Func<GameObject, IEnumerator>>(survival, "LeaveCar", typeof(GameObject));
+            _kickOut = MultiplayerAccess.Call<Action<GameObject>>(world, "KickOutOf", typeof(GameObject));
             _hasBed = MultiplayerAccess.Get<bool>(survival, "HasBed"); _setHasBed = MultiplayerAccess.Set<bool>(survival, "HasBed");
             _bed = MultiplayerAccess.Get<Vector3>(survival, "Bed"); _setBed = MultiplayerAccess.Set<Vector3>(survival, "Bed");
             _bedLocal = MultiplayerAccess.Get<Vector3>(survival, "BedLocal"); _setBedLocal = MultiplayerAccess.Set<Vector3>(survival, "BedLocal");
@@ -303,17 +309,38 @@ namespace WildWasteland.Core
             if (_selected && _bedItem(null) == id) { _anchorNumber = id; _networkAnchor = network; _nextCache = 0; }
         }
         static IEnumerator Respawn(Vector3 ignored) { return Place(Vector3.zero, true); }
+        internal static bool StartingPosition(out Vector3 position) { position = _camp; return _hasCamp; }
+        internal static IEnumerator ResetToCamp(Vector3 position)
+        {
+            ResetSucceeded = false;
+            if (_moving || Resetting || !Multiplayer.WorldReady || GameRefs.Player == null) yield break;
+            var player = GameRefs.Player; ulong epoch = MultiplayerParts.Epoch; int generation = SaveBus.Generation;
+            var vehicle = player.GetComponentInParent<NWH.VehiclePhysics2.VehicleController>();
+            bool frozen = _isFrozen(null); Resetting = true; _frozen(null, true);
+            try
+            {
+                yield return _leaveCar(player);
+                if (Multiplayer.WorldReady && player != null && GameRefs.Player == player && epoch == MultiplayerParts.Epoch && generation == SaveBus.Generation)
+                {
+                    if (vehicle != null && player.transform.IsChildOf(vehicle.transform)) _kickOut(vehicle.gameObject);
+                    yield return Place(position, false, false, true);
+                }
+            }
+            finally { _frozen(null, frozen); Resetting = false; }
+        }
         static IEnumerator Reconnect(Vector3 position) { return Place(position, false); }
         internal static IEnumerator FinishWake(Vector3 position) { return Place(position, false, true); }
-        static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false)
+        static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false, bool reset = false)
         {
             var player = GameRefs.Player; var body = player != null ? player.GetComponent<Rigidbody>() : null;
             if (body == null) yield break;
             bool wasKinematic = body.isKinematic, wasFrozen = _isFrozen(null); _moving = true; body.isKinematic = true; _teleporting(null, true); _frozen(null, true);
+            ulong resetEpoch = MultiplayerParts.Epoch; int resetGeneration = SaveBus.Generation;
             float fallbackAt = Time.unscaledTime + 30f; bool campOnly = false;
             try
             {
-                while (Multiplayer.Active && Multiplayer.WorldReady && player != null && body != null)
+                while (Multiplayer.Active && Multiplayer.WorldReady && player != null && body != null
+                    && (!reset || resetEpoch == MultiplayerParts.Epoch && resetGeneration == SaveBus.Generation))
                 {
                     if (MultiplayerSaving.Frozen || SaveBus.Busy) { yield return new WaitForSecondsRealtime(.25f); continue; }
                     RefreshAnchors(); Vector3 target = saved; GameObject anchor = null;
@@ -332,11 +359,12 @@ namespace WildWasteland.Core
                     Vector3 place;
                     if ((!respawn || anchor != null || campOnly) && Surface(Origin.Scene(target), player.transform, out place))
                     {
-                        player.transform.position = place; body.isKinematic = false; body.velocity = Vector3.zero; body.angularVelocity = Vector3.zero; body.isKinematic = wasKinematic;
+                        player.transform.position = place; VehicleLoadPlacement.Stand(player); body.isKinematic = false; body.velocity = Vector3.zero; body.angularVelocity = Vector3.zero; body.isKinematic = wasKinematic;
                         Physics.SyncTransforms();
                         if (respawn) _notice(campOnly ? "You respawned at the initial camp." : "You respawned beside your selected spawn object.");
                         Log.Always(respawn ? campOnly ? "[Multiplayer] Respawn placed at initial camp" : "[Multiplayer] Respawn placed beside selected object " + _bedItem(null) : "[Multiplayer] Player restored on a clear surface beside the saved position");
-                        if (!respawn)
+                        if (reset) ResetSucceeded = true;
+                        else if (!respawn)
                         {
                             if (handoff)
                             {
@@ -354,11 +382,15 @@ namespace WildWasteland.Core
             }
             finally { if (body != null) body.isKinematic = wasKinematic; _teleporting(null, false); _frozen(null, wasFrozen); _moving = false; }
         }
-        static bool Surface(Vector3 center, Transform player, out Vector3 position)
+        internal static bool Surface(Vector3 center, Transform player, out Vector3 position)
         {
             // Main terrain must have replaced the draft before any object/floor is used as support.
             RaycastHit terrain;
             if (!Physics.Raycast(center + Vector3.up * 1500f, Vector3.down, out terrain, 3000f, 1 << 14, QueryTriggerInteraction.Ignore) || terrain.collider.name == "Draft Terrain")
+            { position = Vector3.zero; return false; }
+            var tile = terrain.collider.GetComponentInParent<MapMagic.Terrains.TerrainTile>();
+            if (!(terrain.collider is TerrainCollider) || !terrain.collider.enabled || !terrain.collider.gameObject.activeInHierarchy
+                || tile != null && (tile.main == null || !tile.main.applyReady || tile.main.terrain == null || terrain.collider.gameObject != tile.main.terrain.gameObject))
             { position = Vector3.zero; return false; }
             for (int ring = 0; ring < 5; ring++) for (int step = 0; step < 12; step++)
             {

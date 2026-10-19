@@ -80,6 +80,7 @@ namespace WildWasteland.Core
         }
         static bool BeforeExit()
         {
+            if (MultiplayerRespawn.Resetting) { _pendingExit = null; return true; }
             if (!Multiplayer.Client || !Ready()) return true;
             var player = GameRefs.Player; var seat = _passengerSeat(null);
             if (player == null || seat == null || player.transform.parent != seat || !Multiplayer.LocalTargetable) { _pendingExit = null; return true; }

@@ -2310,7 +2310,7 @@ namespace WildWasteland.Modules.Quests
         void SaveBook()
         {
             if (!ready || _sessionSlot == null || _sessionSlot != SaveBus.Slot) return;
-            if (saveBlocked) { Log.LogWarning("Not saving quests: the data in this slot was in a format this version cannot read."); return; }
+            if (saveBlocked) { SaveBus.ReportFailure("Quest data is unreadable; preserving the previous save."); Log.LogWarning("Not saving quests: the data in this slot was in a format this version cannot read."); return; }
             PruneStamps();
             CaptureBook();
             string text = book.Serialize();
@@ -2345,6 +2345,7 @@ namespace WildWasteland.Modules.Quests
                 }
                 catch (Exception e) { LogOnce("SaveBackup", e); }
             }
+            if (!es3ok || mem == 0) SaveBus.ReportFailure("Quest data did not reach the world cache.");
             Core.Log.Always("[Quests] Saved " + book.Active.Count + " quests (slot " + SlotId() + ", " + text.Length + " chars, game save " + (es3ok || diskOk ? "ok" : "FAILED") + (diskOk ? " (disk" + (es3ok ? " + memory)" : ")") : " (memory only)") + ", cache copies " + mem + (backup.Length > 0 ? ", backup file written" : "") + ").");
         }
 

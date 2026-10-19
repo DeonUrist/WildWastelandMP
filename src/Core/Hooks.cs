@@ -114,6 +114,7 @@ namespace WildWasteland.Core
         public static readonly Hook<SetFsmFloat> SetFsmFloatEnter = new Hook<SetFsmFloat>("SetFsmFloat.OnEnter");
         public static readonly Hook<SetFsmFloat> SetFsmFloatDo = new Hook<SetFsmFloat>("SetFsmFloat.DoSetFsmFloat");
         public static readonly Hook<SetVelocity> SetVelocityDo = new Hook<SetVelocity>("SetVelocity.DoSetVelocity");
+        public static readonly Hook<Wait> WaitUpdate = new Hook<Wait>("Wait.OnUpdate");
         public static readonly Hook<GetButtonDown> GetButtonDownUpdate = new Hook<GetButtonDown>("GetButtonDown.OnUpdate");
         public static readonly Hook<GetButton> GetButtonDo = new Hook<GetButton>("GetButton.DoGetButton");
         public static readonly Hook<GetButtonUp> GetButtonUpUpdate = new Hook<GetButtonUp>("GetButtonUp.OnUpdate");
@@ -234,7 +235,7 @@ namespace WildWasteland.Core
         public static void RemoveAll(IModule owner)
         {
             CreateObjectEnter.Remove(owner); ExplosionDo.Remove(owner); SendEventEnter.Remove(owner); SendEventUpdate.Remove(owner); SetFsmFloatEnter.Remove(owner); SetFsmFloatDo.Remove(owner);
-            SetVelocityDo.Remove(owner); GetButtonDownUpdate.Remove(owner); GetButtonDo.Remove(owner); GetButtonUpUpdate.Remove(owner); GetMouseButtonDownUpdate.Remove(owner);
+            SetVelocityDo.Remove(owner); WaitUpdate.Remove(owner); GetButtonDownUpdate.Remove(owner); GetButtonDo.Remove(owner); GetButtonUpUpdate.Remove(owner); GetMouseButtonDownUpdate.Remove(owner);
             RaycastEnter.Remove(owner); RaycastDo.Remove(owner); SmoothLookAtDo.Remove(owner); ActivateGameObjectEnter.Remove(owner); ActivateGameObjectDo.Remove(owner); SetPositionDo.Remove(owner);
             SensorRayHitEnter.Remove(owner); LosEnter3D.Remove(owner); LosUpdate3D.Remove(owner); SensorDetectionsDo.Remove(owner);
             ProcessEvent.Remove(owner); EnterState.Remove(owner); GetPrefab.Remove(owner); OriginJump.Remove(owner);
@@ -254,6 +255,7 @@ namespace WildWasteland.Core
             Use(SetFsmFloatEnter.PrefixCount + SetFsmFloatEnter.PostfixCount, SetFsmFloatEnter.Applied, typeof(P_SetFsmFloatEnter), () => SetFsmFloatEnter.Applied = true);
             Use(SetFsmFloatDo.PrefixCount, SetFsmFloatDo.Applied, typeof(P_SetFsmFloatDo), () => SetFsmFloatDo.Applied = true);
             Use(SetVelocityDo.PrefixCount, SetVelocityDo.Applied, typeof(P_SetVelocityDo), () => SetVelocityDo.Applied = true);
+            Use(WaitUpdate.PrefixCount, WaitUpdate.Applied, typeof(P_WaitUpdate), () => WaitUpdate.Applied = true);
             Use(GetButtonDownUpdate.PrefixCount, GetButtonDownUpdate.Applied, typeof(P_GetButtonDownUpdate), () => GetButtonDownUpdate.Applied = true);
             Use(GetButtonDo.PrefixCount, GetButtonDo.Applied, typeof(P_GetButtonDo), () => GetButtonDo.Applied = true);
             Use(GetButtonUpUpdate.PrefixCount, GetButtonUpUpdate.Applied, typeof(P_GetButtonUpUpdate), () => GetButtonUpUpdate.Applied = true);
@@ -294,6 +296,7 @@ namespace WildWasteland.Core
             Add(sb, SetFsmFloatEnter.Target, SetFsmFloatEnter.Applied, SetFsmFloatEnter.PrefixCount, SetFsmFloatEnter.PostfixCount);
             Add(sb, SetFsmFloatDo.Target, SetFsmFloatDo.Applied, SetFsmFloatDo.PrefixCount, SetFsmFloatDo.PostfixCount);
             Add(sb, SetVelocityDo.Target, SetVelocityDo.Applied, SetVelocityDo.PrefixCount, SetVelocityDo.PostfixCount);
+            Add(sb, WaitUpdate.Target, WaitUpdate.Applied, WaitUpdate.PrefixCount, WaitUpdate.PostfixCount);
             Add(sb, GetButtonDownUpdate.Target, GetButtonDownUpdate.Applied, GetButtonDownUpdate.PrefixCount, GetButtonDownUpdate.PostfixCount);
             Add(sb, GetButtonDo.Target, GetButtonDo.Applied, GetButtonDo.PrefixCount, GetButtonDo.PostfixCount);
             Add(sb, GetButtonUpUpdate.Target, GetButtonUpUpdate.Applied, GetButtonUpUpdate.PrefixCount, GetButtonUpUpdate.PostfixCount);
@@ -336,6 +339,7 @@ namespace WildWasteland.Core
         [HarmonyPatch(typeof(SetFsmFloat), "OnEnter")] static class P_SetFsmFloatEnter { static bool Prefix(SetFsmFloat __instance) { return SetFsmFloatEnter.RunPrefix(__instance); } static void Postfix(SetFsmFloat __instance) { SetFsmFloatEnter.RunPostfix(__instance); } }
         [HarmonyPatch(typeof(SetFsmFloat), "DoSetFsmFloat")] static class P_SetFsmFloatDo { static bool Prefix(SetFsmFloat __instance) { return SetFsmFloatDo.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(SetVelocity), "DoSetVelocity")] static class P_SetVelocityDo { static bool Prefix(SetVelocity __instance) { return SetVelocityDo.RunPrefix(__instance); } }
+        [HarmonyPatch(typeof(Wait), "OnUpdate")] static class P_WaitUpdate { static bool Prefix(Wait __instance) { return WaitUpdate.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(GetButtonDown), "OnUpdate")] static class P_GetButtonDownUpdate { static bool Prefix(GetButtonDown __instance) { return GetButtonDownUpdate.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(GetButton), "DoGetButton")] static class P_GetButtonDo { static bool Prefix(GetButton __instance) { return GetButtonDo.RunPrefix(__instance); } }
         [HarmonyPatch(typeof(GetButtonUp), "OnUpdate")] static class P_GetButtonUpUpdate { static bool Prefix(GetButtonUp __instance) { return GetButtonUpUpdate.RunPrefix(__instance); } }

@@ -11,11 +11,11 @@ using WildWasteland.Core.UI;
 namespace WildWasteland.Modules.CleanHUD
 {
     // The native sheet owns opening and data. This view borrows its textures and reads live text/FSM variables.
-    internal static class InventoryStyle
+    internal static partial class InventoryStyle
     {
         private sealed class TextMirror { internal Text Source; internal GlyphText Target; internal string Shown; internal bool SourceColor; }
         private sealed class ImageMirror { internal RawImage Source, Target; }
-        private sealed class AmmoRow { internal FsmInt Count, Capacity; internal GlyphText Text; internal int Shown = int.MinValue, Max = int.MinValue; }
+        private sealed class AmmoRow { internal FsmInt Count, Capacity; internal GlyphText Text; internal MenuButton Button; internal int Kind, Shown = int.MinValue, Max = int.MinValue; }
         private sealed class Slot
         {
             internal PlayMakerFSM State, Take; internal FsmGameObject Item; internal bool CanDrop;
@@ -40,7 +40,7 @@ namespace WildWasteland.Modules.CleanHUD
         private static int _openedFrame;
         private static InsaneSystems.InputManager.KeyAction _key;
         private static GlyphText _hint;
-        private static Slot _pressed;
+        private static MenuButton _pressed;
         private static KeyCode _shownKey;
 
         internal static void Tick()
@@ -77,41 +77,44 @@ namespace WildWasteland.Modules.CleanHUD
                 _raycaster = _canvas.GetComponent<GraphicRaycaster>();
                 if (_raycaster == null) { _raycaster = _canvas.gameObject.AddComponent<GraphicRaycaster>(); _addedRaycaster = true; }
                 _raycasterOn = _raycaster.enabled; _raycaster.enabled = true;
-                _view.gameObject.SetActive(true);
+                _view.gameObject.SetActive(true); SelectTab(false);
                 if (Core.Log.Verbose) Core.Log.Info("[CleanHUD] Inventory opened: native data, F3 modal input");
                 if (Core.Log.Verbose && ApocasetterBridge.InputBlocked) Core.Log.Info("[CleanHUD] Inventory: equipment pointer owns hover/click while Apocasetter blocks native UI");
             }
             Session.Maintain(); Menu.BlockCancelFrame = Time.frameCount + 2;
             if (Application.isFocused && Time.frameCount > _openedFrame && (Pressed(_key != null ? _key.Key : KeyCode.Tab)
-                || (_key != null && Pressed(_key.AlternativeKey)) || Pressed(KeyCode.Escape))) { Close(true); return; }
+                || (_key != null && Pressed(_key.AlternativeKey)) || Pressed(KeyCode.Escape)))
+            { if (_resetDialog != null && _resetDialog.gameObject.activeSelf) HideReset(); else if (_dropDialog != null && _dropDialog.gameObject.activeSelf) HideDrop(); else Close(true); return; }
             float scale = _canvasRect != null ? Mathf.Min(_canvasRect.rect.width / 1920f, _canvasRect.rect.height / 1080f) : 1f;
             var localScale = Vector3.one * Mathf.Max(.1f, scale); if (_view.localScale != localScale) _view.localScale = localScale;
             for (int i = 0; i < Native.Count; i++) if (Native[i] != null && Native[i].canvasRenderer.GetAlpha() != 0) Native[i].canvasRenderer.SetAlpha(0);
-            _hidden = true; Refresh();
+            _hidden = true; Refresh(); RefreshExtra();
             EquipmentPointer();
             if (_events != null && _events.currentSelectedGameObject != null && _events.currentSelectedGameObject.transform.IsChildOf(_view)) _events.SetSelectedGameObject(null);
         }
         private static bool Pressed(KeyCode key) { return key != KeyCode.None && Input.GetKeyDown(key); }
         private static void EquipmentPointer()
         {
-            if (!ApocasetterBridge.InputBlocked) { _pressed = null; return; }
+            if (!ApocasetterBridge.InputBlocked) { _pressed = null; _dragging = false; return; }
             // EditorSession blocks native EventSystem.Update and Button.Press as well as gameplay input.
-            // Dispatch only this modal's equipped-item controls, retaining normal press/release behavior.
+            // Dispatch only this modal's controls, retaining normal press/release behavior.
             var camera = _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera;
-            Slot hovered = null;
-            foreach (var slot in Slots)
+            MenuButton hovered = null;
+            foreach (var button in Buttons)
             {
-                bool over = Application.isFocused && slot.Button.IsInteractable()
-                    && RectTransformUtility.RectangleContainsScreenPoint((RectTransform)slot.Button.transform, Input.mousePosition, camera);
-                slot.Button.OnVisual(over);
-                if (over) hovered = slot;
+                bool over = Application.isFocused && button.IsActive() && button.IsInteractable()
+                    && ModalButton(button)
+                    && RectTransformUtility.RectangleContainsScreenPoint((RectTransform)button.transform, Input.mousePosition, camera);
+                button.OnVisual(over || button.Sticky);
+                if (over) hovered = button;
             }
-            if (!Application.isFocused) { _pressed = null; return; }
+            if (!Application.isFocused) { _pressed = null; _dragging = false; return; }
+            DropPointer(camera);
             if (Input.GetMouseButtonDown(0)) _pressed = hovered;
             if (Input.GetMouseButtonUp(0))
             {
                 var pressed = _pressed; _pressed = null;
-                if (pressed != null && ReferenceEquals(pressed, hovered)) pressed.Button.onClick.Invoke();
+                if (pressed != null && ReferenceEquals(pressed, hovered)) pressed.onClick.Invoke();
             }
         }
         private static RectTransform Rect(Transform parent, string name, float x, float y, float w, float h)
@@ -146,31 +149,32 @@ namespace WildWasteland.Modules.CleanHUD
             _view = Rect(_canvas.transform, "CleanHUD.Inventory", 0, 0, 1920, 1080);
             _view.anchorMin = _view.anchorMax = _view.pivot = new Vector2(.5f, .5f);
             var intercept = _view.gameObject.AddAccent<Image>(); intercept.color = Color.clear; intercept.raycastTarget = true;
-            Panel(_view, "inventory", 136, 132, 1648, 720, "INVENTORY");
+            Panel(_view, "inventory", 136, 132, 1648, 720, "");
+            BuildTabs();
             Label(_view, "DAY", 1220, 145, 60, 32, 22, DialogueWidgets.Gold);
             MirrorText(Label(_view, "", 1286, 145, 70, 32, 22, White), "day/day number");
             Label(_view, "TIME", 1450, 145, 70, 32, 22, DialogueWidgets.Gold);
             MirrorText(Label(_view, "", 1536, 145, 150, 32, 22, White), "time/time number");
-            var factions = Panel(_view, "factions", 164, 202, 340, 292, "FACTIONS");
+            var factions = Panel(_inventory, "factions", 164, 202, 340, 292, "FACTIONS");
             Picture(factions, "factions/coyotes_flag", 20, 70, 74, 74);
             Label(factions, "COYOTES", 112, 72, 210, 32, 25, White);
             MirrorText(Label(factions, "FRIENDLY", 112, 108, 210, 30, 23, Color.green), "factions/coyotes_flag/coyotes/coyotes_relation", true);
             Picture(factions, "factions/scrapyard_flag", 20, 178, 74, 74);
             Label(factions, "SCRAPYARD", 112, 178, 210, 32, 25, White);
             MirrorText(Label(factions, "HOSTILE", 112, 214, 210, 30, 23, new Color(.95f, .2f, .1f)), "factions/scrapyard_flag/scrapyard/Text", true);
-            var portrait = Panel(_view, "survivor", 772, 202, 296, 420, "SURVIVOR");
+            var portrait = Panel(_inventory, "survivor", 772, 202, 296, 420, "SURVIVOR");
             Picture(portrait, "player/player_icon", 59, 48, 178, 356);
             Equipment("BINOCULAR", "binocular", "Binocular_Item", 544, 202);
             Equipment("ARMOR", "armor", "Armor_Item", 544, 420);
             Equipment("FLASHLIGHT", "flashlight", "Flashlight_Item", 1088, 202);
             Equipment("BACKPACK", "backpack", "Backpack_Item", 1088, 420);
-            BuildAmmo(); BuildWarlords();
+            BuildAmmo(); BuildWarlords(); BuildPlayers(); BuildDrop(); BuildReset();
             _hint = Label(_view, "", 544, 822, 752, 24, 16, White, TextAnchor.MiddleCenter);
             _shownKey = KeyCode.None; _view.gameObject.SetActive(false);
         }
         private static void Equipment(string title, string path, string slotName, float x, float y)
         {
-            var root = Panel(_view, path, x, y, 208, 202, title);
+            var root = Panel(_inventory, path, x, y, 208, 202, title);
             var slot = new Slot(); slot.Image = Picture(root, "player/" + path + "/Image", 44, 48, 120, 120);
             slot.Empty = Label(root, "EMPTY", 20, 85, 168, 42, 22, new Color(.5f, .5f, .47f), TextAnchor.MiddleCenter);
             slot.DropHint = Label(root, "DROP", 108, 172, 80, 24, 18, DialogueWidgets.Gold, TextAnchor.MiddleRight);
@@ -188,27 +192,29 @@ namespace WildWasteland.Modules.CleanHUD
             slot.Button = hit.gameObject.AddComponent<MenuButton>(); slot.Button.transition = Selectable.Transition.None;
             slot.Button.targetGraphic = hit; slot.Button.navigation = new Navigation { mode = Navigation.Mode.None };
             slot.Button.OnVisual = hover => { hit.color = hover ? new Color(.886f, .749f, .424f, .14f) : Color.clear; slot.DropHint.gameObject.SetActive(hover); };
-            slot.Button.onClick.AddListener(() => Drop(slot)); Slots.Add(slot); slot.Button.Refresh();
+            slot.Button.onClick.AddListener(() => Drop(slot)); Slots.Add(slot); Buttons.Add(slot.Button); slot.Button.Refresh();
         }
         private static void BuildAmmo()
         {
-            var root = Panel(_view, "ammo", 1316, 202, 440, 544, "AMMO & SUPPLIES");
+            var root = Panel(_inventory, "ammo", 1316, 202, 440, 594, "AMMO & SUPPLIES");
             var ammo = FsmUtil.Find(GameRefs.GameManager, "Ammo");
-            string[] names = { "ARROW", ".22", "9MM", "20GA", "12GA", "5.56MM", "7.62MM", ".30-06", "GRENADE", "BATTERY" };
-            string[] keys = { "arrow", "22caliber", "9mm", "20gauge", "12gauge", "556", "762", "3006", "grenade", "battery" };
+            string[] names = { "ARROW", ".22", "9MM", "20GA", "12GA", "5.56MM", "7.62MM", ".30-06", "GRENADE", "BATTERY", "NUTS", "BANDAGES", "FIRST AID" };
+            var keys = MultiplayerInventory.Keys;
             for (int i = 0; i < names.Length; i++)
             {
-                float y = 58 + i * 42 + (i >= 8 ? 24 : 0);
+                float y = 58 + i * 38 + (i >= 8 ? 24 : 0);
                 Label(root, names[i], 24, y, 230, 34, 25, White);
                 var text = Label(root, "", 264, y, 150, 34, 25, White, TextAnchor.MiddleRight);
-                Ammo.Add(new AmmoRow { Text = text, Count = ammo != null ? ammo.FsmVariables.FindFsmInt("ammo_" + keys[i]) : null,
-                    Capacity = ammo != null ? ammo.FsmVariables.FindFsmInt("ammo_" + keys[i] + "_capacity") : null });
+                int kind = i;
+                var button = Hit(root, 12, y, 416, 36, () => ShowDrop(kind));
+                Ammo.Add(new AmmoRow { Text = text, Button = button, Kind = i, Count = MultiplayerInventory.Count(i),
+                    Capacity = ammo != null && i < 10 ? ammo.FsmVariables.FindFsmInt("ammo_" + keys[i] + "_capacity") : null });
             }
-            var line = Rect(root, "divider", 24, 402, 392, 1).gameObject.AddAccent<Image>(); line.color = DialogueWidgets.Gold; line.raycastTarget = false;
+            var line = Rect(root, "divider", 24, 374, 392, 1).gameObject.AddAccent<Image>(); line.color = DialogueWidgets.Gold; line.raycastTarget = false;
         }
         private static void BuildWarlords()
         {
-            var root = Panel(_view, "warlords", 544, 658, 752, 154, "WARLORDS");
+            var root = Panel(_inventory, "warlords", 544, 658, 752, 154, "WARLORDS");
             string[] keys = { "Alpha_Nightwalker", "Scorpion_King", "Buzzgut", "Terror_of_the_Night", "Duke_Ironjaw", "Professor", "Black_Juggernaut" };
             string[] first = { "ALPHA", "SCORPION", "BUZZGUT", "TERROR OF", "DUKE", "PROFESSOR", "BLACK" };
             string[] second = { "NIGHTWALKER", "KING", "", "THE NIGHT", "IRONJAW", "", "JUGGERNAUT" };
@@ -235,9 +241,11 @@ namespace WildWasteland.Modules.CleanHUD
             }
             foreach (var row in Ammo)
             {
-                int count = row.Count != null ? row.Count.Value : 0, max = row.Capacity != null ? row.Capacity.Value : 0;
+                if (row.Kind >= 11) row.Count = MultiplayerInventory.Count(row.Kind);
+                int count = row.Count != null ? row.Count.Value : 0, max = row.Kind >= 11 ? 3 : row.Capacity != null ? row.Capacity.Value : 0;
+                row.Button.interactable = count > 0 && Multiplayer.WorldReady && Multiplayer.LocalTargetable && !MultiplayerSaving.Frozen && !SaveBus.Busy;
                 if (count == row.Shown && max == row.Max) continue;
-                row.Shown = count; row.Max = max; row.Text.Set(count.ToString(CultureInfo.InvariantCulture) + " / " + max.ToString(CultureInfo.InvariantCulture));
+                row.Shown = count; row.Max = max; row.Text.Set(count.ToString(CultureInfo.InvariantCulture) + (row.Capacity != null || row.Kind >= 11 ? " / " + max.ToString(CultureInfo.InvariantCulture) : ""));
             }
             foreach (var slot in Slots)
             {
@@ -249,7 +257,7 @@ namespace WildWasteland.Modules.CleanHUD
                 if (slot.Button.interactable != enabled) { slot.Button.interactable = enabled; slot.Button.Refresh(); }
             }
             var key = _key != null ? _key.Key : KeyCode.Tab;
-            if (key != _shownKey) { _shownKey = key; _hint.Set("CLICK EQUIPPED ITEM TO DROP   /   " + key.ToString().ToUpperInvariant() + " / ESC CLOSE"); }
+            if (key != _shownKey) { _shownKey = key; _hint.Set("CLICK AN ITEM OR SUPPLY TO DROP   /   " + key.ToString().ToUpperInvariant() + " / ESC CLOSE"); }
         }
         private static void Drop(Slot slot)
         {
@@ -294,7 +302,7 @@ namespace WildWasteland.Modules.CleanHUD
         }
         private static void Close(bool native)
         {
-            _pressed = null;
+            _pressed = null; HideDrop(); HideReset();
             if (native && _sheet != null && _sheet.ActiveStateName == "on") _sheet.SendEvent("back");
             if (_view != null && _view.gameObject.activeSelf) _view.gameObject.SetActive(false);
             if (_hidden)
@@ -315,6 +323,7 @@ namespace WildWasteland.Modules.CleanHUD
             if (_addedRaycaster && _raycaster != null) UnityEngine.Object.Destroy(_raycaster);
             _view = _canvasRect = null; _canvas = null; _native = null; _sheet = null; _events = null; _raycaster = null;
             _addedRaycaster = false; _key = null; _lookup = 0; Texts.Clear(); Images.Clear(); Slots.Clear(); Ammo.Clear(); Native.Clear(); Alphas.Clear();
+            ClearExtra();
         }
     }
 }

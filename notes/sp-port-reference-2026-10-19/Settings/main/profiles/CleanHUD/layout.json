@@ -1,0 +1,12 @@
+{
+ "version": 1,
+ "reference": {"width": 1920, "height": 1080, "origin": "top-left", "scaler": "ScaleWithScreenSize/Expand"},
+ "style": {"iconTint": "#e2bf6c", "hpColor": "#d8492f", "armorColor": "#9fb3bf", "inactiveSlotIcons": "white"},
+ "compass": {"visibleArcDeg": 160, "labels": "cardinal", "headingCaret": false, "offArcMarkers": "hide"},
+ "elements": [
+  {"id": "compass", "x": 410, "y": 24, "scale": 1, "centerX": false},
+  {"id": "vitals", "x": 24, "y": 930, "scale": 1, "centerX": false},
+  {"id": "weapon", "x": 1540, "y": 892, "scale": 1, "centerX": false},
+  {"id": "slots", "x": 627, "y": 972, "scale": 1, "centerX": true}
+ ]
+}

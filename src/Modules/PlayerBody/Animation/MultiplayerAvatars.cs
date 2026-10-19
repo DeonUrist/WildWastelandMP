@@ -21,6 +21,8 @@ namespace WildWasteland.Modules.PlayerBody
         static Func<object, PlayableGraph> _graph;
         static Func<object, Behaviour> _pose;
         static Func<object, bool> _inCar, _downed, _airborne;
+        static Func<object, bool> _remoteDowned;
+        static Func<object, GameObject> _remoteRoot;
         static Func<object, float> _height;
         static Func<object, float> _renderTime;
         static Func<object, bool> _localPassenger;
@@ -42,6 +44,8 @@ namespace WildWasteland.Modules.PlayerBody
             var body = Multiplayer.Type("Game.Avatar.PlayerBody"); var remote = Multiplayer.Type("Game.RemotePlayer"); var state = Multiplayer.Type("Game.Avatar.PlayerState");
             _peer = MultiplayerAccess.Get<ulong>(remote, "peer"); _remotes = MultiplayerAccess.Get<IDictionary>(Multiplayer.Type("Net.NetSession"), "remotePlayers");
             _renderTime = MultiplayerAccess.Get<float>(remote, "renderTime");
+            _remoteDowned = MultiplayerAccess.Call<Func<object, bool>>(remote, "get_Downed", Type.EmptyTypes);
+            _remoteRoot = MultiplayerAccess.Get<GameObject>(remote, "root");
             _localPassenger = MultiplayerAccess.Get<bool>(Multiplayer.Type("Net.WorldObjects"), "IsLocalPassenger");
             _passenger = MultiplayerAccess.Get<bool>(state, "Passenger"); _rideCar = MultiplayerAccess.Get<int>(state, "RideCar");
             _model = MultiplayerAccess.Get<GameObject>(body, "model"); _item = MultiplayerAccess.Get<GameObject>(body, "item");
@@ -106,7 +110,7 @@ namespace WildWasteland.Modules.PlayerBody
                 if (pose != null) pose.enabled = false; if (graph.IsValid() && graph.IsPlaying()) graph.Stop();
                 body.Motion = true;
                 _showAction(__instance, frame.Mode == 1 || weaponMotion ? "" : _action(__3) ?? "", __4);
-                _showItem(__instance, frame.Mode == 1 ? "" : weaponMotion ? frame.Weapon : _stateItem(__3) ?? "");
+                _showItem(__instance, frame.Mode == 1 ? "" : frame.Weapon);
                 _arms(__instance, __3, frame.Mode == 1, __1, __2, __4);
                 body.Counters = true; body.Attacks = _attacks(__3); body.Kicks = _kicks(__3); body.Jump = frame.Jump; body.JumpKnown = true;
                 return false;

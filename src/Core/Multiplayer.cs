@@ -109,9 +109,10 @@ namespace WildWasteland.Core
         internal static void DisconnectFromMenu()
         {
             if (!Present || !SessionActive || SaveBus.Busy || LoadingProgress.ScreenVisible) return;
-            if (Hosting) _announceClosing("Host stopped hosting");
+            if (Hosting) { HostSaveSystem.SaveBeforeExit(CompleteHostDisconnect); return; }
             MultiplayerRecovery.Leave(CompleteDisconnect);
         }
+        static void CompleteHostDisconnect() { CompleteDisconnect(); }
         static void CompleteDisconnect() { _end("Disconnected"); Refresh(); }
         public static ulong LocalPeer { get { return _ready ? _localPeer(null) : 0; } }
         internal static int RemoteCount { get { return Hosting ? Remotes.Count : 0; } }
@@ -208,6 +209,10 @@ namespace WildWasteland.Core
                 MultiplayerRecovery.Install();
                 MultiplayerSleepers.Install();
                 MultiplayerRespawn.Install();
+                MultiplayerInventory.Install();
+                MultiplayerRoster.Install();
+                MultiplayerPlayerReset.Install();
+                HostSaveSystem.Install();
                 MultiplayerHandshake.Install();
                 MultiplayerEffects.Install();
                 MultiplayerForces.Install();
@@ -415,7 +420,7 @@ namespace WildWasteland.Core
         {
             if (!Hosting || target == null) return false;
             for (int i = 0; i < Remotes.Count; i++)
-                if (Remotes[i].Root != null && target.transform.IsChildOf(Remotes[i].Root)) { _damage(Remotes[i].Peer, damage); return true; }
+                if (Remotes[i].Root != null && target.transform.IsChildOf(Remotes[i].Root)) { HostSaveCombat.Activity(); _damage(Remotes[i].Peer, damage); return true; }
             return false;
         }
         public static bool ClientHit(GameObject target)

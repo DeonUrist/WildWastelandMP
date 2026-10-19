@@ -33,6 +33,9 @@ namespace WildWasteland.Core
         public static IQuestApi Quests;
         public static IQuestPresentation QuestUi;
         public static ICampStatus Camps;
+        // Patrols supplies a cheap query of its live, cached vehicle targets; null when it is off.
+        internal static Func<bool> VehicleCombatActive;
+        internal static void ReportCombat() { HostSaveCombat.Activity(); }
         private static IPoiApi _poi;
         public static event Action<IPoiApi> PoiChanged;
         public static IPoiApi Poi

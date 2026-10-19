@@ -48,6 +48,7 @@ namespace WildWasteland.Core
             _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
             _end = MultiplayerAccess.Call<Action<string>>(session, "End", typeof(string));
             StorageInstall();
+            Patch(record, "ReadReport", null, "SavedPlayerPosition");
             Patch(vitals, "Capture", null, "CaptureArmor");
             Patch(vitals, "Apply", null, "ApplyArmor");
             Patch(Multiplayer.Type("Net.WorldObjects"), "OnPeerLeft", null, "PeerLeft");
@@ -73,6 +74,7 @@ namespace WildWasteland.Core
         static void CaptureArmor(Dictionary<string, float> __result)
         {
             if (!Multiplayer.Active || __result == null) return;
+            MultiplayerRoster.Capture(__result);
             var fsm = Armor(); if (fsm == null) return;
             foreach (string name in ArmorFields)
             { var value = fsm.FsmVariables.FindFsmFloat(name); if (value != null) __result["ww." + name] = value.Value; }
@@ -89,6 +91,13 @@ namespace WildWasteland.Core
         }
         static void PlayerOpened(string __0, object __result)
         { if (Multiplayer.Hosting && __0 != "host") { MultiplayerSleepers.Waking(__result); Dirty.Add(__0); } }
+        static void SavedPlayerPosition(object __instance)
+        {
+            if (!Multiplayer.Hosting || !MultiplayerSaving.Frozen) return;
+            GameObject car = null;
+            foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) if (ReferenceEquals(_record(peer), __instance)) { car = MultiplayerPlayers.Car(peer); break; }
+            Log.Always("[Multiplayer] Save owner position: " + _key(__instance) + " / " + _name(__instance) + " at world " + _position(__instance).ToString("F2") + (car != null ? "; vehicle " + car.name + " at world " + Origin.World(car.transform.position).ToString("F2") : "; no vehicle in latest avatar state"));
+        }
         static void HostClosing()
         { if (Multiplayer.Hosting) foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) Clean.Add(peer); }
         static void PeerLeft(ulong __0, object __1)
@@ -214,10 +223,11 @@ namespace WildWasteland.Core
         static IEnumerator QuitHost()
         {
             _leaving = true;
-            while (Multiplayer.Hosting && (MultiplayerSaving.Frozen || SaveBus.Busy)) yield return null;
-            _leaving = false;
-            Multiplayer.DisconnectFromMenu();
-            _leaving = true;
+            bool saved = false;
+            HostSaveSystem.SaveBeforeExit(delegate { saved = true; });
+            while (HostSaveSystem.Exiting) yield return null;
+            if (!saved) { _leaving = false; yield break; }
+            _end("Host closed the game");
             float deadline = Time.unscaledTime + 3f;
             while (WriteBusy() && Time.unscaledTime < deadline) yield return null;
             _quitAllowed = true; Application.Quit();

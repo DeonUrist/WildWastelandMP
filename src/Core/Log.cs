@@ -20,8 +20,8 @@ namespace WildWasteland.Core
         /// <summary>Always logged (startup summary, migrations, module state changes).</summary>
         public static void Always(string msg) { if (Source != null) Source.LogInfo(msg); }
         public static void Warn(string msg) { if (Source != null && Allow(msg)) Source.LogWarning(msg); }
-        public static void Error(string msg) { if (Source != null && Allow(msg)) Source.LogError(msg); }
-        public static void Error(string msg, Exception e) { if (Source != null && Allow(msg)) Source.LogError(msg + ": " + e); }
+        public static void Error(string msg) { HostSaveSystem.Fail(msg); if (Source != null && Allow(msg)) Source.LogError(msg); }
+        public static void Error(string msg, Exception e) { HostSaveSystem.Fail(msg); if (Source != null && Allow(msg)) Source.LogError(msg + ": " + e); }
 
         static bool Allow(string msg)
         {

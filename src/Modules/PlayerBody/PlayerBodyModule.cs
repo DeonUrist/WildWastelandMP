@@ -306,6 +306,7 @@ namespace WildWasteland.Modules.PlayerBody
             PickAssist.Patch(this);
             AimTransition.Patch(this);
             FemalePain.Patch(this);
+            Crawling.Init(this);
 
             // the old Runner / ClimbRunner ([DefaultExecutionOrder(-1000)]) / ModApiRunner loops, in their old order
             IgnitionJob = Scheduler.Interval(this, "Ignition control", 0.5f, IgnitionControl.Tick);

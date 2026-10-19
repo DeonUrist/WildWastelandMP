@@ -20,6 +20,19 @@ namespace WildWasteland.Core
         public delegate void StateChange(string previous, string current);
         /// <summary>Raised on every SaveLoadGame state change (also when the FSM is first found: previous = null).</summary>
         public static event StateChange StateChanged;
+        // Save participants report swallowed IO/serialization failures so the host cannot publish a partial snapshot.
+        public static void ReportFailure(string message) { HostSaveSystem.Fail(message); }
+        internal static event Action<UI.ToolLayout> CleanupSettings;
+        internal static void DrawCleanupSettings(UI.ToolLayout layout) { var draw = CleanupSettings; if (draw != null) draw(layout); }
+        internal static event Action SaveCancelled;
+        internal static void CancelSave()
+        {
+            _after.Clear(); Saving = false; _saveSlot = null;
+            var cancel = SaveCancelled; if (cancel != null) cancel();
+            var registry = GameRefs.NewGOArrayList != null ? FsmUtil.Find(GameRefs.NewGOArrayList, "Save_NewGO_ArrayList") : null;
+            if (registry != null) registry.Fsm.SetState("off");
+            if (GameRefs.SaveLoadGame != null) GameRefs.SaveLoadGame.Fsm.SetState("isPlay");
+        }
 
         public static string State { get; private set; }
         public static bool Saving { get; private set; }
@@ -51,7 +64,7 @@ namespace WildWasteland.Core
 
         public static bool IsMultiplayerSlot(string name)
         {
-            if (!Multiplayer.Hosting || name == null || name != Multiplayer.SaveFile || name == "MP_client.es3"
+            if (Multiplayer.Client || name == null || ((Multiplayer.Hosting || MultiplayerHosting.Pending) && name != Multiplayer.SaveFile) || name == "MP_client.es3"
                 || !name.StartsWith("MP_", StringComparison.Ordinal) || !name.EndsWith(".es3", StringComparison.Ordinal)) return false;
             for (int i = 3; i < name.Length - 4; i++) if (!char.IsLetterOrDigit(name[i]) && name[i] != '-') return false;
             return name.Length > 7;

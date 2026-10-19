@@ -64,6 +64,8 @@ namespace WildWasteland.Core.UI
 
         internal static void OpenFromMenu() { Open(CorePages.GamePage, true); }
         internal static void OpenHostSetup(bool steam) { Open(new HostSettingsPage(steam), true); }
+        internal static void OpenSaves(bool saving = false, bool? multiplayer = null) { HostSavePage.Instance.Configure(saving, multiplayer); Open(HostSavePage.Instance, true); }
+        internal static void OpenHostSave(string file, bool steam = false) { Open(new HostSettingsPage(steam, file), true); }
 
         static void Open(ToolPage page, bool fromMenu)
         {
@@ -85,7 +87,8 @@ namespace WildWasteland.Core.UI
         {
             if (!_open) return;
             _open = false; _session.Close(); Ledger.ClearNumbers(); ToolLayout.CancelRebind();
-            if (_current is HostSettingsPage) { _current = CorePages.GamePage; _scroll = Vector2.zero; }
+            if (_current == HostSavePage.Instance) { HostSavePage.Instance.ReleasePictures(); _current = CorePages.GamePage; _scroll = Vector2.zero; }
+            if (_current is HostSettingsPage) { HostSavePage.Instance.ReleasePictures(); _current = CorePages.GamePage; _scroll = Vector2.zero; }
         }
 
         /// <summary>Close the window and run <paramref name="a"/> on the next frame (after the session was released), e.g. to open another editor.</summary>
@@ -119,7 +122,7 @@ namespace WildWasteland.Core.UI
         }
         static bool Visible(ToolPage p)
         {
-            if (Multiplayer.Client && (p == CorePages.WorldPage || p.DebugOnly || p == WildWasteland.Modules.Performance.PerformancePage.Instance)) return false;
+            if (Multiplayer.Client && (p == CorePages.WorldPage || p == HostSavePage.Instance || p.DebugOnly || p == WildWasteland.Modules.Performance.PerformancePage.Instance)) return false;
             return (!p.DebugOnly || Plugin.EnableDebug.Value) && (p != CorePages.DeveloperPage || Plugin.DeveloperMode.Value);
         }
         static int GroupIndex(string g) { int i = Array.IndexOf(ToolGroups.Order, g); return i < 0 ? ToolGroups.Order.Length : i; }
@@ -166,6 +169,7 @@ namespace WildWasteland.Core.UI
 
         static void DrawWindow()
         {
+            if (_current == HostSavePage.Instance) { HostSavePage.Instance.DrawLibrary(); return; }
             var hostSetup = _current as HostSettingsPage;
             if (hostSetup != null) hostSetup.Before();
             Ledger.Label(new Rect(120, 120, 1420, 104), "WILD WASTELAND", Ledger.Brand, Ledger.Accent);

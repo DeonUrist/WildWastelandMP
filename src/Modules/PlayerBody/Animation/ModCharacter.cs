@@ -49,9 +49,6 @@ namespace WildWasteland.Modules.PlayerBody
                 _p.Kind = _kind == Props.Kind.Rifle ? LocoPlan.K_RIFLE : _kind == Props.Kind.Pistol ? LocoPlan.K_PISTOL : _kind == Props.Kind.Melee ? LocoPlan.K_MELEE
                         : _kind == Props.Kind.Throw ? LocoPlan.K_THROW : LocoPlan.K_NONE;
                 if (!Suspended) GrabWeapon();
-                if (Core.Multiplayer.Hosting)
-                    for (var node = _root; node != null; node = node.parent)
-                        if (Core.FsmUtil.Find(node.gameObject, "Health") != null) { Core.Multiplayer.RefreshRig(node.gameObject); break; }
             }
             public void Shoot() { _p.SetNow(Time.time); _p.Shoot(0.25f); }
             public void Shoot(float seconds) { _p.SetNow(Time.time); _p.Shoot(seconds); }
@@ -339,12 +336,20 @@ namespace WildWasteland.Modules.PlayerBody
                 _w.localScale = _wScale;
                 _wMoved = true;
                 PoseWeapon();
+                RefreshWeaponRig();
             }
             private void ReleaseWeapon()
             {
                 if (!_wMoved) return;
                 _wMoved = false;
                 if (_w != null) { _w.SetParent(_wParent, false); _w.localPosition = _wPos; _w.localRotation = _wRot; _w.localScale = _wScale; }
+                RefreshWeaponRig();
+            }
+            private void RefreshWeaponRig()
+            {
+                if (Core.Multiplayer.Hosting)
+                    for (var node = _root; node != null; node = node.parent)
+                        if (Core.FsmUtil.Find(node.gameObject, "Health") != null) { Core.Multiplayer.RefreshRig(node.gameObject); break; }
             }
             private void PoseWeapon()
             {
@@ -428,14 +433,16 @@ namespace WildWasteland.Modules.PlayerBody
                     var xz = Vector2.ClampMagnitude(new Vector2(hl.x, hl.z), PlayerBodyModule.HipsDrift.Value);
                     if (xz.x != hl.x || xz.y != hl.z) hips.position = _root.TransformPoint(new Vector3(xz.x, hl.y, xz.y));
                 }
-                float pitch = AimPitch * PlayerBodyModule.AimPitchShare.Value;
+                float pitch = AimPitch * PlayerBodyModule.AimPitchShare.Value, headPitch = AimPitch;
                 if (Mathf.Abs(pitch) > 0.5f)
                 {
                     Turn(HumanBodyBones.Spine, Vector3.right, pitch * 0.3f);
                     Turn(HumanBodyBones.Chest, Vector3.right, pitch * 0.3f);
                     Turn(HumanBodyBones.UpperChest, Vector3.right, pitch * 0.3f);
                     Turn(HumanBodyBones.Neck, Vector3.right, pitch * 0.1f);
+                    headPitch -= pitch * ((_b.ContainsKey(HumanBodyBones.Spine) ? .3f : 0f) + (_b.ContainsKey(HumanBodyBones.Chest) ? .3f : 0f) + (_b.ContainsKey(HumanBodyBones.UpperChest) ? .3f : 0f) + (_b.ContainsKey(HumanBodyBones.Neck) ? .1f : 0f));
                 }
+                Turn(HumanBodyBones.Head, Vector3.right, Mathf.Clamp(headPitch, -65f, 65f));
                 AimLiftApply();
                 ArmPoseApply();
                 PoseWeapon();

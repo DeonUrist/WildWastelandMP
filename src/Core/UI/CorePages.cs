@@ -12,7 +12,7 @@ namespace WildWasteland.Core.UI
     /// <summary>Pages owned by Core: module overview (on/off), performance, Harmony inventory, core settings.</summary>
     internal static class CorePages
     {
-        internal static ToolPage GamePage, WorldPage, HudPage, DebugPage, DeveloperPage;
+        internal static ToolPage GamePage, WorldPage, HudPage, SystemPage, DebugPage, DeveloperPage;
         static readonly List<ToolPage> _debugPages = new List<ToolPage>();
         static ConfigPage _settings;
         static ConfigEntry<bool> _poi;
@@ -24,6 +24,8 @@ namespace WildWasteland.Core.UI
             WorldPage = new GameSettingsPage("WORLD", DrawWorld);
             HudPage = new GameSettingsPage("HUD", DrawHud);
             ToolWindow.Add(GamePage); ToolWindow.Add(WorldPage); ToolWindow.Add(HudPage);
+            SystemPage = new GameSettingsPage("SYSTEM", HostSavePage.DrawSystem);
+            ToolWindow.Add(SystemPage); ToolWindow.Add(HostSavePage.Instance);
             ToolWindow.Add(new ActionPage(null, ToolGroups.General, "Modules", Modules));
             ToolWindow.Add(WildWasteland.Modules.Performance.PerformancePage.Instance);   // #133: separate Performance tab
             DebugPage = new ActionPage(null, ToolGroups.General, "Debug", Debug) { DebugOnly = true };
@@ -155,7 +157,7 @@ namespace WildWasteland.Core.UI
                 Switch(l, "Players on map", CleanHudSettings.ShowPlayersOnMap);
             }
             Switch(l, "Map", CleanHudSettings.MapEnabled);
-            if (Multiplayer.Client) l.Text("Fog of war, locations, patrol markers and routes follow the host's World settings.");
+            if (Multiplayer.Client) l.Text("Map fog follows the host's Debug settings. Locations, patrol markers and routes follow World settings.");
             l.Entry(CleanHudSettings.Scale);
         }
 
@@ -164,12 +166,9 @@ namespace WildWasteland.Core.UI
             l.Text("Map and compass world settings");
             CompassDetail(l, "Patrols on compass", CleanHudSettings.ShowConvoys, CleanHudSettings.AmbiguousPatrols);
             CompassDetail(l, "Locations on compass (1 km)", CleanHudSettings.ShowLocations, CleanHudSettings.AmbiguousLocations);
-            Switch(l, "Fog of war", CleanHudSettings.FogOfWar);
-            if (Multiplayer.Present) Switch(l, "Shared vision", CleanHudSettings.SharedVision);
             CleanHudSettings.MapMarkers.Value = (MapDetail)l.Choices("Map markers", (int)CleanHudSettings.MapMarkers.Value, "Off", "Ambiguous", "On");
             CleanHudSettings.MapTrafficMarkers.Value = (MapDetail)l.Choices("World traffic markers", (int)CleanHudSettings.MapTrafficMarkers.Value, "Off", "Ambiguous", "On");
             CleanHudSettings.MapRoutes.Value = (MapDetail)l.Choices("Map Routes", (int)CleanHudSettings.MapRoutes.Value, "Off", "Ambiguous", "On");
-            l.Entry(CleanHudSettings.FogEdge); l.Entry(CleanHudSettings.FogOpacity);
         }
 
         static void CompassDetail(ToolLayout l, string label, ConfigEntry<bool> show, ConfigEntry<bool> ambiguous)
@@ -236,6 +235,8 @@ namespace WildWasteland.Core.UI
 
         static bool DebugSetting(ConfigEntryBase e)
         {
+            if (e.Definition.Section.StartsWith("System /", System.StringComparison.Ordinal)) return false;
+            if (MapFogSetting(e)) return false;
             if (VerboseSetting(e) || ReferenceEquals(e, Plugin.DeveloperMode) || ReferenceEquals(e, MultiplayerNames.FloatingNames)) return false;
             if (ReferenceEquals(e, CleanHudSettings.ShowNeeds) || ReferenceEquals(e, CleanHudSettings.ShowHealthNumbers)
                 || ReferenceEquals(e, CleanHudSettings.ShowInsanity) || ReferenceEquals(e, CleanHudSettings.Scale)
@@ -243,7 +244,7 @@ namespace WildWasteland.Core.UI
                 || ReferenceEquals(e, CleanHudSettings.AmbiguousPatrols) || ReferenceEquals(e, CleanHudSettings.AmbiguousLocations)
                 || ReferenceEquals(e, CleanHudSettings.ShowCompass) || ReferenceEquals(e, CleanHudSettings.ShowPlayers) || ReferenceEquals(e, CleanHudSettings.ShowPlayersOnMap) || ReferenceEquals(e, CleanHudSettings.MapEnabled)
                 || ReferenceEquals(e, CleanHudSettings.MapMarkers) || ReferenceEquals(e, CleanHudSettings.MapRoutes)
-                || ReferenceEquals(e, CleanHudSettings.FogOfWar) || ReferenceEquals(e, CleanHudSettings.SharedVision) || ReferenceEquals(e, CleanHudSettings.MapTrafficMarkers)
+                || ReferenceEquals(e, CleanHudSettings.MapTrafficMarkers)
                 || ReferenceEquals(e, CleanHudSettings.DrivingHudOnlyThirdPerson)) return false;
             if (ReferenceEquals(e, Player.Character) || ReferenceEquals(e, Player.BodyFirstPerson) || ReferenceEquals(e, Player.FullBodyOnlyOnFoot)
                 || ReferenceEquals(e, Player.VehicleHotkeyHint) || ReferenceEquals(e, Player.VehicleStatusHint)
@@ -290,9 +291,12 @@ namespace WildWasteland.Core.UI
         static bool WeatherTuning(ConfigEntryBase e)
         { return e.Definition.Section == "Weather / Storms" && (e.Definition.Key == "Hurricanes per km²" || e.Definition.Key == "Front width (km)" || e.Definition.Key == "Depth (km)"); }
 
+        static bool MapFogSetting(ConfigEntryBase e)
+        { return ReferenceEquals(e, CleanHudSettings.FogOfWar) || ReferenceEquals(e, CleanHudSettings.SharedVision) || ReferenceEquals(e, CleanHudSettings.FogRadius) || ReferenceEquals(e, CleanHudSettings.FogEdge) || ReferenceEquals(e, CleanHudSettings.FogOpacity); }
+
         static bool RetainedDebugSetting(ConfigEntryBase e)
         {
-            if (WeatherTuning(e) || ReferenceEquals(e, CleanHudSettings.FogRadius) || VerboseSetting(e) || ReferenceEquals(e, Patrols.MenuKey) || ReferenceEquals(e, Patrols.TemplateDumpKey)) return true;
+            if (WeatherTuning(e) || MapFogSetting(e) || VerboseSetting(e) || ReferenceEquals(e, Patrols.MenuKey) || ReferenceEquals(e, Patrols.TemplateDumpKey)) return true;
             return e.SettingType == typeof(bool) && DebugSetting(e) && !ReferenceEquals(e, Player.WeaponAdjust)
                 && !ReferenceEquals(e, Patrols.TurretSpotEditor) && !ReferenceEquals(e, Patrols.BusPassengerPoseEditorEnabled);
         }
@@ -326,8 +330,12 @@ namespace WildWasteland.Core.UI
                 if (!l.Category("Debug/" + (owner != null ? owner.Id : "Core"), CategoryTitle(owner))) continue;
                 if (owner != null && owner.Id == "CleanHUD")
                 {
-                    l.Heading("Fog of war tuning");
+                    l.Heading("Map fog of war");
+                    l.Text("These controls affect unexplored areas on the map.");
+                    l.Toggle(CleanHudSettings.FogOfWar, "Fog of war");
+                    if (Multiplayer.Present) l.Toggle(CleanHudSettings.SharedVision, "Shared vision");
                     l.Entry(CleanHudSettings.FogRadius);
+                    l.Entry(CleanHudSettings.FogEdge); l.Entry(CleanHudSettings.FogOpacity);
                 }
                 if (owner != null && owner.Id == "Weather")
                 {
