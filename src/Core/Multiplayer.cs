@@ -85,7 +85,7 @@ namespace WildWasteland.Core
         public static bool Typing { get { return _ready && _chat(); } }
         internal static bool LocalTargetable { get { return !_ready || !_downed(); } }
         public static string SaveFile { get { return _ready ? _save(null) : null; } }
-        internal static bool InMainMenu { get { return Present && _mainMenu(); } }
+        internal static bool InMainMenu { get { return Present ? _mainMenu() : OfflineSaveRuntime.InMainMenu; } }
         internal static bool CanHost { get { return Present && !SessionActive && !MultiplayerHosting.Pending && (_mainMenu() || GameRefs.SaveLoadState == "isPlay" && !SaveBus.Busy) && !LoadingProgress.ScreenVisible; } }
         internal static bool CanJoin { get { return Present && !SessionActive && !MultiplayerHosting.Pending && _mainMenu() && !LoadingProgress.ScreenVisible; } }
         internal static string UdpAddress { get { return Present ? _udpAddress.Value : ""; } }
@@ -212,7 +212,6 @@ namespace WildWasteland.Core
                 MultiplayerInventory.Install();
                 MultiplayerRoster.Install();
                 MultiplayerPlayerReset.Install();
-                HostSaveSystem.Install();
                 MultiplayerHandshake.Install();
                 MultiplayerEffects.Install();
                 MultiplayerForces.Install();

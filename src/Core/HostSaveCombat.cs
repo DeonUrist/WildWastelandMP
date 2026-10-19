@@ -16,12 +16,12 @@ namespace WildWasteland.Core
         internal static bool Unsafe { get; private set; }
         internal static void Install()
         {
-            Hooks.FsmEnable.Postfix(Multiplayer.PatchOwner, Track);
-            Hooks.ProcessEvent.Prefix(Multiplayer.PatchOwner, Event);
-            Hooks.EnterState.Postfix(Multiplayer.PatchOwner, Attack);
+            Hooks.FsmEnable.Postfix(null, Track);
+            Hooks.ProcessEvent.Prefix(null, Event);
+            Hooks.EnterState.Postfix(null, Attack);
             Multiplayer.SessionChanged += Reset;
             SaveBus.StateChanged += State;
-            Scheduler.Sliced(Multiplayer.PatchOwner, "Autosave combat discovery", 500, Discover);
+            Scheduler.Sliced(null, "Autosave combat discovery", 500, Discover);
             Reset();
         }
         static void State(string previous, string current) { if (current == "LoadGame" || current == "setSeed") Reset(); }

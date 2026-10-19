@@ -19,7 +19,7 @@ namespace WildWasteland.Core
         internal static void Install()
         {
             SaveBus.StateChanged += StateChanged;
-            Hooks.WaitUpdate.Prefix(Multiplayer.PatchOwner, BeforeHandoff);
+            Hooks.WaitUpdate.Prefix(null, BeforeHandoff);
         }
         static void StateChanged(string previous, string current)
         {

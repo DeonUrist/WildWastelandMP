@@ -38,11 +38,14 @@ namespace WildWasteland.Core
             Packs = cfg.Bind("System / Cleanup", "Exhausted disposable packs", false, "Remove empty ammo/battery packs only when they have no remaining sale value and have never been observed in player custody.");
             Distance = cfg.Bind("System / Cleanup", "Minimum distance metres", 1000, new ConfigDescription("Must remain this far from every connected player.", new AcceptableValueRange<int>(1000, 10000)));
             Minutes = cfg.Bind("System / Cleanup", "Abandoned minutes", 10, new ConfigDescription("Continuous active gameplay beyond the minimum distance. Enabling cleanup starts a fresh observation period.", new AcceptableValueRange<int>(10, 600)));
-            var tracked = Multiplayer.Type("Net.WorldObjects+Tracked");
-            _objects = MultiplayerAccess.Get<IDictionary>(Multiplayer.Type("Net.WorldObjects"), "objects");
-            _owner = MultiplayerAccess.Get<ulong>(tracked, "Owner"); _carried = MultiplayerAccess.Get<bool>(tracked, "Carried");
-            Scheduler.Interval(Multiplayer.PatchOwner, "Conservative save cleanup observations", 5f, Tick);
-            Scheduler.Sliced(Multiplayer.PatchOwner, "Save cleanup observation slice", 500, ObservationStep);
+            if (Multiplayer.Present)
+            {
+                var tracked = Multiplayer.Type("Net.WorldObjects+Tracked");
+                _objects = MultiplayerAccess.Get<IDictionary>(Multiplayer.Type("Net.WorldObjects"), "objects");
+                _owner = MultiplayerAccess.Get<ulong>(tracked, "Owner"); _carried = MultiplayerAccess.Get<bool>(tracked, "Carried");
+            }
+            Scheduler.Interval(null, "Conservative save cleanup observations", 5f, Tick);
+            Scheduler.Sliced(null, "Save cleanup observation slice", 500, ObservationStep);
         }
         static bool Category(GameObject go)
         {

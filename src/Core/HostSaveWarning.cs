@@ -15,7 +15,7 @@ namespace WildWasteland.Core
         {
             Multiplayer.Message += Receive;
             Multiplayer.SessionChanged += Clear;
-            Scheduler.Gui(Multiplayer.PatchOwner, "Autosave compass countdown", Draw, Wants);
+            Scheduler.Gui(null, "Autosave compass countdown", Draw, Wants);
         }
         static void Clear() { _phase = 0; _text = null; _repeat = 0; }
         // 0 hidden, 1 ticking, 2 deferred, 3 final warning. Repeat includes joining players.

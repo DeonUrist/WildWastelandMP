@@ -48,9 +48,8 @@ namespace WildWasteland.Modules.Quests
             Core.Hooks.GetButtonDo.Prefix(owner, BlockButton);
             Core.Hooks.GetButtonUpUpdate.Prefix(owner, BlockButtonUp);
             Core.Hooks.GetMouseButtonDownUpdate.Prefix(owner, BlockMouse);
-            if (Core.Patches.Patch(owner, Core.Patches.Method(typeof(MouseLook), "DoMouseLook"),
-                prefix: Core.Patches.Method(typeof(Plugin), "BlockLook")))
-                Core.Log.Always("[Quests] Conversation mouse-look guard installed.");
+            Core.Hooks.MouseLookDo.Prefix(owner, BlockLook);
+            Core.Log.Always("[Quests] Conversation mouse-look guard installed.");
             Hotkeys.Register(owner, logKey, ToggleJournal, CanJournal);
             Hotkeys.Register(owner, hiring.dismissKey, DismissFollower, CanDismiss);
             Hotkeys.Register(owner, dumpKey, DumpFaction, CanJournal);

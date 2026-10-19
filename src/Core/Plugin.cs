@@ -47,7 +47,7 @@ namespace WildWasteland
         public const string GUID = "com.denis.apocalypter.wildwastelandmp";
         public const string LegacyGUID = "com.denis.apocalypter.wildwasteland";
         public const string NAME = "Wild Wasteland MP";
-        public const string VERSION = "0.1.41";
+        public const string VERSION = "0.1.42";
 
         public static Plugin Instance;
         public static ConfigFile Main, Settings, Tools;
@@ -103,7 +103,6 @@ namespace WildWasteland
                 FrameBudgetMs.SettingChanged += (s, a) => Core.Scheduler.FrameBudgetMs = FrameBudgetMs.Value;
 
                 Core.Runner.Ensure();
-                Core.ApocasaverExclusion.Install();
                 RegisterCoreJobs();
                 Core.SaveTypes.Install();
                 Core.ReplacementGuard.Prepare();
@@ -113,6 +112,8 @@ namespace WildWasteland
                 Core.QuietFsm.Install();
                 Core.VistasWorldGen.Init();
                 Core.Multiplayer.Init();
+                Core.OfflineSaveRuntime.Install();
+                Core.HostSaveSystem.Install();
                 Core.UI.ToolWindow.Init();
                 SceneManager.sceneLoaded += OnSceneLoaded;
 
@@ -120,7 +121,7 @@ namespace WildWasteland
                 var audioVoices = Modules.Patrols.PatrolsModule.AudioVoices;
                 if (audioVoices != null) ApplyAudioVoices(audioVoices.Value);
                 Core.ModuleHost.StartAll();
-                Core.MultiplayerLaunch.Install();
+                if (Core.Multiplayer.Present) Core.MultiplayerLaunch.Install();
                 Core.HostSaveSystem.RecoverFiles();
                 Core.Log.Always(Core.ModuleHost.Summary());
             }

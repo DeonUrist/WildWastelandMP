@@ -16,14 +16,38 @@ namespace WildWasteland.Core
         static Action<string> _activeFile;
         internal static void Install()
         {
-            var launcher = Multiplayer.Type("Game.GameLauncher");
-            _launch = MultiplayerAccess.Call<Func<string, int, bool>>(launcher, "Launch", typeof(string), typeof(int));
-            _activeFile = MultiplayerAccess.Call<Action<string>>(launcher, "set_ActiveSaveFile", typeof(string));
+            if (Multiplayer.Present)
+            {
+                var launcher = Multiplayer.Type("Game.GameLauncher");
+                _launch = MultiplayerAccess.Call<Func<string, int, bool>>(launcher, "Launch", typeof(string), typeof(int));
+                _activeFile = MultiplayerAccess.Call<Action<string>>(launcher, "set_ActiveSaveFile", typeof(string));
+            }
+            else { _launch = (file, seed) => OfflineSaveRuntime.Launch(file); _activeFile = OfflineSaveRuntime.SetActive; }
+            if (!Multiplayer.Present)
+            {
+                if (!Patches.Patch(null, HarmonyLib.AccessTools.Method(typeof(PlayMakerFSM), "BroadcastEvent", new[] { typeof(FsmEvent) }), prefix: HarmonyLib.AccessTools.Method(typeof(SinglePlayerSaving), "Broadcast")))
+                    throw new InvalidOperationException("Native offline save interception failed");
+                Hooks.SendEventEnter.Prefix(null, SendSave);
+            }
+            Hooks.MouseLookDo.Prefix(null, Look);
             SaveBus.StateChanged += StateChanged;
-            Hooks.GetButtonDownUpdate.Prefix(Multiplayer.PatchOwner, ButtonDown);
-            Hooks.GetButtonDo.Prefix(Multiplayer.PatchOwner, Button);
-            Hooks.GetButtonUpUpdate.Prefix(Multiplayer.PatchOwner, ButtonUp);
-            Hooks.GetMouseButtonDownUpdate.Prefix(Multiplayer.PatchOwner, MouseDown);
+            Hooks.GetButtonDownUpdate.Prefix(null, ButtonDown);
+            Hooks.GetButtonDo.Prefix(null, Button);
+            Hooks.GetButtonUpUpdate.Prefix(null, ButtonUp);
+            Hooks.GetMouseButtonDownUpdate.Prefix(null, MouseDown);
+        }
+        static bool Look(MouseLook action) { return !Serializing; }
+        static bool AllowNativeSave()
+        {
+            if (Multiplayer.Present || Serializing || !HostSaveSystem.LocalWorld) return true;
+            if (HostSaveSystem.LocalReady) HostSaveSystem.Request("Save " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+            return false;
+        }
+        static bool Broadcast(FsmEvent __0) { return __0 == null || __0.Name != "SaveGame" || AllowNativeSave(); }
+        static bool SendSave(SendEvent action)
+        {
+            if (action.sendEvent == null || action.sendEvent.Name != "SaveGame" || AllowNativeSave()) return true;
+            action.Finish(); return false;
         }
         static bool Block(FsmBool result) { if (!Serializing) return true; if (result != null) result.Value = false; return false; }
         static bool ButtonDown(GetButtonDown action) { return Block(action.storeResult); }
@@ -32,7 +56,7 @@ namespace WildWasteland.Core
         static bool MouseDown(GetMouseButtonDown action) { return Block(action.storeResult); }
         static void StateChanged(string previous, string current)
         {
-            if (current != "setSeed" || Multiplayer.SessionActive || MultiplayerHosting.Pending) return;
+            if (current != "setSeed" || Multiplayer.SessionActive || MultiplayerHosting.Pending || OfflineSaveRuntime.SelectedFile != null) return;
             // A new offline world must never inherit the previous world's cache/lineage or overwrite its slot.
             string file = "MP_sp-live-" + Guid.NewGuid().ToString("N") + ".es3";
             ES3Settings.defaultSettings.path = file; _activeFile(file);

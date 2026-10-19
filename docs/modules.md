@@ -1,5 +1,7 @@
 # Modules
 
+Default save engine without ApocalypterMP (2026-10-19, Testing): Core now initializes the existing save transactions/library/autosaves/recovery/history/cleanup/vehicle-load support with native offline adapters, then optional network delegates. CleanHUD uses its installed catalog/Continue independently of bridge presence. Quests shares Core mouse-look interception. No config keys, module data/save schemas, packets or standalone SP changes. Build/deployment and manual checks: notes/offline-save-default-2026-10-19.md.
+
 One row per mechanic that lives (or will live) in Wild Wasteland. "Ported from" is the source repo commit the code was taken from, so later fixes in the standalone mod can be diffed and carried over. Snapshot date of every source tree: **2026-10-13**.
 
 Status values: `candidate` (not decided), `planned`, `porting`, `in` (ported; 0.1.0 = compiled and reviewed, awaiting in-game verification), `dropped`.

@@ -32,10 +32,11 @@ namespace WildWasteland.Core
         internal static bool Busy { get { return _transaction != null; } }
         internal static bool Requested { get { return _requested; } }
         internal static bool Exiting { get { return _quitting; } }
-        internal static bool Ready;
+        internal static bool Ready, Installed;
+        internal static bool AutomaticSaving { get { return _automatic; } }
         internal static bool LocalWorld { get { return !Multiplayer.Client && (!Multiplayer.SessionActive || Multiplayer.Hosting) && !Multiplayer.InMainMenu && GameRefs.Player != null && GameRefs.SaveLoadGame != null; } }
         internal static bool LocalReady { get { return LocalWorld && SaveBus.State == "isPlay"; } }
-        internal static string ActiveFile { get { return Multiplayer.Hosting ? Multiplayer.SaveFile : SaveBus.Slot; } }
+        internal static string ActiveFile { get { return Multiplayer.Hosting ? Multiplayer.SaveFile : !Multiplayer.Present ? OfflineSaveRuntime.ActiveFile ?? SaveBus.Slot : SaveBus.Slot; } }
         internal static string CurrentWorldName { get { if (Multiplayer.Hosting) return _worldName(); if (_localGeneration == SaveBus.Generation && _localWorldName != null) return _localWorldName; string file = ActiveFile; if (file != null && File.Exists(HostSaveFiles.MetaPath(file))) return Info(file).World; var seed = GameRefs.SaveLoadGame != null ? GameRefs.SaveLoadGame.FsmVariables.FindFsmInt("seed") : null; return seed != null ? "World " + seed.Value : "My world"; } }
         internal static int CatalogueVersion;
         static bool _requested, _automatic, _quitting, _scheduled;
@@ -63,6 +64,7 @@ namespace WildWasteland.Core
         static bool _broadcastNotice;
         internal static void Install()
         {
+            if (Installed) return;
             var cfg = Plugin.Settings;
             Autosave = cfg.Bind("System / Saving", "Autosave", true, "Create separate autosaves for offline or hosted worlds. Manual saves are never replaced by autosaving.");
             Interval = cfg.Bind("System / Saving", "Autosave minutes", 10, new ConfigDescription("Real minutes between autosaves.", new AcceptableValueRange<int>(1, 120)));
@@ -72,20 +74,29 @@ namespace WildWasteland.Core
             BackupKeep = cfg.Bind("System / Saving", "Backups to keep", 5, new ConfigDescription("Verified previous versions per save. Interrupted recovery and deleted-save backups are always retained.", new AcceptableValueRange<int>(1, 100)));
             Screenshots = cfg.Bind("System / Saving", "Save screenshots", true, "Capture a gameplay thumbnail for each save.");
             Autosave.SettingChanged += ScheduleChanged; Interval.SettingChanged += ScheduleChanged; Warning.SettingChanged += ScheduleChanged; WhileDriving.SettingChanged += ScheduleChanged;
-            _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
-            _announceClose = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("Net.NetSession"), "AnnounceClosing", typeof(string));
-            _anyCar = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Net.NetSession"), "AnyoneInCar", Type.EmptyTypes);
-            _hostCar = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Worlds.WorldSaver"), "HostInCar", Type.EmptyTypes);
-            _health = MultiplayerAccess.Call<Func<float>>(Multiplayer.Type("Game.PlayerVitals"), "Health", Type.EmptyTypes);
-            _worldName = MultiplayerAccess.Call<Func<string>>(Multiplayer.Type("Net.NetSession"), "get_WorldName", Type.EmptyTypes);
-            _setQuitting = MultiplayerAccess.Set<bool>(Multiplayer.Type("Worlds.WorldSaver"), "<Quitting>k__BackingField");
-            Require(Multiplayer.Type("Worlds.WorldSaver"), "SaveThenQuit", "QuitInstead");
-            Hooks.ActivateGameObjectDo.Prefix(Multiplayer.PatchOwner, VehicleSaveButton);
+            if (Multiplayer.Present)
+            {
+                _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
+                _announceClose = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("Net.NetSession"), "AnnounceClosing", typeof(string));
+                _anyCar = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Net.NetSession"), "AnyoneInCar", Type.EmptyTypes);
+                _hostCar = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Worlds.WorldSaver"), "HostInCar", Type.EmptyTypes);
+                _health = MultiplayerAccess.Call<Func<float>>(Multiplayer.Type("Game.PlayerVitals"), "Health", Type.EmptyTypes);
+                _worldName = MultiplayerAccess.Call<Func<string>>(Multiplayer.Type("Net.NetSession"), "get_WorldName", Type.EmptyTypes);
+                _setQuitting = MultiplayerAccess.Set<bool>(Multiplayer.Type("Worlds.WorldSaver"), "<Quitting>k__BackingField");
+                Require(Multiplayer.Type("Worlds.WorldSaver"), "SaveThenQuit", "QuitInstead");
+                Require(Multiplayer.Type("Worlds.WorldSaver"), "RotateBackups", "SkipNativeBackups");
+            }
+            else
+            {
+                _notice = Modules.CleanHUD.MessageHook.Push;
+                _health = OfflineSaveRuntime.Health;
+                _hostCar = () => OfflineSaveRuntime.InCar;
+            }
+            Hooks.ActivateGameObjectDo.Prefix(null, VehicleSaveButton);
             Require(typeof(ES3PlayMaker.ActionBase), "HandleError", "NativeError");
-            Require(Multiplayer.Type("Worlds.WorldSaver"), "RotateBackups", "SkipNativeBackups");
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(ES3File), "Sync", new[] { typeof(ES3Settings) }), prefix: AccessTools.Method(typeof(HostSaveSystem), "BeforeSync"))) throw new InvalidOperationException("Native end-of-frame world-write guard failed");
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(ES3Internal.ES3IO), "CommitBackup"), finalizer: AccessTools.Method(typeof(HostSaveSystem), "StorageError"))) throw new InvalidOperationException("Native disk failure observation hook failed");
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(ES3PlayMaker.PMDataWrapper), "ApplyVariables"), postfix: AccessTools.Method(typeof(HostSaveSystem), "LoadedPath"))) throw new InvalidOperationException("Save identity hook failed");
+            if (!Patches.Patch(null, AccessTools.Method(typeof(ES3File), "Sync", new[] { typeof(ES3Settings) }), prefix: AccessTools.Method(typeof(HostSaveSystem), "BeforeSync"))) throw new InvalidOperationException("Native end-of-frame world-write guard failed");
+            if (!Patches.Patch(null, AccessTools.Method(typeof(ES3Internal.ES3IO), "CommitBackup"), finalizer: AccessTools.Method(typeof(HostSaveSystem), "StorageError"))) throw new InvalidOperationException("Native disk failure observation hook failed");
+            if (!Patches.Patch(null, AccessTools.Method(typeof(ES3PlayMaker.PMDataWrapper), "ApplyVariables"), postfix: AccessTools.Method(typeof(HostSaveSystem), "LoadedPath"))) throw new InvalidOperationException("Save identity hook failed");
             HostSaveCleanup.Install();
             HostSaveCombat.Install(); HostSaveWarning.Install();
             SinglePlayerSaving.Install();
@@ -93,35 +104,38 @@ namespace WildWasteland.Core
             VehicleLoadPlacement.Install();
             SaveBus.StateChanged += StateChanged;
             Multiplayer.Message += ReceiveNotice;
-            Scheduler.Interval(Multiplayer.PatchOwner, "Server autosave warning", .25f, Tick);
+            Scheduler.Interval(null, "Server autosave warning", .25f, Tick);
             Log.Always("[System] Autosave warnings: game-font compass countdown, 30/15-second notices, combat deferral and 3-second final warning");
-            Log.Always("[System] Host saves ready: separate manual/autosaves, complete backups and interrupted-write recovery");
+            Installed = true;
+            Log.Always("[System] Saves ready: native offline and optional host saves, separate manual/autosaves, complete backups and interrupted-write recovery");
         }
         internal static void RecoverFiles()
         {
             if (Autosave == null) return;
-            try { HostSaveFiles.Recover(); Ready = true; RecoveryError = null; }
-            catch (Exception error) { RecoveryError = "Save recovery needs attention: " + error.Message; Log.Error("[System] " + RecoveryError, error); }
+            try { HostSaveFiles.Recover(); Ready = true; RecoveryError = null; ApocasaverExclusion.Install(); }
+            catch (Exception error) { Ready = false; RecoveryError = "Save recovery needs attention: " + error.Message; Log.Error("[System] " + RecoveryError, error); }
         }
         static bool SkipNativeBackups() { return !Multiplayer.Hosting; }
         static Exception StorageError(Exception __exception) { if (__exception != null) Fail("World persistence failed: " + __exception.Message); return __exception; }
         static bool BeforeSync(ES3Settings settings)
         {
+            if (!Installed) return true;
             string file = settings != null ? Path.GetFileName(settings.path) : SaveBus.Slot;
             if (file == null || !MultiplayerHosting.IsSaveFile(file)) return true;
+            if (RecoveryError != null) return false;
             if ((LocalWorld || MultiplayerHosting.Pending) && file == ActiveFile) ProtectedSlots.Add(file);
             return !ProtectedSlots.Contains(file) || Busy && file == ActiveFile;
         }
         static void StateChanged(string previous, string current)
         { if (current == "LoadGame" || current == "setSeed") { ReloadRequired = false; _session = null; _pendingNotice = null; } }
         static void Require(Type type, string method, string prefix)
-        { if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(type, method), prefix: AccessTools.Method(typeof(HostSaveSystem), prefix))) throw new InvalidOperationException("System save hook failed: " + method); }
+        { if (!Patches.Patch(null, AccessTools.Method(type, method), prefix: AccessTools.Method(typeof(HostSaveSystem), prefix))) throw new InvalidOperationException("System save hook failed: " + method); }
         static void LoadedPath(Fsm fsm)
         {
             VehicleLoadPlacement.Loaded();
             // A snapshot carries the original global SaveFile. Keep the file explicitly chosen by the launcher.
             if (fsm == null || fsm.GameObject == null || fsm.GameObject.name != "SaveLoadGame" || fsm.Name != "SaveLoadGame") return;
-            string file = Multiplayer.SaveFile ?? ActiveFile;
+            string file = Multiplayer.Present ? Multiplayer.SaveFile ?? ActiveFile : OfflineSaveRuntime.SelectedFile ?? ActiveFile;
             if (!MultiplayerHosting.IsSaveFile(file)) return;
             var variable = fsm.Variables.FindFsmString("SaveFile"); if (variable != null) variable.Value = file;
             ES3Settings.defaultSettings.path = file;
@@ -456,14 +470,14 @@ namespace WildWasteland.Core
                 if (RecoveryError != null || ReloadRequired) { Notify("Save and exit cancelled: resolve the save failure or return to the menu without saving."); yield break; }
                 _quitting = false; bool requested = Request("Exit autosave " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), null, true); _quitting = true;
                 if (!requested) { Notify("Exit cancelled because a new save could not start."); yield break; }
-                _setQuitting(null, true);
+                if (Multiplayer.Hosting) _setQuitting(null, true);
                 while (_requested || MultiplayerSaving.Frozen || Busy) yield return null;
                 if (RecoveryError != null || ReloadRequired || !Status.StartsWith("Autosave completed:", StringComparison.Ordinal)) { Notify("Exit cancelled because the save failed."); yield break; }
-                _announceClose("The host closed the world");
+                if (Multiplayer.Hosting) _announceClose("The host closed the world");
                 yield return new WaitForSecondsRealtime(.4f);
                 leave();
             }
-            finally { _quitting = false; _setQuitting(null, false); }
+            finally { _quitting = false; if (_setQuitting != null) _setQuitting(null, false); }
         }
     }
 }

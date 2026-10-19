@@ -12,8 +12,8 @@ namespace WildWasteland.Core
         static readonly Dictionary<string, string> Poses = new Dictionary<string, string>();
         internal static void Install()
         {
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(ES3PlayMaker.Save), "Enter"), prefix: AccessTools.Method(typeof(HostSaveCompatibility), "BeforeSave"), finalizer: AccessTools.Method(typeof(HostSaveCompatibility), "AfterSave"))
-                || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(ES3PlayMaker.Load), "Enter"), prefix: AccessTools.Method(typeof(HostSaveCompatibility), "BeforeLoad"), finalizer: AccessTools.Method(typeof(HostSaveCompatibility), "AfterLoad"))) throw new InvalidOperationException("Stable hinge compatibility hooks failed");
+            if (!Patches.Patch(null, AccessTools.Method(typeof(ES3PlayMaker.Save), "Enter"), prefix: AccessTools.Method(typeof(HostSaveCompatibility), "BeforeSave"), finalizer: AccessTools.Method(typeof(HostSaveCompatibility), "AfterSave"))
+                || !Patches.Patch(null, AccessTools.Method(typeof(ES3PlayMaker.Load), "Enter"), prefix: AccessTools.Method(typeof(HostSaveCompatibility), "BeforeLoad"), finalizer: AccessTools.Method(typeof(HostSaveCompatibility), "AfterLoad"))) throw new InvalidOperationException("Stable hinge compatibility hooks failed");
             SaveBus.StateChanged += StateChanged;
         }
         static void StateChanged(string previous, string current) { if (current == "LoadGame" || current == "Start" || current == "setSeed") Poses.Clear(); }

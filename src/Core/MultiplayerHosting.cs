@@ -58,16 +58,17 @@ namespace WildWasteland.Core
         internal static List<SaveChoice> Saves()
         {
             var result = new List<SaveChoice>(); var names = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (object world in _worlds()) names[_file(world)] = _name(world);
-            string directory = Path.GetDirectoryName(_path("SaveGame1.es3"));
+            if (Multiplayer.Present) foreach (object world in _worlds()) names[_file(world)] = _name(world);
+            string directory = HostSaveFiles.WorldRoot;
             if (!Directory.Exists(directory)) return result;
             var files = Directory.GetFiles(directory, "*.es3"); Array.Sort(files, StringComparer.OrdinalIgnoreCase);
             foreach (string path in files)
             {
                 string file = Path.GetFileName(path), name;
-                if (!IsSaveFile(file) || new FileInfo(path).Length <= 1024) continue;
+                if (!IsSaveFile(file) || file.StartsWith("MP_sp-live-", StringComparison.Ordinal) || new FileInfo(path).Length <= 1024) continue;
                 if (!names.TryGetValue(file, out name)) name = Path.GetFileNameWithoutExtension(file);
                 var info = HostSaveSystem.Info(file, name);
+                if (!Multiplayer.Present && info.Multiplayer) continue;
                 result.Add(new SaveChoice { File = file, Name = info.Name, Automatic = info.Automatic });
             }
             return result;

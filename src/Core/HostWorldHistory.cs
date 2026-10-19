@@ -36,11 +36,11 @@ namespace WildWasteland.Core
             _prefab = MultiplayerAccess.Get<GameObject>(prototype.FieldType, "prefab");
             foreach (string name in new[] { "Move", "Remove", "ResetTerrain" }) Require(tile, name, "BeforeTile");
             Require(pool, "ClampCount", "BeforeClamp");
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(pool, "MoveItems"), prefix: AccessTools.Method(typeof(HostWorldHistory), "BeforePool"), postfix: AccessTools.Method(typeof(HostWorldHistory), "AfterPool"))) throw new InvalidOperationException("Terrain history placement hook failed");
+            if (!Patches.Patch(null, AccessTools.Method(pool, "MoveItems"), prefix: AccessTools.Method(typeof(HostWorldHistory), "BeforePool"), postfix: AccessTools.Method(typeof(HostWorldHistory), "AfterPool"))) throw new InvalidOperationException("Terrain history placement hook failed");
             SaveBus.StateChanged += StateChanged;
         }
         static void Require(Type type, string name, string before)
-        { if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(type, name), prefix: AccessTools.Method(typeof(HostWorldHistory), before))) throw new InvalidOperationException("Terrain history hook failed: " + name); }
+        { if (!Patches.Patch(null, AccessTools.Method(type, name), prefix: AccessTools.Method(typeof(HostWorldHistory), before))) throw new InvalidOperationException("Terrain history hook failed: " + name); }
         static void StateChanged(string previous, string current)
         { if (current == "LoadGame" || current == "setSeed" || current == "Start") { History.Clear(); Delta.Clear(); Templates.Clear(); _restoreCache = null; _slot = null; _generation = -1; } }
         static bool Session()

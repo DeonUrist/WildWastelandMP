@@ -80,7 +80,7 @@ namespace WildWasteland.Core.UI
                 Text(new Rect(100, 68, 900, 54), _saving ? "SAVE GAME" : "LOAD GAME", false, true);
                 if (Button(new Rect(1660, 78, 160, 54), "BACK")) { ToolWindow.Close(); return; }
                 if (Ledger.Choice(new Rect(1070, 78, 260, 54), "SINGLEPLAYER", !_multiplayer) && _multiplayer) ChangeMode(false);
-                if (Ledger.Choice(new Rect(1350, 78, 260, 54), "MULTIPLAYER", _multiplayer) && !_multiplayer) ChangeMode(true);
+                if (Multiplayer.Present && Ledger.Choice(new Rect(1350, 78, 260, 54), "MULTIPLAYER", _multiplayer) && !_multiplayer) ChangeMode(true);
                 Tab(new Rect(100, 188, 280, 54), "MANUAL SAVES", 0); Tab(new Rect(396, 188, 240, 54), "AUTOSAVES", 1); Tab(new Rect(652, 188, 220, 54), "BACKUPS", 2);
                 if (Button(new Rect(940, 188, 220, 54), HostSaveSystem.RecoveryError != null ? "RETRY RECOVERY" : "REFRESH")) { if (HostSaveSystem.RecoveryError != null) HostSaveSystem.RecoverFiles(); Refresh(); }
                 if (_kind == 2) DrawBackups(); else DrawSaves();

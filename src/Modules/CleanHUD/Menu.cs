@@ -1060,7 +1060,7 @@ namespace WildWasteland.Modules.CleanHUD
         private int _serverSaveVersion = -1;
         private string LatestSave(out int slot)
         {
-            if (Core.Multiplayer.Present)
+            if (Core.HostSaveSystem.Installed)
             {
                 if (_serverSaveVersion != Core.HostSaveSystem.CatalogueVersion)
                 {
@@ -1104,7 +1104,7 @@ namespace WildWasteland.Modules.CleanHUD
         {
             int slot; LatestSave(out slot);
             if (slot <= 0) return;
-            if (Core.Multiplayer.Present)
+            if (Core.HostSaveSystem.Installed)
             { if (Core.HostSaveSystem.Info(_latestServerFile).Multiplayer) Core.UI.ToolWindow.OpenHostSave(_latestServerFile); else Core.SinglePlayerSaving.Load(_latestServerFile); return; }
             BeginLoad("LoadGame_Canvas/LoadGame/load slot " + slot + "/load_game_" + slot);
         }
@@ -1112,7 +1112,7 @@ namespace WildWasteland.Modules.CleanHUD
         private void OpenSave()
         {
             if (Core.Multiplayer.Client) { Core.MultiplayerSaving.RequestClientSave(); Resume(); return; }
-            if (Core.HostSaveSystem.Ready) { Core.UI.ToolWindow.OpenSaves(true); return; }
+            if (Core.HostSaveSystem.Installed) { Core.UI.ToolWindow.OpenSaves(true); return; }
             var incar = Fsm("Player", "InCar");
             if (incar != null && incar.ActiveStateName == "InCar") { Confirm("GET OUT OF THE CAR TO SAVE", null); return; }
             ShowSlots(false);
@@ -1190,7 +1190,7 @@ namespace WildWasteland.Modules.CleanHUD
         // ---------------------------------------------------------------- load / save slots
         private void ShowSlots(bool load)
         {
-            if (Core.HostSaveSystem.Ready) { Core.UI.ToolWindow.OpenSaves(!load); return; }
+            if (Core.HostSaveSystem.Installed) { Core.UI.ToolWindow.OpenSaves(!load); return; }
             ResetToMain();
             _screen = load ? "load" : "save";
             _main.gameObject.SetActive(false);

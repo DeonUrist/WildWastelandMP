@@ -1,19 +1,21 @@
 # WildWastelandMP
 
-**RC5 · 0.1.41** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC6 · 0.1.42** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
-Install these on **every player's PC** first:
+Install **BepInEx 5** first. For multiplayer, install the Multiplayer dependency on **every player's PC** as well:
 
 - **[BepInEx 5 (Windows x64)](https://docs.bepinex.dev/articles/user_guide/installation/index.html)**.
-- **[Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10)** — **VERSION 0.4.1** - required separately; it is not included in this download.
+- **[Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10)** — **VERSION 0.4.1** - required separately for hosting/joining; it is not included in this download.
 
 All players need the **same WildWastelandMP release and mod versions**. Disable standard WildWasteland and the standalone mods replaced by its modules; keep their configs and customized assets.
 
 When the Multiplayer dependency is missing, the main menu offers its Nexus download link, even with optional recommendations off.
 
-RC5 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+Offline saving uses the integrated named save library, backups/recovery and autosaves even without Apocalypter Multiplayer. The dependency is still required to host or join a multiplayer world.
+
+RC6 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
 
 With nothing equipped and fists lowered, drivers grip and animate the wheel; passengers retain resting hands. Ready fists and seated attacks still use their upper-body poses.
 
@@ -31,6 +33,6 @@ With nothing equipped and fists lowered, drivers grip and animate the wheel; pas
 - **F3:** settings. **TAB:** inventory and player list. Guest Save requests go to the host. Local menus do not pause the shared world.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC5 is an official release candidate; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC6 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC5 release notes](notes/release-0.1.41-RC5.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC6 release notes](notes/release-0.1.42-RC6.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
