@@ -7,7 +7,7 @@
 Install these on **every player's PC** first:
 
 - **[BepInEx 5 (Windows x64)](https://docs.bepinex.dev/articles/user_guide/installation/index.html)**.
-- **[Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10)** — required separately; it is not included in this download.
+- **[Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10)** — **VERSION 0.4.1** - required separately; it is not included in this download.
 
 All players need the **same WildWastelandMP release and mod versions**. Disable standard WildWasteland and the standalone mods replaced by its modules; keep their configs and customized assets.
 
