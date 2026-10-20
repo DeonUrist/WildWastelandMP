@@ -12,7 +12,7 @@ namespace WildWasteland.Modules.PlayerBody
     // MP retains player roots, state, equipment and effects. WW supplies the selected skin and its Mixamo animation graph.
     internal static partial class MultiplayerAvatars
     {
-        sealed class BodyState { internal GameObject Model; internal IAnimatedCharacter Character; internal byte Attacks, Kicks, Jump; internal bool Counters, JumpKnown, Motion, Driver, WeaponMotion; internal string Action, ItemName; internal Transform Item; internal Material Material; internal ulong Peer; internal int Choice, Car; internal Transform[] Bones; internal object Remote; internal Equipment Equipment; }
+        sealed class BodyState { internal GameObject Model; internal IAnimatedCharacter Character; internal byte Attacks, Kicks, Jump; internal bool Counters, JumpKnown, Motion, Driver, WeaponMotion; internal PlayableGraph RestGraph; internal string Action, ItemName; internal Transform Item; internal Material Material; internal ulong Peer; internal int Choice, Car; internal Transform[] Bones; internal object Remote; internal Equipment Equipment; }
         static readonly Dictionary<object, BodyState> Bodies = new Dictionary<object, BodyState>();
         static readonly Dictionary<ulong, int> Choices = new Dictionary<ulong, int>();
         internal static AudioClip Shout(ulong peer)
@@ -63,6 +63,7 @@ namespace WildWasteland.Modules.PlayerBody
             Patch(owner, remote, "Build", "BeforeRemote", "AfterRemote");
             Patch(owner, body, "Build", "BeforeBody", "AfterBody"); Patch(owner, body, "Animate", "Animate"); Patch(owner, body, "Destroy", "Destroyed");
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Reset;
+            MultiplayerPlayers.Left += PeerLeft;
             Scheduler.Interval(owner, "MP character selection", .2f, Tick);
             Scheduler.EveryFrame(owner, "MP player motion", LateMotion, Phase.LateUpdateLast);
         }
@@ -97,6 +98,7 @@ namespace WildWasteland.Modules.PlayerBody
             var api = Services.Animation; if (api == null || !api.Ready) return true;
             BodyState body;
             if (!Bodies.TryGetValue(__instance, out body) || body.Model == null) return true;
+            EndDownedRest(body);
             body.Motion = false;
             bool seated = _inCar(__3), downed = _downed(__3); var pose = _pose(__instance); var graph = _graph(__instance);
             body.Driver = seated && !_passenger(__3); body.Car = _rideCar(__3);
@@ -154,9 +156,11 @@ namespace WildWasteland.Modules.PlayerBody
         static void Destroyed(object __instance)
         {
             BodyState body; if (!Bodies.TryGetValue(__instance, out body)) return;
+            EndDownedRest(body);
             if (body.Character != null) body.Character.Dispose(); if (body.Equipment != null) body.Equipment.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); Bodies.Remove(__instance);
         }
         static void Reset() { Choices.Clear(); ResetMotion(); ResetEquipment(); _lastChoice = -1; _next = 0; }
+        static void PeerLeft(ulong peer) { Choices.Remove(peer); MotionFrames.Remove(peer); EquipmentFrames.Remove(peer); }
         static void Tick()
         {
             if (!Multiplayer.WorldReady) return;
@@ -181,7 +185,7 @@ namespace WildWasteland.Modules.PlayerBody
                 UpdateChoice(from, choice); Multiplayer.Send(81, w => { w.Write(from); w.Write((byte)choice); }); return;
             }
             if (kind == 81 && Multiplayer.Client && from == 0)
-            { ulong peer = reader.ReadUInt64(); int choice = reader.ReadByte(); if (choice < MultiplayerModels.ChoiceCount && peer != Multiplayer.LocalPeer) UpdateChoice(peer, choice); }
+            { ulong peer = reader.ReadUInt64(); int choice = reader.ReadByte(); if (choice < MultiplayerModels.ChoiceCount && peer != Multiplayer.LocalPeer && MultiplayerPlayers.Known(peer)) UpdateChoice(peer, choice); }
         }
         static void UpdateChoice(ulong peer, int choice)
         {
@@ -191,7 +195,8 @@ namespace WildWasteland.Modules.PlayerBody
         internal static void Shutdown()
         {
             Multiplayer.Message -= Receive; Multiplayer.SessionChanged -= Reset;
-            foreach (var body in Bodies.Values) { if (body.Character != null) body.Character.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); }
+            MultiplayerPlayers.Left -= PeerLeft;
+            foreach (var body in Bodies.Values) { EndDownedRest(body); if (body.Character != null) body.Character.Dispose(); if (body.Material != null) UnityEngine.Object.Destroy(body.Material); }
             ResetEquipment(); Bodies.Clear(); Reset();
             // Rebuild native bodies after the module's patches are removed, restoring their original graph, pose and material.
             var remotes = _remotes != null ? _remotes(null) : null;

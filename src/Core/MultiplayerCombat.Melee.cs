@@ -15,7 +15,7 @@ namespace WildWasteland.Core
     // Every other forwarded hit (NPC bullets, explosions, spikes) keeps the native path; guests now also get its hurt effects.
     internal static partial class MultiplayerCombat
     {
-        internal const byte MeleeHitKind = 160, MeleeResultKind = 161;
+        internal const byte MeleeHitKind = 180, MeleeResultKind = 181;   // 160/161 are sleeper Pose/Remove, 173-176 Ultimate Tools; Message shares one reader
         // The guest sees the host's creatures about 0.1-0.2 s late; a lunging dog can be up to ~1 m short of where the host has it.
         const float MeleeSlack = .8f, DefaultReach = 2f;
         sealed class PendingMelee { internal string Attacker; internal float Damage, Reach, At; }

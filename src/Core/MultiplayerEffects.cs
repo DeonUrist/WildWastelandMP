@@ -10,7 +10,8 @@ namespace WildWasteland.Core
     // Transient projectiles/effects have one gameplay copy on the host; guests receive inert presentation copies.
     internal static class MultiplayerEffects
     {
-        sealed class Effect { internal GameObject Object; internal string Prefab; internal bool Inert, Presentation; internal float Until; }
+        sealed class Effect { internal GameObject Object; internal string Prefab; internal bool Inert, Presentation; internal float Until, NextDescribe; internal Vector3 SentPosition; internal Quaternion SentRotation; }
+        const byte PosePacket = 182;   // compact pose for a known moving effect; the full descriptor repeats once a second
         static readonly Dictionary<uint, Effect> Effects = new Dictionary<uint, Effect>();
         static readonly HashSet<uint> Removed = new HashSet<uint>();
         static readonly List<uint> Gone = new List<uint>();
@@ -95,6 +96,7 @@ namespace WildWasteland.Core
         {
             if (effect.Object == null || _epoch == 0) return;
             var position = Origin.World(effect.Object.transform.position); var rotation = effect.Object.transform.rotation;
+            effect.SentPosition = position; effect.SentRotation = rotation; effect.NextDescribe = Time.unscaledTime + 1f;
             Multiplayer.Send(114, w => { w.Write(_epoch); w.Write(id); w.Write(effect.Prefab); w.Write(effect.Inert); w.Write(position.x); w.Write(position.y); w.Write(position.z); w.Write(rotation.x); w.Write(rotation.y); w.Write(rotation.z); w.Write(rotation.w); }, reliable: reliable);
         }
         static void Tick()
@@ -111,16 +113,31 @@ namespace WildWasteland.Core
                     Gone.Add(pair.Key); continue;
                 }
                 if (!Multiplayer.Hosting) continue;
-                // Repeating the complete small descriptor also repairs a lost first visual packet and supports late join.
-                Describe(pair.Key, effect, false);
+                // The full descriptor (prefab name) repeats once a second: it repairs a lost first packet, serves late joiners and is the
+                // guest's 3 s keepalive. Moving projectiles send a compact pose at 10 Hz, and only while the pose changes.
+                if (Time.unscaledTime >= effect.NextDescribe) { effect.NextDescribe = Time.unscaledTime + 1f; Describe(pair.Key, effect, false); continue; }
+                if (effect.Inert) continue;
+                var position = Origin.World(effect.Object.transform.position); var rotation = effect.Object.transform.rotation;
+                if ((position - effect.SentPosition).sqrMagnitude < 1e-4f && Quaternion.Angle(rotation, effect.SentRotation) < .5f) continue;
+                effect.SentPosition = position; effect.SentRotation = rotation; uint id = pair.Key;
+                Multiplayer.Send(PosePacket, w => { w.Write(_epoch); w.Write(id); w.Write(position.x); w.Write(position.y); w.Write(position.z); w.Write(rotation.x); w.Write(rotation.y); w.Write(rotation.z); w.Write(rotation.w); }, reliable: false);
             }
             foreach (uint id in Gone) Effects.Remove(id);
         }
         static void Receive(ulong from, byte kind, BinaryReader reader)
         {
-            if ((kind != 114 && kind != 115) || !Multiplayer.Client || from != 0) return;
+            if ((kind != 114 && kind != 115 && kind != PosePacket) || !Multiplayer.Client || from != 0) return;
             Epoch(); if (reader.ReadUInt64() != _epoch || _epoch == 0) return;
             uint id = reader.ReadUInt32(); Effect effect;
+            if (kind == PosePacket)
+            {
+                var p = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                var q = new Quaternion(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+                float m = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+                if (reader.BaseStream.Position != reader.BaseStream.Length || float.IsNaN(p.sqrMagnitude) || float.IsInfinity(p.sqrMagnitude) || !(m > .9f && m < 1.1f)) return;
+                if (!Effects.TryGetValue(id, out effect) || effect.Object == null || effect.Inert) return;   // unknown: the 1 s descriptor creates it
+                effect.Object.transform.SetPositionAndRotation(Origin.Scene(p), q); effect.Until = Time.unscaledTime + 3f; return;
+            }
             if (kind == 115)
             { if (reader.BaseStream.Position != reader.BaseStream.Length) return; Removed.Add(id); if (Effects.TryGetValue(id, out effect)) { if (effect.Object != null) UnityEngine.Object.Destroy(effect.Object); Effects.Remove(id); } return; }
             if (Removed.Contains(id)) return;

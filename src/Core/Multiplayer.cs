@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Net.Sockets;
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
@@ -20,7 +21,7 @@ namespace WildWasteland.Core
         internal static Assembly Assembly;
         sealed class BridgeOwner : ModuleBase { public override string Id { get { return "MultiplayerBridge"; } } public override string DisplayName { get { return "Multiplayer bridge"; } } public override void BindConfig(ModuleConfig cfg) { } public override void Init() { } public override void Shutdown() { } }
         internal static readonly IModule PatchOwner = new BridgeOwner();
-        static Func<bool> _host, _worldReady, _mainMenu, _chat, _downed;
+        static Func<bool> _host, _mainMenu, _chat, _downed, _steamReady;
         static Func<object, int> _mode;
         static Func<object, string> _save;
         static Func<object, ulong> _localPeer;
@@ -28,11 +29,21 @@ namespace WildWasteland.Core
         static Action<GameObject, bool> _hit;
         static Action<ulong, float> _damage;
         static Action<byte[], bool> _send;
-        static Action<ulong, byte[], bool> _sendTo;
+        static Action<ulong, byte[], bool> _sendTo, _sendExcept;
         static Action<ulong, byte[]> _handle;
         static Action _stop, _udpJoin;
         static Action<string> _end, _announceClosing;
         static ConfigEntry<string> _udpAddress, _playerName;
+        static ConfigEntry<string> _udpIdentity;
+        static float _socketWarning;
+        static readonly Dictionary<ulong, float> Complaints = new Dictionary<ulong, float>();
+        /// <summary>At most one malformed-packet log line per peer per 5 s (a bad or hostile peer could otherwise log at line rate).</summary>
+        internal static bool Complain(ulong peer)
+        {
+            float last; if (Complaints.TryGetValue(peer, out last) && Time.unscaledTime - last < 5f) return false;
+            if (Complaints.Count > 256) Complaints.Clear();
+            Complaints[peer] = Time.unscaledTime; return true;
+        }
         static Func<object, string> _localName;
         static ConfigEntry<int> _udpPort;
         static Func<object, string> _endReason;
@@ -80,7 +91,7 @@ namespace WildWasteland.Core
         public static bool Client { get { return _ready && (_guestWorld || _mode(null) == _joining || _mode(null) == _connected); } }
         public static bool Active { get { return Hosting || Client; } }
         public static bool SessionActive { get { return _ready && (_guestWorld || _mode(null) != _off); } }
-        public static bool WorldReady { get { return Active && _worldReady(); } }
+        public static bool WorldReady { get { return Active && GameRefs.SaveLoadState == "isPlay"; } }
         public static bool Authority { get { return !Client; } }
         public static bool Typing { get { return _ready && _chat(); } }
         internal static bool LocalTargetable { get { return !_ready || !_downed(); } }
@@ -105,6 +116,10 @@ namespace WildWasteland.Core
             _udpAddress.Value = ip.ToString(); _udpPort.Value = value; _playerName.Value = name; return null;
         }
         static void NamedPlayer(ref string __result) { if (!string.IsNullOrWhiteSpace(_playerName.Value)) __result = _playerName.Value; }
+        static bool CachedWorldReady(ref bool __result)
+        { var fsm = GameRefs.SaveLoadGame; if (fsm == null) return true; __result = fsm.ActiveStateName == "isPlay"; return false; }
+        static bool StableLocalKey(ref string __result)
+        { if (_steamReady()) return true; __result = "local-" + _udpIdentity.Value; return false; }
         internal static void JoinFromMenu() { if (CanJoin) { _udpJoin(); Refresh(); } }
         internal static void DisconnectFromMenu()
         {
@@ -134,7 +149,7 @@ namespace WildWasteland.Core
                 _host = MultiplayerAccess.Call<Func<bool>>(session, "get_IsHostingWorld", System.Type.EmptyTypes);
                 _mode = MultiplayerAccess.Get<int>(session, "mode");
                 _localPeer = MultiplayerAccess.Get<ulong>(session, "LocalId");
-                _worldReady = MultiplayerAccess.Call<Func<bool>>(Type("Game.GameLauncher"), "get_IsWorldReady", System.Type.EmptyTypes);
+                Patch(Type("Game.GameLauncher"), "get_IsWorldReady", "CachedWorldReady");
                 _mainMenu = MultiplayerAccess.Call<Func<bool>>(Type("Game.GameLauncher"), "get_InMainMenu", System.Type.EmptyTypes);
                 _chat = MultiplayerAccess.Call<Func<bool>>(Type("UI.Chat"), "get_Typing", System.Type.EmptyTypes);
                 _downed = MultiplayerAccess.Call<Func<bool>>(Type("Game.Survival"), "get_IsDowned", System.Type.EmptyTypes);
@@ -145,6 +160,7 @@ namespace WildWasteland.Core
                 _damage = MultiplayerAccess.Call<Action<ulong, float>>(session, "SendPlayerDamage", typeof(ulong), typeof(float));
                 _send = MultiplayerAccess.Call<Action<byte[], bool>>(session, "SendToAll", typeof(byte[]), typeof(bool));
                 _sendTo = MultiplayerAccess.Call<Action<ulong, byte[], bool>>(session, "SendTo", typeof(ulong), typeof(byte[]), typeof(bool));
+                _sendExcept = MultiplayerAccess.Call<Action<ulong, byte[], bool>>(session, "SendToAllExcept", typeof(ulong), typeof(byte[]), typeof(bool));
                 _handle = MultiplayerAccess.Call<Action<ulong, byte[]>>(session, "Handle", typeof(ulong), typeof(byte[]));
                 _stop = MultiplayerAccess.Call<Action>(session, "Stop", System.Type.EmptyTypes);
                 _udpJoin = MultiplayerAccess.Call<Action>(session, "StartUdpJoin", System.Type.EmptyTypes);
@@ -154,6 +170,11 @@ namespace WildWasteland.Core
                 _udpAddress = MultiplayerAccess.Get<ConfigEntry<string>>(Type("Plugin"), "UdpAddress")(null);
                 _udpPort = MultiplayerAccess.Get<ConfigEntry<int>>(Type("Plugin"), "UdpPort")(null);
                 _playerName = Plugin.Settings.Bind("Multiplayer", "Name", "", "Your multiplayer display name (1-48 characters). Empty uses the Steam or launcher name. Change before hosting or joining.");
+                _udpIdentity = Plugin.Main.Bind("Multiplayer", "Install identity", "", "Persistent identity for non-Steam multiplayer player records. Generated once; keep private and do not copy between installations.");
+                Guid identity;
+                if (!Guid.TryParseExact(_udpIdentity.Value, "N", out identity)) _udpIdentity.Value = Guid.NewGuid().ToString("N");
+                _steamReady = MultiplayerAccess.Call<Func<bool>>(Type("Net.SteamSetup"), "get_Ready", System.Type.EmptyTypes);
+                Patch(session, "LocalKey", "StableLocalKey");
                 _localName = MultiplayerAccess.Get<string>(session, "LocalName");
                 Patch(session, "LocalPlayerName", postfix: "NamedPlayer");
                 _hostWorld = MultiplayerAccess.Call<Action<string, int, bool>>(session, "HostWorld", typeof(string), typeof(int), typeof(bool));
@@ -203,6 +224,8 @@ namespace WildWasteland.Core
                 MultiplayerCombat.Install();
                 MultiplayerParts.Install();
                 MultiplayerReliable.Install();
+                MultiplayerPerf.Install();
+                MultiplayerSeats.Install();
                 MultiplayerSaving.Install();
                 MultiplayerHosting.Install();
                 MultiplayerNotifications.Install();
@@ -263,13 +286,11 @@ namespace WildWasteland.Core
                     { _listed(pair.Key, 3); pair.Value.Registered = true; }
                 }
                 foreach (var gone in GoneActors) Actors.Remove(gone);
-                if (WorldReady && Time.unscaledTime >= _appearanceAt)
-                {
-                    _appearanceAt = Time.unscaledTime + 3f;
-                    foreach (var pair in Actors) { int id = ObjectId(pair.Key); if (id != 0) { string identity = pair.Value.Prefab; Send(120, w => { w.Write(MultiplayerParts.Epoch); w.Write(id); w.Write(identity); }); } }
-                }
+                // The 3 s repeat is a keepalive for lost packets (idempotent on the guest), so it goes unreliable; a peer that just
+                // became ready gets the full set reliably once (SendAppearances from ClientReady).
+                if (WorldReady && Time.unscaledTime >= _appearanceAt) { _appearanceAt = Time.unscaledTime + 3f; SendAppearances(null); }
             }
-            if (Client) ApplyAppearances();
+            if (Client && (_appearanceDirty || Time.unscaledTime >= _appearanceSweep)) { _appearanceDirty = false; _appearanceSweep = Time.unscaledTime + 1f; ApplyAppearances(); }
             MultiplayerParty.Tick();
             MultiplayerSettings.Tick();
         }
@@ -346,12 +367,18 @@ namespace WildWasteland.Core
             if (tracked != null && _object(tracked) == actor) _prefab(tracked, prefab);
             _appearanceAt = 0;
         }
+        static bool _appearanceDirty; static float _appearanceSweep;
+        internal static void SendAppearances(ulong? peer)
+        {
+            if (!Hosting) return;
+            foreach (var pair in Actors) { int id = ObjectId(pair.Key); if (id != 0) { string identity = pair.Value.Prefab; Send(120, w => { w.Write(MultiplayerParts.Epoch); w.Write(id); w.Write(identity); }, peer, peer.HasValue); } }
+        }
         static void AppearanceMessage(ulong from, byte kind, BinaryReader reader)
         {
             if (kind != 120 || !Client || from != 0 || reader.ReadUInt64() != MultiplayerParts.Epoch) return;
             int id = reader.ReadInt32(); string identity = reader.ReadString();
             if (identity.Length > 128 || reader.BaseStream.Position != reader.BaseStream.Length || Appearances.Count >= 2048 && !Appearances.ContainsKey(id)) return;
-            string old; if (!Appearances.TryGetValue(id, out old) || old != identity) { Appearances[id] = identity; AppearanceObjects.Remove(id); }
+            string old; if (!Appearances.TryGetValue(id, out old) || old != identity) { Appearances[id] = identity; AppearanceObjects.Remove(id); _appearanceDirty = true; }
         }
         static void ApplyAppearances()
         {
@@ -382,6 +409,7 @@ namespace WildWasteland.Core
             {
                 __0.BaseStream.Position = 1; int id = __0.ReadInt32(); __0.ReadByte(); string prefab = __0.ReadString();
                 var actor = ObjectById(id); if (actor != null) AppearanceRequested(actor, prefab);
+                _appearanceDirty = true;   // a known appearance for a replaced/late object applies on the next tick
             }
             finally { __0.BaseStream.Position = position; }
         }
@@ -488,7 +516,8 @@ namespace WildWasteland.Core
         public static GameObject ObjectById(int id)
         { var objects = _ready ? _objects(null) : null; return objects != null && objects.Contains(id) ? _object(objects[id]) : null; }
 
-        internal static void Send(byte kind, Action<BinaryWriter> write, ulong? peer = null, bool reliable = true)
+        /// <param name="except">Host relay: every peer but this one (an unreliable relay must not echo to its origin).</param>
+        internal static void Send(byte kind, Action<BinaryWriter> write, ulong? peer = null, bool reliable = true, ulong? except = null)
         {
             if (!Active) return;
             using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
@@ -497,14 +526,16 @@ namespace WildWasteland.Core
                 var data = stream.ToArray();
                 if (data.Length > 1200) throw new InvalidOperationException("WW multiplayer packet exceeds 1200 bytes");
                 if (reliable) MultiplayerReliable.Send(data, peer);
-                else if (peer.HasValue) _sendTo(peer.Value, data, false); else _send(data, false);
+                else if (peer.HasValue) _sendTo(peer.Value, data, false);
+                else if (except.HasValue && Hosting) _sendExcept(except.Value, data, false);
+                else _send(data, false);
             }
         }
         static bool Receive(ulong __0, byte[] __1)
         {
             if (__1 == null || __1.Length < 1) return true;
             if (__1[0] == MultiplayerReliable.Packet) { if (_ready) MultiplayerReliable.Receive(__0, __1); return false; }
-            if (__1[0] != PacketType) return MultiplayerHandshake.BeforeNative(__0, __1) && MultiplayerCombat.BeforeNative(__0, __1) && MultiplayerSleepers.AllowReport(__0, __1);
+            if (__1[0] != PacketType) return MultiplayerHandshake.BeforeNative(__0, __1) && MultiplayerPlayers.BeforeNative(__0, __1) && MultiplayerCombat.BeforeNative(__0, __1) && MultiplayerSleepers.AllowReport(__0, __1);
             if (!_ready || __1.Length < 7 || __1.Length > 1200 || (!Hosting && __0 != 0)) return false;
             try
             {
@@ -516,10 +547,19 @@ namespace WildWasteland.Core
                     else { var handler = Message; if (handler != null) handler(__0, kind, reader); }
                 }
             }
-            catch (Exception e) { Log.Warn("[Multiplayer] Rejected WW packet: " + e.Message); }
+            catch (Exception e) { if (Complain(__0)) Log.Warn("[Multiplayer] Rejected WW packet from " + __0 + ": " + e.Message); }
             return false;
         }
-        internal static void RawTo(ulong peer, byte[] data) { _sendTo(peer, data, true); }
+        internal static void RawTo(ulong peer, byte[] data)
+        {
+            try { _sendTo(peer, data, true); }
+            catch (SocketException e)
+            {
+                if (Time.unscaledTime < _socketWarning) return;
+                _socketWarning = Time.unscaledTime + 5f;
+                Log.Warn("[Multiplayer] UDP send deferred for player " + peer + ": " + e.SocketErrorCode);
+            }
+        }
         internal static void Deliver(ulong peer, byte[] data) { _handle(peer, data); }
     }
 

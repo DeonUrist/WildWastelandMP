@@ -36,6 +36,15 @@ namespace WildWasteland.Core
         internal static bool AutomaticSaving { get { return _automatic; } }
         internal static bool LocalWorld { get { return !Multiplayer.Client && (!Multiplayer.SessionActive || Multiplayer.Hosting) && !Multiplayer.InMainMenu && GameRefs.Player != null && GameRefs.SaveLoadGame != null; } }
         internal static bool LocalReady { get { return LocalWorld && SaveBus.State == "isPlay"; } }
+        internal static bool LocalUnsafe { get { return _health() < 1 || Multiplayer.Active && (!Multiplayer.LocalTargetable || MultiplayerRespawn.Unsafe); } }
+        internal static string ResourceProblem
+        {
+            get
+            {
+                if (!Multiplayer.Active) return null;
+                return MultiplayerItems.ResourceFailure ?? (MultiplayerItems.ResourceBusy ? "Saving deferred: finish the current shared item interaction, or release the drink control, then try again." : null);
+            }
+        }
         internal static string ActiveFile { get { return Multiplayer.Hosting ? Multiplayer.SaveFile : !Multiplayer.Present ? OfflineSaveRuntime.ActiveFile ?? SaveBus.Slot : SaveBus.Slot; } }
         internal static string CurrentWorldName { get { if (Multiplayer.Hosting) return _worldName(); if (_localGeneration == SaveBus.Generation && _localWorldName != null) return _localWorldName; string file = ActiveFile; if (file != null && File.Exists(HostSaveFiles.MetaPath(file))) return Info(file).World; var seed = GameRefs.SaveLoadGame != null ? GameRefs.SaveLoadGame.FsmVariables.FindFsmInt("seed") : null; return seed != null ? "World " + seed.Value : "My world"; } }
         internal static int CatalogueVersion;
@@ -85,6 +94,10 @@ namespace WildWasteland.Core
                 _setQuitting = MultiplayerAccess.Set<bool>(Multiplayer.Type("Worlds.WorldSaver"), "<Quitting>k__BackingField");
                 Require(Multiplayer.Type("Worlds.WorldSaver"), "SaveThenQuit", "QuitInstead");
                 Require(Multiplayer.Type("Worlds.WorldSaver"), "RotateBackups", "SkipNativeBackups");
+                Type saveRoutine = null;
+                foreach (var nested in Multiplayer.Type("Worlds.WorldSaver").GetNestedTypes(System.Reflection.BindingFlags.NonPublic)) if (nested.Name.StartsWith("<Save>", StringComparison.Ordinal)) { saveRoutine = nested; break; }
+                if (saveRoutine == null || !Patches.Patch(null, AccessTools.Method(saveRoutine, "MoveNext"), transpiler: AccessTools.Method(typeof(HostSaveSystem), "SingleWorldWrite")))
+                    throw new InvalidOperationException("System save hook failed: WorldSaver.Save world write");
             }
             else
             {
@@ -116,6 +129,24 @@ namespace WildWasteland.Core
             catch (Exception error) { Ready = false; RecoveryError = "Save recovery needs attention: " + error.Message; Log.Error("[System] " + RecoveryError, error); }
         }
         static bool SkipNativeBackups() { return !Multiplayer.Hosting; }
+        // Native WorldSaver.Save flushes the ES3 cache to disk, then Complete() flushes it again after the modules' AfterSave writers
+        // (patrols, quests) have added their keys. Under a WWMP transaction the native flush is skipped: the second one is the one
+        // that counts, and Validate reads the file after it. The first save of a new world still writes (native checks File.Exists).
+        static void NativeWorldWrite(string file)
+        {
+            if (Busy && _transaction != null && Multiplayer.Hosting && File.Exists(HostSaveFiles.WorldPath(file))) return;
+            ES3.StoreCachedFile(file);
+        }
+        static IEnumerable<CodeInstruction> SingleWorldWrite(IEnumerable<CodeInstruction> instructions)
+        {
+            var store = AccessTools.Method(typeof(ES3), "StoreCachedFile", new[] { typeof(string) }); int count = 0;
+            foreach (var code in instructions)
+            {
+                if (code.Calls(store)) { code.operand = AccessTools.Method(typeof(HostSaveSystem), "NativeWorldWrite"); count++; }
+                yield return code;
+            }
+            if (count != 1) throw new InvalidOperationException("Unexpected ES3.StoreCachedFile calls in WorldSaver.Save: " + count);
+        }
         static Exception StorageError(Exception __exception) { if (__exception != null) Fail("World persistence failed: " + __exception.Message); return __exception; }
         static bool BeforeSync(ES3Settings settings)
         {
@@ -201,7 +232,8 @@ namespace WildWasteland.Core
         {
             if (!LocalReady || MultiplayerSaving.Frozen || Busy || _requested || _quitting) return false;
             if (!Ready || RecoveryError != null || ReloadRequired) { Notify(RecoveryError ?? "Reload a save before saving again after a failed write."); return false; }
-            if (_health() < 1) { Notify("Saving deferred while the host is downed or dead."); return false; }
+            if (ResourceProblem != null) { Notify(ResourceProblem); return false; }
+            if (LocalUnsafe) { Notify("Saving deferred while the host is downed or respawning."); return false; }
             if (string.IsNullOrEmpty(name) || name.Trim().Length == 0) { Notify("Enter a save name."); return false; }
             foreach (char ch in name) if (char.IsControl(ch) || ch == '<' || ch == '>') { Notify("Use a save name without control characters or markup."); return false; }
             if (name.Length > 64 || (overwrite != null && !MultiplayerHosting.IsSaveFile(overwrite))) { Notify("Invalid save name or destination."); return false; }
@@ -216,17 +248,18 @@ namespace WildWasteland.Core
         // Recheck at the barrier as queued owner damage may arrive during the warning or flush.
         internal static bool DeferScheduledSave()
         {
-            if (!_scheduled || !HostSaveCombat.Check()) return false;
+            if (!_scheduled || !(HostSaveCombat.Check() || LocalUnsafe || ResourceProblem != null || Multiplayer.Hosting && MultiplayerHandshake.HasJoiningPeers)) return false;
             _requested = _scheduled = false; _countdown = _saveNow = -1;
             HostSaveWarning.Show((byte)(Warning.Value > 0 ? 2 : 0));
-            Status = "Autosave deferred until combat has ended."; Log.Always("[System] " + Status);
+            Status = ResourceProblem ?? "Autosave deferred until players are ready and combat has ended."; Log.Always("[System] " + Status);
             return true;
         }
         // Called only after all owners have frozen and flushed, before the native serializer starts.
         internal static void Begin()
         {
             if (RecoveryError != null || ReloadRequired) throw new IOException(RecoveryError ?? "Reload required after a failed save");
-            if (_health() < 1) throw new IOException("Saving deferred: the host became downed before serialization");
+            if (ResourceProblem != null) throw new IOException(ResourceProblem);
+            if (LocalUnsafe) throw new IOException("Saving deferred: the host became downed or respawning before serialization");
             string file = ActiveFile; HostSaveFiles.WorldPath(file);
             if (!_requested) { _automatic = true; _name = "Autosave " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"); _destination = null; _world = CurrentWorldName; _multiplayer = Multiplayer.Hosting; _savedPlayers = null; }
             _error = null; _picture = null; _stamp = Guid.NewGuid().ToString("N");
@@ -400,7 +433,7 @@ namespace WildWasteland.Core
         }
         internal static void LeaveWithoutSaving()
         {
-            if (Busy || MultiplayerSaving.Frozen || !LocalWorld || (!ReloadRequired && RecoveryError == null)) return;
+            if (Busy || MultiplayerSaving.Frozen || !LocalWorld || (!ReloadRequired && RecoveryError == null && MultiplayerItems.ResourceFailure == null)) return;
             if (Multiplayer.Hosting) MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("Net.NetSession"), "End", typeof(string))("Host left without saving after a save failure");
             UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
         }
@@ -429,8 +462,14 @@ namespace WildWasteland.Core
             float now = Time.unscaledTime;
             int warning = Mathf.Min(Mathf.Max(0, Warning.Value), Interval.Value * 60);
             if (now < _nextAuto - warning) return;
-            bool eligible = !combat && !SaveBus.Busy && !MultiplayerSaving.Frozen && GameRefs.WorldRunning && !UI.EditorSession.Busy && _health() >= 1 && (WhileDriving.Value || (Multiplayer.Hosting ? !_anyCar() : !_hostCar()));
-            if (!eligible) { _countdown = _saveNow = -1; HostSaveWarning.Show((byte)(warning > 0 ? 2 : 0)); return; }
+            bool eligible = !combat && !SaveBus.Busy && !MultiplayerSaving.Frozen && GameRefs.WorldRunning && !UI.EditorSession.Busy && !LocalUnsafe && ResourceProblem == null
+                && (!Multiplayer.Hosting || !MultiplayerHandshake.HasJoiningPeers) && (WhileDriving.Value || (Multiplayer.Hosting ? !_anyCar() : !_hostCar()));
+            if (!eligible)
+            {
+                _countdown = _saveNow = -1; HostSaveWarning.Show((byte)(warning > 0 ? 2 : 0));
+                if (ResourceProblem != null && Status != ResourceProblem) { Status = ResourceProblem; if (MultiplayerItems.ResourceFailure != null) Notify(Status); }
+                return;
+            }
             if (warning == 0)
             {
                 HostSaveWarning.Show(0);

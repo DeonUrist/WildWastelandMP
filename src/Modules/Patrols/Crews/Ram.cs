@@ -16,6 +16,50 @@ namespace WildWasteland.Modules.Patrols
         internal sealed class Sensor : MonoBehaviour
         {
             private PatrolMarker _mk; private Rigidbody _rb;   // cached (a car scraping along a wall fires this many times a second)
+            private Collider[] _ramColliders;
+            private Vector3 _ramPrevious;
+            private bool _ramHadPosition;
+            internal void CheckRemoteContacts()
+            {
+                if (_mk == null) _mk = GetComponent<PatrolMarker>();
+                if (_rb == null) _rb = GetComponent<Rigidbody>();
+                if (_rb == null || _rb.isKinematic || _mk == null || !TrafficFactions.PlayerHostile(_mk.Faction)
+                    || Core.Multiplayer.OwnedElsewhere(gameObject)) { _ramHadPosition = false; return; }
+                var position = transform.position; var delta = _ramHadPosition ? position - _ramPrevious : Vector3.zero;
+                _ramPrevious = position; _ramHadPosition = true;
+                if (delta.sqrMagnitude > 100f) delta = Vector3.zero; // origin shifts/placement are not impacts
+                var velocity = _rb.velocity; float speed = velocity.magnitude;
+                if (speed * 3.6f < Mathf.Max(1f, PatrolsModule.RamFullSpeedKmh.Value) * .5f) return;
+                if (_ramColliders == null) _ramColliders = GetComponents<Collider>();
+                for (int i = 0; i < Core.Multiplayer.RemoteCount; i++)
+                {
+                    var player = Core.Multiplayer.RemoteAt(i);
+                    if (player == null || !Core.Multiplayer.RemoteTargetable(player) || Core.MultiplayerPlayers.Riding(Core.Multiplayer.PeerFor(player))
+                        || (player.transform.position - position).sqrMagnitude > 400f) continue;
+                    var capsule = player.GetComponent<CapsuleCollider>();
+                    if (capsule == null || !capsule.enabled || !capsule.gameObject.activeInHierarchy) continue;
+                    bool contact = false;
+                    foreach (var body in _ramColliders)
+                    {
+                        if (body == null || !body.enabled || body.isTrigger || body.attachedRigidbody != _rb) continue;
+                        Vector3 direction; float distance;
+                        if (Physics.ComputePenetration(body, body.transform.position, body.transform.rotation, capsule,
+                            capsule.transform.position, capsule.transform.rotation, out direction, out distance)) { contact = true; break; }
+                    }
+                    if (!contact && delta.sqrMagnitude > .0001f)
+                    {
+                        var bounds = capsule.bounds; float radius = Mathf.Min(bounds.extents.x, bounds.extents.z);
+                        var a = bounds.center + Vector3.up * Mathf.Max(0f, bounds.extents.y - radius) + delta;
+                        var b = bounds.center - Vector3.up * Mathf.Max(0f, bounds.extents.y - radius) + delta;
+                        int hits = Physics.CapsuleCastNonAlloc(a, b, radius, -delta.normalized, RemoteRamHits, delta.magnitude, -1, QueryTriggerInteraction.Ignore);
+                        for (int h = 0; h < hits; h++) if (RemoteRamHits[h].collider != null && RemoteRamHits[h].collider.attachedRigidbody == _rb) { contact = true; break; }
+                    }
+                    if (!contact) continue;
+                    var toward = player.transform.position - position; toward.y = 0f;
+                    float into = toward.sqrMagnitude > .0001f ? Mathf.Max(0f, Vector3.Dot(velocity, toward.normalized)) : speed;
+                    Hit(gameObject, _mk.BodyPrefab, 1, into, capsule, velocity, player);
+                }
+            }
 
             private void OnCollisionEnter(Collision col)
             { if (!PatrolsModule.Running || Core.Multiplayer.OwnedElsewhere(gameObject)) return;
@@ -238,6 +282,8 @@ namespace WildWasteland.Modules.Patrols
         // Called from the runner: resumes the paused Movement FSM, and checks half a second after a hit that the health really went down.
         // an entry only matters until its time has passed; dropped every 30 s (destroyed cars left theirs behind for good)
         private static float _nextPrune;
+        private static float _nextRemoteRam;
+        private static readonly RaycastHit[] RemoteRamHits = new RaycastHit[32];
         private static readonly List<ImpactKey> _expired = new List<ImpactKey>();
         private static void PruneHitTimes()
         {
@@ -248,6 +294,12 @@ namespace WildWasteland.Modules.Patrols
 
         internal static void Tick()
         {
+            if (Core.Multiplayer.Hosting && !Core.SaveBus.Busy && Time.timeScale > 0f && PatrolsModule.RamDamage.Value && Time.time >= _nextRemoteRam)
+            {
+                _nextRemoteRam = Time.time + .05f;
+                foreach (var marker in PatrolMarker.All)
+                { if (marker == null) continue; var sensor = marker.GetComponent<Sensor>(); if (sensor != null) sensor.CheckRemoteContacts(); }
+            }
             if (Time.unscaledTime >= _nextPrune) { _nextPrune = Time.unscaledTime + 30f; PruneHitTimes(); }
             if (_pausedMovement != null && Time.time >= _resumeAt)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
+using UnityEngine;
 
 namespace WildWasteland.Core
 {
@@ -10,16 +11,24 @@ namespace WildWasteland.Core
     {
         sealed class Closed { }
         static readonly ConditionalWeakTable<object, Closed> Disposed = new ConditionalWeakTable<object, Closed>();
+        static float _socketWarning;
         internal static void Install()
         {
             var type = Multiplayer.Type("Net.UdpTransport"); var owner = Multiplayer.PatchOwner;
             if (!Patches.Patch(owner, AccessTools.Method(type, "Dispose"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Closing"))
                 || !Patches.Patch(owner, AccessTools.Method(type, "Update"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Open"), transpiler: AccessTools.Method(typeof(MultiplayerTransport), "AfterDispatch"))
                 || !Patches.Patch(owner, AccessTools.Method(type, "HandlePacket"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Packet"))
-                || !Patches.Patch(owner, AccessTools.Method(type, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Open")))
+                || !Patches.Patch(owner, AccessTools.Method(type, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerTransport), "Open"), finalizer: AccessTools.Method(typeof(MultiplayerTransport), "SocketFailure")))
                 throw new InvalidOperationException("MP UDP lifecycle hooks failed");
         }
         static bool Open(object __instance) { Closed closed; return !Disposed.TryGetValue(__instance, out closed); }
+        static Exception SocketFailure(Exception __exception)
+        {
+            var failure = __exception as System.Net.Sockets.SocketException;
+            if (failure == null) return __exception;
+            if (Time.unscaledTime >= _socketWarning) { _socketWarning = Time.unscaledTime + 5f; Log.Warn("[Multiplayer] UDP send deferred: " + failure.SocketErrorCode); }
+            return null;
+        }
         static bool Packet(object __instance, System.Net.IPEndPoint __0, byte[] __1)
         {
             if (!Open(__instance)) return false;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using BepInEx.Bootstrap;
 
 namespace WildWasteland.Core
@@ -9,7 +10,19 @@ namespace WildWasteland.Core
     {
         sealed class Mod { internal string Name, Version, Build; }
         static SortedDictionary<string, Mod> _local;
-        internal static void Reset() { _local = null; }
+        internal static void Reset() { _local = null; _hash = null; }
+        static byte[] _hash;
+        internal static byte[] Hash()
+        {
+            if (_hash != null) return _hash;
+            using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
+            {
+                var mods = Local(); writer.Write((ushort)mods.Count);
+                foreach (var pair in mods) { writer.Write(pair.Key); writer.Write(pair.Value.Version); writer.Write(pair.Value.Build); }
+                using (var hash = SHA256.Create()) _hash = hash.ComputeHash(stream.ToArray());
+                return _hash;
+            }
+        }
         static SortedDictionary<string, Mod> Local()
         {
             if (_local != null) return _local;

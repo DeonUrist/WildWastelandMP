@@ -26,6 +26,8 @@ namespace WildWasteland.Core
     internal static partial class MultiplayerSleepers
     {
         internal const string SleepingKey = "ww.sleeping", ChoiceKey = "ww.bodyChoice";
+        static BepInEx.Configuration.ConfigEntry<float> _reviveHealth;
+        internal static float ReviveHealth { get { return Mathf.Clamp(_reviveHealth != null ? _reviveHealth.Value : 30f, 1f, 100f); } }
         const string RemovedBodyKey = "ww.sleepRemoved";
         const byte Full = 159, Pose = 160, Remove = 161, Carry = 162;
         const ulong Nobody = ulong.MaxValue;
@@ -108,6 +110,7 @@ namespace WildWasteland.Core
         {
             var record = Multiplayer.Type("Worlds.PlayerRecord"); var session = Multiplayer.Type("Net.NetSession");
             _records = MultiplayerAccess.Get<IDictionary>(Multiplayer.Type("Worlds.PlayerRegistry"), "records");
+            try { _reviveHealth = MultiplayerAccess.Get<BepInEx.Configuration.ConfigEntry<float>>(Multiplayer.Type("Plugin"), "ReviveHealth")(null); } catch (Exception) { _reviveHealth = null; }
             _stats = MultiplayerAccess.Get<Dictionary<string, float>>(record, "Stats"); _name = MultiplayerAccess.Get<string>(record, "Name");
             _hasPosition = MultiplayerAccess.Get<bool>(record, "HasPosition"); _position = MultiplayerAccess.Get<Vector3>(record, "Position"); _yaw = MultiplayerAccess.Get<float>(record, "Yaw");
             _setPosition = MultiplayerAccess.Set<Vector3>(record, "Position"); _setHasPosition = MultiplayerAccess.Set<bool>(record, "HasPosition");
@@ -150,15 +153,25 @@ namespace WildWasteland.Core
         { if (sleeper.Label != null) MultiplayerNames.RemoveSleeper(sleeper.Label); if (sleeper.Body != null) sleeper.Body.Dispose(); sleeper.Body = null; sleeper.Label = null; }
         internal static void Left(ulong peer, object record)
         {
-            MultiplayerPlayers.Forget(peer);
-            CancelWake(peer);
-            foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == peer) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
-            if (!Multiplayer.Hosting || !Multiplayer.WorldReady || record == null || !_hasPosition(record) || _closing(null) || _stopping) return;
-            float health; var stats = _stats(record);
-            if (stats.TryGetValue("p.Health", out health) && health < 1) return;
-            stats.Remove(RemovedBodyKey);
-            foreach (var existing in Bodies.Values) if (ReferenceEquals(existing.Record, record)) return;
-            stats[SleepingKey] = 1; Add(record, false); _nextFull = 0;
+            try
+            {
+                CancelWake(peer);
+                foreach (var sleeper in Bodies.Values) if (sleeper.Carrier == peer) { sleeper.Carrier = Nobody; sleeper.Place = true; sleeper.NextGround = 0; }
+                if (!Multiplayer.Hosting || !Multiplayer.WorldReady || record == null || _closing(null) || _stopping) return;
+                if (MultiplayerPlayers.Downed(peer) || MultiplayerRecovery.PendingDeath(record) || MultiplayerRecovery.RespawningRecord(record))
+                {
+                    // Health is clamped to 1 while downed: the leaver comes back as if a teammate had revived it, beside the host.
+                    if (MultiplayerPlayers.Downed(peer)) _stats(record)["p.Health"] = ReviveHealth;
+                    _setHasPosition(record, false); return;
+                }
+                if (!_hasPosition(record)) return;
+                float health; var stats = _stats(record);
+                if (stats.TryGetValue("p.Health", out health) && health < 1) return;
+                stats.Remove(RemovedBodyKey);
+                foreach (var existing in Bodies.Values) if (ReferenceEquals(existing.Record, record)) return;
+                stats[SleepingKey] = 1; Add(record, false); _nextFull = 0;
+            }
+            finally { MultiplayerPlayers.Forget(peer); }
         }
         static void Add(object record, bool restored)
         {

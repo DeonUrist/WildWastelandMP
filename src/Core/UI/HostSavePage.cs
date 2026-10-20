@@ -85,7 +85,7 @@ namespace WildWasteland.Core.UI
                 if (Button(new Rect(940, 188, 220, 54), HostSaveSystem.RecoveryError != null ? "RETRY RECOVERY" : "REFRESH")) { if (HostSaveSystem.RecoveryError != null) HostSaveSystem.RecoverFiles(); Refresh(); }
                 if (_kind == 2) DrawBackups(); else DrawSaves();
                 DrawDetails();
-                string status = HostSaveSystem.RecoveryError ?? (HostSaveSystem.ReloadRequired ? "The last save failed. Reload before saving again; previous files are retained." : _message);
+                string status = HostSaveSystem.RecoveryError ?? HostSaveSystem.ResourceProblem ?? (HostSaveSystem.ReloadRequired ? "The last save failed. Reload before saving again; previous files are retained." : _message);
                 Text(new Rect(100, 1004, 1720, 50), status ?? "Autosaves stay separate. Deleting a save keeps a recoverable backup.", true);
             }
             finally { GUI.enabled = enabled; }
@@ -125,7 +125,7 @@ namespace WildWasteland.Core.UI
             if (Button(new Rect(100, 920, 170, 48), "PREVIOUS", _page > 0)) _page--; Text(new Rect(305, 920, 650, 48), (_page + 1) + " / " + pages + "    ·    " + _visible.Count + " saves", true);
             if (Button(new Rect(990, 920, 170, 48), "NEXT", _page + 1 < pages)) _page++;
         }
-        bool CanSave { get { return HostSaveSystem.LocalReady && _multiplayer == Multiplayer.Hosting && !HostSaveSystem.Busy && !HostSaveSystem.Requested && HostSaveSystem.Ready && HostSaveSystem.RecoveryError == null && !HostSaveSystem.ReloadRequired; } }
+        bool CanSave { get { return HostSaveSystem.LocalReady && _multiplayer == Multiplayer.Hosting && !HostSaveSystem.Busy && !HostSaveSystem.Requested && HostSaveSystem.Ready && HostSaveSystem.RecoveryError == null && !HostSaveSystem.ReloadRequired && HostSaveSystem.ResourceProblem == null; } }
         void DrawDetails()
         {
             var save = _selected >= 0 && _selected < _saves.Count ? _saves[_selected] : null; Ledger.Panel(new Rect(1200, 188, 620, 780), Ledger.Surface, Ledger.Line);
@@ -223,7 +223,7 @@ namespace WildWasteland.Core.UI
             l.Toggle(HostSaveCleanup.Enabled, "Cleanup on save"); l.Toggle(HostSaveCleanup.Corpses, "Non-resource zombie remains"); l.Toggle(HostSaveCleanup.Packs, "Exhausted disposable packs");
             l.Entry(HostSaveCleanup.Distance); l.Entry(HostSaveCleanup.Minutes);
             if (HostSaveSystem.RecoveryError != null && Multiplayer.InMainMenu && l.Button("RETRY SAVE RECOVERY")) HostSaveSystem.RecoverFiles();
-            if (HostSaveSystem.LocalWorld && (HostSaveSystem.ReloadRequired || HostSaveSystem.RecoveryError != null) && l.Button("RETURN TO TITLE WITHOUT SAVING")) ToolWindow.CloseThen(HostSaveSystem.LeaveWithoutSaving);
+            if (HostSaveSystem.LocalWorld && (HostSaveSystem.ReloadRequired || HostSaveSystem.RecoveryError != null || MultiplayerItems.ResourceFailure != null) && l.Button("RETURN TO TITLE WITHOUT SAVING")) ToolWindow.CloseThen(HostSaveSystem.LeaveWithoutSaving);
             SaveBus.DrawCleanupSettings(l);
         }
     }

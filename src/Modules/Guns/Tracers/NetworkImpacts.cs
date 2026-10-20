@@ -28,7 +28,7 @@ namespace WildWasteland.Modules.Guns
             if (!Multiplayer.WorldReady || !CurrentKey(shot.NetworkKey) || shot.RemoteVisual || shot.Bolt) return;
             var key = shot.NetworkKey; var world = Origin.World(point);
             if (Multiplayer.Hosting) PublishImpact(key, 0, "", world, Vector3.up);
-            else Multiplayer.Send(130, w => { WriteKey(w, key); WriteVector(w, world); });
+            else Multiplayer.Send(130, w => { WriteKey(w, key); WriteVector(w, world); }, reliable: false);   // impact visual only
         }
 
         // Collision belongs to the shooter's displayed world. Never test this hit against a later host pose.
@@ -50,12 +50,15 @@ namespace WildWasteland.Modules.Guns
                     w.Write(damage); WriteVector(w, start); w.Write(range); w.Write(distance); w.Write(kind); });
                 return true;
             }
-            PublishImpact(key, id, path, local, normal);
+            PublishImpact(key, id, path, local, normal, shot.Bolt);
             return false;
         }
-        static void PublishImpact(BoltKey key, int id, string path, Vector3 point, Vector3 normal)
+        static void PublishImpact(BoltKey key, int id, string path, Vector3 point, Vector3 normal, bool bolt = false)
         {
-            Multiplayer.Send(129, w => { WriteKey(w, key); w.Write(id); w.Write(path); WriteVector(w, point); WriteVector(w, normal); });
+            // Presentation only (the damage went through 128 or the host's own hit). Reliable per-shot bullet packets could push a peer
+            // past the queue limit in a long firefight, which now ends its connection. A crossbow bolt stays reliable: its launch (51)
+            // and attachment (126) are reliable too, and an impact overtaking the launch would tombstone the bolt on that guest.
+            Multiplayer.Send(129, w => { WriteKey(w, key); w.Write(id); w.Write(path); WriteVector(w, point); WriteVector(w, normal); }, reliable: bolt);
         }
         static void ReceivePlayerImpact(ulong from, byte kind, BinaryReader r)
         {
@@ -87,6 +90,11 @@ namespace WildWasteland.Modules.Guns
             if (range > maximum) return;
             var root = Multiplayer.ObjectById(id);
             if (root == null || !Multiplayer.Creature(root)) return;
+            // The shot must have started near the shooter and the creature must be about where the shot says it ended: the host's
+            // positions lag the guest's by a round trip plus the creature's own movement, so the margins are generous, not open.
+            Vector3 origin = Origin.Scene(start);
+            if ((origin - player.transform.position).sqrMagnitude > 75f * 75f || (root.transform.position - origin).sqrMagnitude > (distance + 15f) * (distance + 15f))
+            { if (Log.Verbose) Log.Info("[Multiplayer] Rejected shot impact from player " + from + ": start/creature inconsistent with the shot"); return; }
             var part = path.Length == 0 ? root.transform : root.transform.Find(path);
             if (part == null || !part.IsChildOf(root.transform)) return;
             var body = FsmUtil.Find(part.gameObject, "Bodypart"); var health = FsmUtil.Find(root, "Health");
@@ -105,7 +113,7 @@ namespace WildWasteland.Modules.Guns
                     fsm.Fsm.Event((FsmEventTarget)null, FsmEvent.GetFsmEvent("DamageFlammable"));
                     fsm.Fsm.Event((FsmEventTarget)null, FsmEvent.GetFsmEvent("CheckFriendly"));
                 }
-            PublishImpact(key, id, path, local, normal);
+            PublishImpact(key, id, path, local, normal, weapon == (byte)Kind.Crossbow);
             if (Log.Verbose) Log.Info("[Multiplayer] Client impact: player " + from + " shot " + key.Sequence + " -> " + id + "/" + path
                 + ", damage " + damage.ToString("0.0") + "; exact client target (no host recast)");
         }

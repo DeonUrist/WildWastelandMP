@@ -13,6 +13,7 @@ namespace WildWasteland.Core
     {
         internal static string ActiveFile, SelectedFile;
         static PlayMakerFSM _health, _inCar;
+        static bool _warnedHealth;
         static bool _leaving;
         static int _latestVersion = -1;
         static string _latestFile;
@@ -26,7 +27,10 @@ namespace WildWasteland.Core
         {
             if (_health == null && GameRefs.Player != null) _health = FsmUtil.Find(GameRefs.Player, "Health");
             var value = _health != null ? _health.FsmVariables.FindFsmFloat("Health") : null;
-            return value != null ? value.Value : 0;
+            if (value != null) return value.Value;
+            // Match native PlayerVitals.Health's default; absence is not evidence of death.
+            if (!_warnedHealth) { _warnedHealth = true; Log.Warn("[System] Player Health FSM is unavailable; using the native 100 HP fallback for save eligibility"); }
+            return 100f;
         }
         internal static float PlayerDistance(Vector3 position, Transform player) { return player != null ? Vector3.Distance(position, player.position) : float.PositiveInfinity; }
         internal static void SetActive(string file) { if (!IsSaveFile(file)) throw new IOException("Invalid save identity"); ActiveFile = file; }
@@ -38,7 +42,7 @@ namespace WildWasteland.Core
             Scheduler.Gui(null, "Native saving fallback", DrawSaving, WantsSaving);
         }
         static void SceneLoaded(Scene scene, LoadSceneMode mode)
-        { _health = _inCar = null; if (scene.name == "MainMenu") { ActiveFile = null; HostSaveSystem.CatalogueVersion++; } }
+        { _health = _inCar = null; _warnedHealth = false; if (scene.name == "MainMenu") { ActiveFile = null; HostSaveSystem.CatalogueVersion++; } }
         static void StateChanged(string previous, string current)
         {
             if (current == "LoadGame")

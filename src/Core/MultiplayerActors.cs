@@ -156,6 +156,8 @@ namespace WildWasteland.Core
                 int id = reader.ReadInt32(); var root = Multiplayer.ObjectById(id); Rig rig;
                 if (root == null || !ByRoot.TryGetValue(root, out rig)) return;
                 float next; if (ManifestRequests.TryGetValue(from, out next) && Time.unscaledTime < next) return;
+                // Queue exhaustion now ends the connection: defer the reply (the guest re-requests) instead of bursting a rig past capacity.
+                if (!MultiplayerReliable.CanQueue(from, rig.Paths.Length)) return;
                 ManifestRequests[from] = Time.unscaledTime + .05f;
                 for (int start = 0; start < rig.Paths.Length; start++)
                 {

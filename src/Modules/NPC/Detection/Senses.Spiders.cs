@@ -12,26 +12,20 @@ namespace WildWasteland.Modules.NPC
         private static readonly List<Light> _spiderLights = new List<Light>();
         private static readonly List<int> _deadLights = new List<int>();
         private static Transform _spiderFlashOf; private static Light _spiderFlash;
-        private static GameObject _spiderCavePlayer; private static HutongGames.PlayMaker.FsmBool _spiderInside;
+        private sealed class TargetCaveLight { internal GameObject Target; internal float Next, Level; }
+        private static readonly Dictionary<int, TargetCaveLight> _targetCaveLights = new Dictionary<int, TargetCaveLight>();
 
         private static void ResetSpiderLights()
         {
             _hasSpiders = false; _spiderItems = null; _spiderFlashOf = null; _spiderFlash = null;
             _canLights.Clear(); _spiderLights.Clear(); _deadLights.Clear(); _playerCaveLight = 1f; _spiderItemPos = -1; _notCanLight.Clear();
             CaveDarknessBridge.Reset();
-            _spiderCavePlayer = null; _spiderInside = null;
+            _targetCaveLights.Clear();
         }
 
-        private static bool OutsideCaveWeb(Agent a)
+        private static bool OutsideCaveWeb(Agent a, Vector3 noise, bool outside)
         {
-            if (!a.CaveWeb || _player == null || (_player.transform.position - a.T.position).sqrMagnitude <= 9f) return false;
-            if (_spiderCavePlayer != _player)
-            {
-                _spiderCavePlayer = _player;
-                var fsm = Core.FsmUtil.Find(_player, "CaveDarkness");
-                _spiderInside = fsm != null ? fsm.FsmVariables.FindFsmBool("CaveDarkness_bool") : null;
-            }
-            return _spiderInside == null || !_spiderInside.Value;
+            return a.CaveWeb && outside && (noise - a.T.position).sqrMagnitude > 9f;
         }
 
         private static void RefreshSpiderLights()
@@ -46,6 +40,9 @@ namespace WildWasteland.Modules.NPC
                     if (p != null && p.referenceName == "ArrayList_Items") { _spiderItems = p; break; }
             }
             _spiderLights.Clear(); _deadLights.Clear();
+            foreach (var kv in _targetCaveLights) if (kv.Value.Target == null) _deadLights.Add(kv.Key);
+            foreach (int id in _deadLights) _targetCaveLights.Remove(id);
+            _deadLights.Clear();
             foreach (var kv in _canLights)
             {
                 bool alive = false;
@@ -101,6 +98,14 @@ namespace WildWasteland.Modules.NPC
         private static float SpiderTargetLight(GameObject target)
         {
             if (target == _player) return _playerCaveLight;
+            if (Core.Multiplayer.IsRemotePlayer(target))
+            {
+                int id = target.GetInstanceID(); TargetCaveLight light;
+                if (!_targetCaveLights.TryGetValue(id, out light) || light.Target != target)
+                { light = new TargetCaveLight { Target = target }; _targetCaveLights[id] = light; }
+                if (Time.time >= light.Next) { light.Next = Time.time + .5f; light.Level = SpiderAmbient(target.transform.position + Vector3.up); }
+                return light.Level;
+            }
             var a = Get(target);
             if (a == null) return 1f;
             SpiderCaveLight(a, Time.time);

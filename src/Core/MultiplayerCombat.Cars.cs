@@ -14,6 +14,11 @@ namespace WildWasteland.Core
         static Func<object, byte> _passageKind;
         static Func<object, string> _passagePrefab;
         static Func<object, bool> _ragdoll, _carried, _passageOwned;
+        struct Passage { internal bool Value; internal float Until; }
+        // ClearTheWay runs every frame for a moving owned car over every tracked object; the four reflection reads and the
+        // prefab name test per Kind-0 item are cached for a second (carried/owned/prefab change rarely, kind never).
+        static readonly Dictionary<object, Passage> PassageCache = new Dictionary<object, Passage>();
+        static float _passageNext;
         static void InstallCars()
         {
             var world = Multiplayer.Type("Net.WorldObjects");
@@ -28,10 +33,20 @@ namespace WildWasteland.Core
                 throw new InvalidOperationException("MP corpse car-passage hook failed");
             Hooks.SendEventEnter.Prefix(Multiplayer.PatchOwner, ForwardCarHit);
             Multiplayer.Message += ReceiveCarHit;
+            Multiplayer.SessionChanged += PassageCache.Clear;
         }
         // Remote corpse roots are positioned by the host. They must share the native temporary car-passage
         // rule with the living creature, or a kill replaces the passable victim with a stationary obstacle.
         static bool PassageTarget(object tracked)
+        {
+            Passage cached; float now = Time.unscaledTime;
+            if (PassageCache.TryGetValue(tracked, out cached) && now < cached.Until) return cached.Value;
+            if (now >= _passageNext) { _passageNext = now + 30f; if (PassageCache.Count > 8192) PassageCache.Clear(); }
+            bool value = ComputePassageTarget(tracked);
+            PassageCache[tracked] = new Passage { Value = value, Until = now + 1f };
+            return value;
+        }
+        static bool ComputePassageTarget(object tracked)
         {
             if (_passageKind(tracked) == 3) return true;
             if (_passageKind(tracked) != 0 || _carried(tracked) || _passageOwned(tracked)) return false;
@@ -54,8 +69,32 @@ namespace WildWasteland.Core
             if (matches != 1) throw new InvalidOperationException("Unsupported MP ClearTheWay creature filter");
             return code;
         }
-        static bool BeforeClientCarHit(bool __1)
-        { return !Multiplayer.Active || CarImpact == null || !__1; }
+        static bool BeforeClientCarHit(GameObject __0, bool __1)
+        {
+            if (!Multiplayer.Active || CarImpact == null) return true;
+            if (__1) return false;
+            // Native resolves the creature with FirstOrDefault(IsChildOf) over every tracked object, on every Damage send with a
+            // GameObject target (each melee swing, each player effect send). TrackedAncestor is the parent walk it already has.
+            if (!Multiplayer.Client || __0 == null) return true;
+            GameObject creature = null;   // native: any tracked creature the part is under, even past a tracked item parented inside it
+            for (var t = __0.transform; t != null && creature == null; t = t.parent) creature = Multiplayer.CreatureObject(t.gameObject);
+            if (creature == null) return false;   // native finds nothing either
+            var bodypart = FsmUtil.Find(__0, "Bodypart");
+            var value = bodypart != null ? bodypart.FsmVariables.FindFsmFloat("Damage") : null;
+            float damage = value != null ? value.Value : 0f;
+            int id = Multiplayer.ObjectId(creature); string path = RelativePath(creature.transform, __0.transform);
+            if (id == 0) return false;
+            using (var stream = new MemoryStream()) using (var w = new BinaryWriter(stream))
+            { w.Write(_creatureDamage); w.Write(id); w.Write(path); w.Write(damage); MultiplayerReliable.Send(stream.ToArray(), null); }
+            if (Log.Verbose) Log.Info("[Multiplayer] Hit " + creature.name + "/" + path + " (" + damage.ToString("0.0") + ")");
+            return false;
+        }
+        static string RelativePath(Transform root, Transform part)
+        {
+            string text = "";
+            for (var t = part; t != null && t != root; t = t.parent) text = text.Length == 0 ? t.name : t.name + "/" + text;
+            return text;
+        }
         static bool BeforeCarHit(object __0, object __1, float __2)
         {
             if (!Multiplayer.Active || CarImpact == null) return true;

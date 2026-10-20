@@ -32,6 +32,7 @@ namespace WildWasteland.Core
         {
             var session = Multiplayer.Type("Net.NetSession"); var record = Multiplayer.Type("Worlds.PlayerRecord");
             _restore = MultiplayerAccess.Get<object>(session, "pendingRestore");
+            MultiplayerPlayers.Left += ForgetSent;
             _record = MultiplayerAccess.Call<Func<ulong, object>>(session, "RecordOf", typeof(ulong));
             _stats = MultiplayerAccess.Get<Dictionary<string, float>>(record, "Stats");
             _players = MultiplayerAccess.Call<Func<IList>>(session, "Players", Type.EmptyTypes);
@@ -45,7 +46,7 @@ namespace WildWasteland.Core
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(record, "ReadReport"), prefix: AccessTools.Method(typeof(MultiplayerParty), "BeforeReport"), postfix: AccessTools.Method(typeof(MultiplayerParty), "AfterReport")))
                 throw new InvalidOperationException("Could not install multiplayer reward receipts");
         }
-        internal static void Reset() { MultiplayerWorld.Reset(); _followerPeer = 0; _paid = 0; _restored = false; _nextSnapshot = 0; ResetTransactions(); MultiplayerCompass.Clear(); }
+        internal static void Reset() { MultiplayerWorld.Reset(); _followerPeer = 0; _paid = 0; _restored = false; _nextSnapshot = 0; Sent.Clear(); ResetTransactions(); MultiplayerCompass.Clear(); }
         static long Read(Dictionary<string, float> stats, string[] keys)
         {
             long total = 0;
@@ -122,10 +123,19 @@ namespace WildWasteland.Core
                 var record = _record(peer); if (record == null) continue;
                 float following; if (_stats(record).TryGetValue("ww.hire", out following) && following == 1) _followerPeer = peer;
                 long owed = Read(_stats(record), OwedKeys); byte flags = BossFlags();
-                Multiplayer.Send(3, w => { w.Write(owed); w.Write(flags); }, peer);
+                // Reliable, so a repeat only costs bandwidth: send when the values changed or every 5 s as a keepalive.
+                SentState last; bool fresh = Sent.TryGetValue(peer, out last);
+                if (!fresh || last.Owed != owed || last.Flags != flags || Time.unscaledTime >= last.Next)
+                {
+                    Multiplayer.Send(3, w => { w.Write(owed); w.Write(flags); }, peer);
+                    Sent[peer] = new SentState { Owed = owed, Flags = flags, Next = Time.unscaledTime + 5f, Transactions = null };   // a fresh entry also re-sends the transactions
+                }
                 SendTransactions(peer, _stats(record));
             }
         }
+        sealed class SentState { internal long Owed; internal byte Flags; internal float Next; internal long[] Transactions; }
+        static readonly Dictionary<ulong, SentState> Sent = new Dictionary<ulong, SentState>();
+        internal static void ForgetSent(ulong peer) { Sent.Remove(peer); }
         internal static bool PlayerReady { get { return _restored && _restore(null) == null; } }
         static byte BossFlags()
         {

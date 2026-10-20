@@ -52,6 +52,7 @@ namespace WildWasteland.Core
         }
         internal static bool Local(ConfigEntryBase e)
         {
+            if (e.Definition.Section == "Multiplayer" && e.Definition.Key == "Name") return true;
             if (ReferenceEquals(e, MultiplayerNames.FloatingNames)) return true;
             if (Debug(e) || Performance(e) || ReferenceEquals(e.ConfigFile, Plugin.Tools)) return false;
             if (NavigationModule(e)) return false;

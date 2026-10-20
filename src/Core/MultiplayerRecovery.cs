@@ -13,10 +13,11 @@ namespace WildWasteland.Core
     {
         const string SnapshotKey = "WildWastelandMP.PlayerSnapshot";
         const string RecoveryKey = "ww.recovery";
+        const string RespawningKey = "ww.respawning";
         static Func<object, Dictionary<string, float>> _stats;
         static Func<object, string> _key;
         static Func<Dictionary<string, float>> _capture;
-        static Action _report, _refresh;
+        static Action _refresh;
         static Action<string> _notice, _end;
         static Func<ulong, object> _record;
         static Func<object, object> _pendingRestore;
@@ -25,7 +26,10 @@ namespace WildWasteland.Core
         static readonly HashSet<string> Dirty = new HashSet<string>(StringComparer.Ordinal);
         static readonly HashSet<ulong> Clean = new HashSet<ulong>();
         static readonly HashSet<ulong> Waiting = new HashSet<ulong>();
+        static readonly HashSet<object> DeadInventory = new HashSet<object>();
         static float _next, _deadline;
+        static object _restoreWaiting;
+        static float _restoreDeadline;
         static ulong _token, _leaveToken;
         static bool _collecting, _leaving, _left, _quitAllowed;
         static string _warning;
@@ -43,7 +47,6 @@ namespace WildWasteland.Core
             _hasAll = MultiplayerAccess.Call<Func<object, bool>>(Multiplayer.Type("Net.WorldObjects"), "HasAll", record);
             _spawning = MultiplayerAccess.Get<ulong?>(session, "spawnNextToPeer");
             _capture = MultiplayerAccess.Call<Func<Dictionary<string, float>>>(vitals, "Capture", Type.EmptyTypes);
-            _report = MultiplayerAccess.Call<Action>(session, "SendPlayerSave", Type.EmptyTypes);
             _refresh = MultiplayerAccess.Call<Action>(session, "RefreshRecords", Type.EmptyTypes);
             _notice = MultiplayerAccess.Call<Action<string>>(Multiplayer.Type("UI.Chat"), "Notice", typeof(string));
             _end = MultiplayerAccess.Call<Action<string>>(session, "End", typeof(string));
@@ -74,6 +77,7 @@ namespace WildWasteland.Core
         static void CaptureArmor(Dictionary<string, float> __result)
         {
             if (!Multiplayer.Active || __result == null) return;
+            __result[RespawningKey] = MultiplayerRespawn.Unsafe ? 1 : 0;
             MultiplayerRoster.Capture(__result);
             var fsm = Armor(); if (fsm == null) return;
             foreach (string name in ArmorFields)
@@ -93,9 +97,17 @@ namespace WildWasteland.Core
         { if (Multiplayer.Hosting && __0 != "host") { MultiplayerSleepers.Waking(__result); Dirty.Add(__0); } }
         static void SavedPlayerPosition(object __instance)
         {
-            if (!Multiplayer.Hosting || !MultiplayerSaving.Frozen) return;
+            if (!Multiplayer.Hosting) return;
+            DeadInventory.Remove(__instance);
             GameObject car = null;
-            foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) if (ReferenceEquals(_record(peer), __instance)) { car = MultiplayerPlayers.Car(peer); break; }
+            foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) if (ReferenceEquals(_record(peer), __instance))
+            {
+                if (MultiplayerPlayers.Downed(peer) || RespawningRecord(__instance)) _setHasPosition(__instance, false);
+                // Health is clamped to 1 while downed; a record stored now comes back as if revived (same policy as a downed leaver).
+                if (MultiplayerPlayers.Downed(peer)) { float revive = MultiplayerSleepers.ReviveHealth; var stats = _stats(__instance); float health; if (stats.TryGetValue("p.Health", out health) && health < revive) stats["p.Health"] = revive; }
+                car = MultiplayerPlayers.Car(peer); break;
+            }
+            if (!MultiplayerSaving.Frozen) return;
             Log.Always("[Multiplayer] Save owner position: " + _key(__instance) + " / " + _name(__instance) + " at world " + _position(__instance).ToString("F2") + (car != null ? "; vehicle " + car.name + " at world " + Origin.World(car.transform.position).ToString("F2") : "; no vehicle in latest avatar state"));
         }
         static void HostClosing()
@@ -111,7 +123,18 @@ namespace WildWasteland.Core
             // Native has just refreshed and detached this owner's items; retain that validated state, including offline players.
             Checkpoint();
         }
-        static void BeforeRestore(out object __state) { __state = Multiplayer.Client ? _pendingRestore(null) : null; MultiplayerSleepers.RestoreStarted(__state); }
+        static bool BeforeRestore(out object __state)
+        {
+            __state = Multiplayer.Client ? _pendingRestore(null) : null; MultiplayerSleepers.RestoreStarted(__state);
+            if (__state == null || !Multiplayer.WorldReady) return true;
+            if (_hasAll(__state)) { _restoreWaiting = null; return true; }
+            // The world catalogue is now streamed with back-pressure. Native's fixed 20-second
+            // timeout must not apply a partial inventory while later object IDs are still in flight.
+            if (!ReferenceEquals(_restoreWaiting, __state)) { _restoreWaiting = __state; _restoreDeadline = Time.unscaledTime + 90f; }
+            if (Time.unscaledTime >= _restoreDeadline)
+                _end("Saved inventory objects did not all arrive. Your server player record and sleeping body were retained; reconnect to try again.");
+            return false;
+        }
         static void AfterRestore(object __state)
         {
             if (__state == null || !Multiplayer.Client || _pendingRestore(null) != null) return;
@@ -125,8 +148,19 @@ namespace WildWasteland.Core
         static void Changed()
         {
             if (Multiplayer.Active) return;
-            _collecting = false; Waiting.Clear(); Clean.Clear(); _armor = null; _warning = null;
+            _collecting = false; Waiting.Clear(); Clean.Clear(); DeadInventory.Clear(); _armor = null; _warning = null; _restoreWaiting = null;
         }
+        internal static void PlayerDied(ulong peer)
+        {
+            if (!Multiplayer.Hosting || !MultiplayerSleepers.WelcomedPeer(peer)) return;
+            var record = _record(peer); if (record == null) return;
+            // Dropped objects now belong to the world. They must not be excluded or removed
+            // using the preceding five-second inventory report before the next report arrives.
+            _items(record).Clear(); _setHasPosition(record, false); DeadInventory.Add(record);
+        }
+        internal static bool PendingDeath(object record) { return DeadInventory.Contains(record); }
+        internal static bool RespawningRecord(object record)
+        { float value; return record != null && _stats(record).TryGetValue(RespawningKey, out value) && value == 1; }
         static void Tick()
         {
             string error = TakeWriteError();
@@ -134,7 +168,8 @@ namespace WildWasteland.Core
             if (TakeWriteSuccess()) Log.Always("[Multiplayer] Player checkpoint written (player data only; no world save or pause)");
             if (_warning != null && Multiplayer.WorldReady && !LoadingProgress.MenusBlocked && !SaveBus.Busy)
             { string warning = _warning; _warning = null; _notice(warning); Log.Always("[Multiplayer] " + warning); }
-            if (!Multiplayer.Hosting || !Multiplayer.WorldReady || MultiplayerSaving.Frozen || SaveBus.Busy || _file == null) return;
+            if (!Multiplayer.Hosting || !Multiplayer.WorldReady || MultiplayerSaving.Frozen || SaveBus.Busy || _file == null
+                || MultiplayerItems.ResourceBusy || MultiplayerItems.ResourceFailure != null) return;
             if (_collecting)
             {
                 if (Waiting.Count != 0 && Time.unscaledTime < _deadline) return;
@@ -144,8 +179,9 @@ namespace WildWasteland.Core
             }
             if (Time.unscaledTime < _next) return;
             _collecting = true; _token++; _deadline = Time.unscaledTime + 15f; _next = Time.unscaledTime + 300f;
-            Waiting.Clear(); foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) Waiting.Add(peer);
-            Multiplayer.Send(143, w => w.Write(_token));
+            Waiting.Clear(); foreach (ulong peer in MultiplayerReliable.ConnectedPeers())
+                if (MultiplayerSleepers.ReadyPeer(peer) && MultiplayerPlayers.HasSnapshot(peer) && !MultiplayerHandshake.Joining(peer)) Waiting.Add(peer);
+            foreach (ulong peer in Waiting) Multiplayer.Send(143, w => w.Write(_token), peer);
         }
         static void Receive(ulong from, byte kind, BinaryReader reader)
         {
@@ -180,12 +216,12 @@ namespace WildWasteland.Core
             if (!Multiplayer.Client || !Multiplayer.WorldReady || !MultiplayerParty.PlayerReady || MultiplayerSaving.Frozen || _spawning(null).HasValue) yield break;
             while (!FlushInventory())
             { if (!Multiplayer.Client || Time.unscaledTime >= deadline) yield break; yield return null; }
-            try { _report(); Multiplayer.Send(144, w => { w.Write(token); w.Write(clean); }); }
+            try { if (MultiplayerSleepers.Report()) Multiplayer.Send(144, w => { w.Write(token); w.Write(clean); }); }
             catch (Exception error) { Log.Error("[Multiplayer] Player checkpoint report failed", error); }
         }
         static bool FlushInventory()
         {
-            try { return MultiplayerItems.FlushInventory(); }
+            try { bool flushed = MultiplayerItems.FlushInventory(); if (!flushed) MultiplayerSleepers.AbortFailedInventory(); return flushed; }
             catch (Exception error) { Log.Error("[Multiplayer] Player inventory flush failed", error); return false; }
         }
         internal static void Leave(Action then)

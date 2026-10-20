@@ -247,7 +247,7 @@ namespace WildWasteland.Modules.Patrols
                 if (state == "LoadGame") _loadSlot = CurrentSaveSlot();
                 if (state == "LoadGame" || state == "setSeed") WorldTraffic.ResetForScene();
                 if (state == "isPlay" && _pendingData != null)
-                { _flushAt = Time.unscaledTime + 1f; if (Core.Multiplayer.Hosting) Core.SaveBus.AfterSave(FlushPending); }
+                { _flushAt = Time.unscaledTime + 1f; Core.SaveBus.AfterSave(FlushPending); }
                 if ((state == "loaded" || state == "Wait for Terrain Gen" || state == "isPlay") && !string.IsNullOrEmpty(_loadSlot) && !_restoreRunning)
                 {
                     string slot = _loadSlot;
@@ -552,8 +552,12 @@ namespace WildWasteland.Modules.Patrols
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             string temp = path + ".tmp", backup = path + ".bak";
             File.WriteAllBytes(temp, bytes);
-            if (File.Exists(path)) File.Replace(temp, path, backup);
-            else File.Move(temp, path);
+            if (File.Exists(path))
+            {
+                string stagedBackup = backup + ".tmp";
+                File.Copy(path, stagedBackup, true); Core.AtomicFile.Replace(stagedBackup, backup);
+            }
+            Core.AtomicFile.Replace(temp, path);
         }
 
         private static byte[] Serialize(PatrolSaveData data)

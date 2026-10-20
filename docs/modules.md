@@ -1,5 +1,7 @@
 # Modules
 
+Multiplayer assessment fixes (2026-10-20, Testing): coordinated Core networking/save/object authority changes, Guns boss spawn-factor preservation, NPC per-target cave senses, Patrols guest ram contacts/offline save publication, and PlayerBody downed/input/cache lifecycle corrections. Handshake 27 requires the exact build on every peer. New local top-level Install identity config affects non-Steam record identity; existing ambiguous username records are retained without automatic reassignment. See notes/multiplayer-assessment-fixes-2026-10-20.md for integration contracts, supported resource-use paths, remaining limits and manual checks. Runtime acceptance remains Denis's.
+
 Default save engine without ApocalypterMP (2026-10-19, Testing): Core now initializes the existing save transactions/library/autosaves/recovery/history/cleanup/vehicle-load support with native offline adapters, then optional network delegates. CleanHUD uses its installed catalog/Continue independently of bridge presence. Quests shares Core mouse-look interception. No config keys, module data/save schemas, packets or standalone SP changes. Build/deployment and manual checks: notes/offline-save-default-2026-10-19.md.
 
 One row per mechanic that lives (or will live) in Wild Wasteland. "Ported from" is the source repo commit the code was taken from, so later fixes in the standalone mod can be diffed and carried over. Snapshot date of every source tree: **2026-10-13**.

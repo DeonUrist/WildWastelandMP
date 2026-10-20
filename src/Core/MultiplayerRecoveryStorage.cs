@@ -125,6 +125,8 @@ namespace WildWasteland.Core
             if (_file == null) return;
             try
             {
+                if (MultiplayerItems.ResourceBusy || MultiplayerItems.ResourceFailure != null)
+                { _closedLines = null; Log.Warn("[Multiplayer] Final player checkpoint withheld because a shared item interaction is unresolved; the previous checkpoint was retained"); return; }
                 if (Multiplayer.Hosting && Multiplayer.WorldReady)
                 {
                     Dirty.Remove("host");
@@ -161,7 +163,7 @@ namespace WildWasteland.Core
             if (GameRefs.Player != null)
             {
                 var stats = _capture(); _setStats(_hostRecord, stats); _setName(_hostRecord, Multiplayer.PlayerName);
-                float health; _setHasPosition(_hostRecord, !stats.TryGetValue("p.Health", out health) || health >= 1);
+                _setHasPosition(_hostRecord, !HostSaveSystem.LocalUnsafe);
                 _setPosition(_hostRecord, _global(GameRefs.Player.transform.position)); _setYaw(_hostRecord, GameRefs.Player.transform.eulerAngles.y);
                 _setInventory(_hostRecord, 0, _inventory()); AddRecord(lines, _hostRecord);
             }
@@ -187,7 +189,8 @@ namespace WildWasteland.Core
         }
         internal static bool Checkpoint()
         {
-            if (_file == null || !Multiplayer.Hosting || !Multiplayer.WorldReady || HostSaveSystem.Busy || MultiplayerSaving.Frozen || MultiplayerPlayerReset.Pending) return false;
+            if (_file == null || !Multiplayer.Hosting || !Multiplayer.WorldReady || HostSaveSystem.Busy || MultiplayerSaving.Frozen || MultiplayerPlayerReset.Pending
+                || MultiplayerItems.ResourceBusy || MultiplayerItems.ResourceFailure != null) return false;
             try { QueueWrite(_file, CaptureLines()); return true; }
             catch (Exception error) { Log.Error("[Multiplayer] Player checkpoint capture failed", error); _warning = "Player checkpoint could not be captured. Check the log."; return false; }
         }
@@ -215,7 +218,12 @@ namespace WildWasteland.Core
                 try
                 {
                     string temp = path + ".tmp"; File.WriteAllLines(temp, lines);
-                    if (File.Exists(path)) File.Replace(temp, path, path + ".bak"); else File.Move(temp, path);
+                    if (File.Exists(path))
+                    {
+                        string backup = path + ".bak", stagedBackup = backup + ".tmp";
+                        File.Copy(path, stagedBackup, true); AtomicFile.Replace(stagedBackup, backup);
+                    }
+                    AtomicFile.Replace(temp, path);
                     lock (WriteLock) _writeSuccess = true;
                 }
                 catch (Exception error) { lock (WriteLock) _writeError = error.Message; }

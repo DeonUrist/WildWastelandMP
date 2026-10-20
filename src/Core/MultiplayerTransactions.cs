@@ -58,7 +58,16 @@ namespace WildWasteland.Core
         }
         static void SendTransactions(ulong peer, Dictionary<string, float> stats)
         {
-            Multiplayer.Send(4, w => { w.Write(Read(stats, CreditOwed)); for (int i = 0; i < Debits.Length; i++) w.Write(Read(stats, DebitOwed[i])); }, peer);
+            // Same policy as the party packet: only when a value changed, or with the 5 s keepalive that resets Sent[peer].
+            SentState last; var values = new long[Debits.Length + 1]; values[0] = Read(stats, CreditOwed);
+            for (int i = 0; i < Debits.Length; i++) values[i + 1] = Read(stats, DebitOwed[i]);
+            if (Sent.TryGetValue(peer, out last) && last.Transactions != null)
+            {
+                bool same = true; for (int i = 0; i < values.Length && same; i++) same = last.Transactions[i] == values[i];
+                if (same) return;
+            }
+            if (last != null) last.Transactions = values;
+            Multiplayer.Send(4, w => { for (int i = 0; i < values.Length; i++) w.Write(values[i]); }, peer);
         }
         static void ReceiveTransactions(ulong peer, BinaryReader reader)
         {

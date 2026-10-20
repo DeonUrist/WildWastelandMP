@@ -74,7 +74,8 @@ namespace WildWasteland.Core
                     // Legacy MP hits carry no shot origin/weapon. WW projectile ranges cannot validate them;
                     // in particular the creature may have moved since the client's collision. WW shots use kind 128.
                     float distance = Vector3.Distance(root.transform.position, player.transform.position);
-                    if (Mathf.Abs(damage) > 10000f || distance > 1000f || !Multiplayer.RemoteTargetable(player))
+                    // Legacy hits are vanilla melee/fist/knife replays (reach under 3 m); 60 m covers a round trip of movement on both sides.
+                    if (Mathf.Abs(damage) > 10000f || distance > 60f || !Multiplayer.RemoteTargetable(player))
                     {
                         if (Log.Verbose) Log.Info("[Multiplayer] Rejected legacy creature hit: player " + from + ", distance " + distance.ToString("0.0") + ", targetable " + Multiplayer.RemoteTargetable(player));
                         return false;

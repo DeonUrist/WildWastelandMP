@@ -13,7 +13,7 @@ namespace WildWasteland.Modules.Guns
     // Above 100 % only an unhurt boss (Health = base) is raised, once per instance.
     internal static class Bosses
     {
-        private sealed class Boss { public GameObject Go; public string Name; public float Base; public FsmFloatRef Hp; }
+        private sealed class Boss { public GameObject Go; public string Name; public float Base; public float GroupFactor = 1f; public bool GroupKnown, PreserveHealth; public FsmFloatRef Hp; }
         private sealed class FsmFloatRef { public PlayMakerFSM Fsm; public HutongGames.PlayMaker.FsmFloat Var; }
 
         private static readonly Dictionary<string, float> Base = new Dictionary<string, float> { { "Duke_Ironjaw", 1500f }, { "Buzzgut", 600f } };
@@ -23,6 +23,20 @@ namespace WildWasteland.Modules.Guns
         private static readonly List<int> _dead = new List<int>();
         private static float _next, _nextScan;
         private static int _scanBurst;
+
+        internal static void Install()
+        {
+            if (Multiplayer.Present && !Core.Patches.Patch(GunsModule.Instance,
+                HarmonyLib.AccessTools.Method(Multiplayer.Type("Game.GroupScaling"), "ScaleHealth"),
+                postfix: HarmonyLib.AccessTools.Method(typeof(Bosses), "AfterGroupScale")))
+                throw new InvalidOperationException("MP boss health scaling hook failed");
+        }
+        private static void AfterGroupScale(GameObject __0, float __1)
+        {
+            if (!Multiplayer.Hosting || __0 == null || !(__1 >= 1f) || float.IsInfinity(__1)) return;
+            Registered(__0); Boss boss;
+            if (_bosses.TryGetValue(__0.GetInstanceID(), out boss)) { boss.GroupFactor = __1; boss.GroupKnown = true; boss.PreserveHealth = false; }
+        }
 
         public static void OnSceneLoaded() { _raised.Clear(); _bosses.Clear(); _detected.Clear(); _next = 0f; _nextScan = Time.unscaledTime + 2f; _scanBurst = 4; }
 
@@ -39,7 +53,7 @@ namespace WildWasteland.Modules.Guns
             foreach (var bo in _bosses.Values)
             {
                 if (bo.Go == null) continue;
-                into.Add(bo.Name + ": " + (bo.Hp != null && bo.Hp.Var != null ? bo.Hp.Var.Value.ToString("0") : "?") + " / " + (bo.Base * pct).ToString("0"));
+                into.Add(bo.Name + ": " + (bo.Hp != null && bo.Hp.Var != null ? bo.Hp.Var.Value.ToString("0") : "?") + (bo.PreserveHealth ? " (restored health retained)" : " / " + (bo.Base * bo.GroupFactor * pct).ToString("0")));
             }
         }
 
@@ -126,10 +140,13 @@ namespace WildWasteland.Modules.Guns
                             break;
                         }
                     if (bo.Hp == null) continue;        // not initialised yet: next tick
+                    // A saved boss has no recoverable original maximum; do not cap or multiply an already raised value again.
+                    bo.PreserveHealth = Multiplayer.Hosting && !bo.GroupKnown && bo.Hp.Var.Value > bo.Base + .5f;
                 }
+                if (bo.PreserveHealth) continue;
                 var v = bo.Hp.Var;
                 if (v.Value < 1f) continue;
-                float b = bo.Base, target = b * pct;
+                float b = bo.Base * bo.GroupFactor, target = b * pct;
                 int id = kv.Key;
                 if (v.Value > target + 0.5f)
                 {

@@ -978,6 +978,7 @@ namespace WildWasteland.Modules.NPC
             // nothing to an NPC whose faction is at peace with the player (Coyotes towns): it only alerts NPCs hostile to the player. Hits
             // still count (being shot makes the game turn the faction hostile anyway) and so do fights between NPCs.
             bool aboutPlayer = src != Src.Hit && PlayerRelated(source, subject);
+            bool outsideCave = aboutPlayer && _hasSpiders && SpiderAmbient(pos + Vector3.up) >= .999f;
             Ghost shared = at == null ? GetOrMake(src, pos, source, about, 0f, 1f, now) : null;
             if (shared != null) shared.Subject = subject;
             int told = 0;
@@ -998,7 +999,7 @@ namespace WildWasteland.Modules.NPC
                 if (allowed != null && !a.Spider && !allowed.Contains(a)) continue;
                 if (aboutPlayer && !a.Hostile.Contains("Player")) continue;
                 if (a.Blown) continue;                                      // the tornado's roar: hears nothing
-                if (aboutPlayer && OutsideCaveWeb(a)) { Log(a, "ignores noise: player outside cave and beyond 3 m"); continue; }
+                if (aboutPlayer && OutsideCaveWeb(a, pos, outsideCave)) { Log(a, "ignores noise: source outside cave and beyond 3 m"); continue; }
                 if (a.Spider && (src == Src.Gunshot || src == Src.Shout)) a.AmbushDist = 0f;
                 Ghost g = shared;
                 if (g == null) { g = GetOrMake(src, at(a), source, about, 0f, 1f, now); g.Subject = subject; }

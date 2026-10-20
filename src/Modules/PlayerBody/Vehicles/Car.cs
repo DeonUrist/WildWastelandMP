@@ -100,12 +100,12 @@ namespace WildWasteland.Modules.PlayerBody
         {
             _simIgnition = false;
             var ignition = Core.Services.VehicleIgnition;
-            bool input = PlayerBodyModule.IgnitionControlOn.Value && !Core.ApocasetterBridge.InputBlocked && Application.isFocused;
+            bool input = PlayerBodyModule.IgnitionControlOn.Value && ControlsAvailable;
             if (ignition != null && ignition.TryPlayer(_startCar.gameObject,
                 input && PressedAction(GameBindings.IgnitionAction, PlayerBodyModule.IgnitionKeyCode),
                 input && HeldAction(GameBindings.IgnitionAction, PlayerBodyModule.IgnitionKeyCode), out _simKeyOn, out _simRunning, out _simCranking))
             { _simIgnition = true; return; }
-            if (_start == null || !PlayerBodyModule.IgnitionControlOn.Value || !Active(_start) || Core.ApocasetterBridge.InputBlocked) return;
+            if (_start == null || !input || !Active(_start)) return;
             if (!PressedAction(GameBindings.IgnitionAction, PlayerBodyModule.IgnitionKeyCode)) return;
             try
             {
@@ -133,9 +133,10 @@ namespace WildWasteland.Modules.PlayerBody
         }
 
         private static bool Active(PlayMakerFSM f) { return f != null && f.isActiveAndEnabled && f.Fsm != null && f.Fsm.Initialized; }
+        private static bool ControlsAvailable { get { return !Core.Multiplayer.Typing && !Core.UI.EditorSession.Busy && !Core.ApocasetterBridge.InputBlocked && Application.isFocused; } }
         private static bool Pressed(KeyCode key)
         {
-            if (key == KeyCode.None) return false;
+            if (!ControlsAvailable || key == KeyCode.None) return false;
             if (Input.GetKeyDown(key)) return true;
             // Unity reports the physical = key for + on the main keyboard.
             if (key == KeyCode.Equals || key == KeyCode.Plus) return GameBindings.KeyDown(KeyCode.Equals) || GameBindings.KeyDown(KeyCode.Plus) || GameBindings.KeyDown(KeyCode.KeypadPlus);
@@ -143,9 +144,10 @@ namespace WildWasteland.Modules.PlayerBody
             return false;
         }
         private static bool PressedAction(string action, KeyCode fallback)
-        { return GameBindings.Find(action) != null ? GameBindings.Down(action, KeyCode.None) : Pressed(fallback); }
+        { return ControlsAvailable && (GameBindings.Find(action) != null ? GameBindings.Down(action, KeyCode.None) : Pressed(fallback)); }
         private static bool HeldAction(string action, KeyCode fallback)
         {
+            if (!ControlsAvailable) return false;
             var binding = GameBindings.Find(action);
             return binding != null ? GameBindings.KeyHeld(binding.Key) || GameBindings.KeyHeld(binding.AlternativeKey) : GameBindings.KeyHeld(fallback);
         }

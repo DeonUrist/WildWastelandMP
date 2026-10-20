@@ -62,17 +62,27 @@ namespace WildWasteland.Core
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             using (var output = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)) { output.Write(bytes, 0, bytes.Length); output.Flush(true); }
         }
-        internal static void CopyVerified(string source, string target)
+        // One read of the source (hashed while it is copied) and one read of the target, instead of a copy plus two or three extra
+        // full reads. The verification is unchanged: the bytes written must hash like the bytes read.
+        internal static string CopyVerified(string source, string target)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(target));
-            using (var input = File.OpenRead(source)) using (var output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None)) { input.CopyTo(output); output.Flush(true); }
-            if (Hash(source) != Hash(target)) throw new IOException("Backup/copy verification failed: " + Path.GetFileName(source));
+            string sourceHash;
+            using (var input = File.OpenRead(source)) using (var output = new FileStream(target, FileMode.Create, FileAccess.Write, FileShare.None)) using (var sha = SHA256.Create())
+            {
+                var buffer = new byte[1 << 16]; int read;
+                while ((read = input.Read(buffer, 0, buffer.Length)) > 0) { sha.TransformBlock(buffer, 0, read, null, 0); output.Write(buffer, 0, read); }
+                sha.TransformFinalBlock(buffer, 0, 0); sourceHash = Convert.ToBase64String(sha.Hash);
+                output.Flush(true);
+            }
+            if (sourceHash != Hash(target)) throw new IOException("Backup/copy verification failed: " + Path.GetFileName(source));
+            return sourceHash;
         }
         internal static void Publish(string source, string target)
         {
-            string stage = target + ".ww-publish"; CopyVerified(source, stage);
+            string stage = target + ".ww-publish"; string sourceHash = CopyVerified(source, stage);
             AtomicFile.Replace(stage, target);
-            if (Hash(source) != Hash(target)) throw new IOException("Published save verification failed");
+            if (sourceHash != Hash(target)) throw new IOException("Published save verification failed");
         }
         internal void Prepare(IEnumerable<string> files)
         {
@@ -83,8 +93,8 @@ namespace WildWasteland.Core
                 Token(full); var entry = new Entry { Path = full, Existed = File.Exists(full) };
                 if (entry.Existed)
                 {
-                    entry.WriteTicks = File.GetLastWriteTimeUtc(full).Ticks; entry.Hash = Hash(full); string copy = Path.Combine(DirectoryPath, "old-" + Entries.Count + ".bin"); CopyVerified(full, copy);
-                    if (Hash(copy) != entry.Hash) throw new IOException("Save participant changed while its backup was being prepared");
+                    // The hash is taken from the bytes that went into the backup copy, and the copy is verified against it.
+                    entry.WriteTicks = File.GetLastWriteTimeUtc(full).Ticks; string copy = Path.Combine(DirectoryPath, "old-" + Entries.Count + ".bin"); entry.Hash = CopyVerified(full, copy);
                 }
                 Entries.Add(entry);
             }

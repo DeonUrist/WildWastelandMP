@@ -16,7 +16,8 @@ namespace WildWasteland.Core
         internal static bool Frozen { get; private set; }
         static bool _serializing, _preparing, _wroteWorld, _snapshotPrepared;
         static float _scale, _warn;
-        static float _phaseRetry;
+        static float _phaseRetry, _phaseStarted;
+        const float PhaseBound = 30f;   // a participant that cannot answer (restore still waiting for objects) must not pause everyone for longer
         static ulong _token;
         static byte _phase;
         static IEnumerator _flush;
@@ -31,7 +32,6 @@ namespace WildWasteland.Core
         static Func<object, Quaternion> _rotation;
         static readonly HashSet<ulong> Waiting = new HashSet<ulong>();
         static readonly List<ulong> Gone = new List<ulong>();
-        static Action _report;
         static Func<string, Action, IEnumerator> _save;
         static bool _blocked;
         static Button _saveButton;
@@ -54,7 +54,6 @@ namespace WildWasteland.Core
             _saving = MultiplayerAccess.Set<bool>(saver, "<Saving>k__BackingField");
             var tracked = Multiplayer.Type("Net.WorldObjects+Tracked");
             _position = MultiplayerAccess.Get<Vector3>(tracked, "Position"); _rotation = MultiplayerAccess.Get<Quaternion>(tracked, "Rotation");
-            _report = MultiplayerAccess.Call<Action>(Multiplayer.Type("Net.NetSession"), "SendPlayerSave", Type.EmptyTypes);
             _save = MultiplayerAccess.Call<Func<string, Action, IEnumerator>>(saver, "Save", typeof(string), typeof(Action));
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(saver, "Save"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "DeferCallback"), postfix: AccessTools.Method(typeof(MultiplayerSaving), "Wrap"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(Multiplayer.Type("Game.PauseControl"), "Tick"), prefix: AccessTools.Method(typeof(MultiplayerSaving), "PauseTick"))
@@ -110,7 +109,7 @@ namespace WildWasteland.Core
         }
         static bool FrozenPose(object __0)
         {
-            if (!Frozen) return true;
+            if (!Frozen) return !MultiplayerPerf.FollowSettled(__0);   // one FollowTarget prefix: settled copies skip the transform write
             var root = Multiplayer.TrackedObject(__0);
             if (root != null) root.transform.SetPositionAndRotation(Origin.Scene(_position(__0)), _rotation(__0));
             return false;
@@ -186,6 +185,11 @@ namespace WildWasteland.Core
             while (Multiplayer.Hosting && MultiplayerPlayerReset.Pending) yield return null;
             if (!Multiplayer.Hosting || _preparing || _serializing) yield break;
             if (HostSaveSystem.DeferScheduledSave()) yield break;
+            if (HostSaveSystem.ResourceProblem != null)
+            {
+                HostSaveSystem.Abort(new IOException(HostSaveSystem.ResourceProblem));
+                (original as IDisposable)?.Dispose(); yield break;
+            }
             _preparing = true; _token = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0);
             _generation = SaveBus.Generation; _hostRole = true;
             _wroteWorld = _snapshotPrepared = _completed = false;
@@ -246,15 +250,23 @@ namespace WildWasteland.Core
         static void StartPhase(byte phase)
         {
             _phase = phase; Waiting.Clear();
-            _phaseRetry = Time.unscaledTime + 1f;
-            foreach (ulong peer in MultiplayerReliable.ConnectedPeers()) Waiting.Add(peer);
-            Multiplayer.Send(100, w => { w.Write(_token); w.Write(phase); });
+            _phaseRetry = Time.unscaledTime + 1f; _phaseStarted = Time.unscaledTime;
+            foreach (ulong peer in MultiplayerReliable.ConnectedPeers())
+                if (Participant(peer)) Waiting.Add(peer);
+            foreach (ulong peer in Waiting) Multiplayer.Send(100, w => { w.Write(_token); w.Write(phase); }, peer);
         }
+        static bool Participant(ulong peer)
+        { return MultiplayerSleepers.ReadyPeer(peer) && MultiplayerPlayers.HasSnapshot(peer) && !MultiplayerHandshake.Joining(peer); }
         static void Prune()
         {
             Gone.Clear(); var peers = MultiplayerReliable.ConnectedPeers();
-            foreach (ulong peer in Waiting) if (!peers.Contains(peer)) Gone.Add(peer);
+            foreach (ulong peer in Waiting) if (!peers.Contains(peer) || !Participant(peer)) Gone.Add(peer);
             foreach (ulong peer in Gone) Waiting.Remove(peer);
+            if (Waiting.Count != 0 && Time.unscaledTime - _phaseStarted > PhaseBound)
+            {
+                foreach (ulong peer in Waiting) Log.Warn("[Multiplayer] Server save: player " + peer + " did not report within " + PhaseBound + " s; its last report is used");
+                Waiting.Clear();
+            }
             if (Time.unscaledTime >= _phaseRetry)
             {
                 _phaseRetry = Time.unscaledTime + 1f;
@@ -273,8 +285,15 @@ namespace WildWasteland.Core
             if (Frozen && (_generation != SaveBus.Generation || _hostRole != Multiplayer.Hosting || !Multiplayer.Active))
             { DisposeFlush(); Waiting.Clear(); _preparing = _serializing = false; _excluded = null; SetFrozen(false); }
             if (Frozen) Time.timeScale = 0f;
+            if (Multiplayer.Client && _flush != null && MultiplayerSleepers.AbortFailedInventory()) return;
             if (!Multiplayer.Client || _flush == null || !Multiplayer.WorldReady || MultiplayerParts.Pending || UltimateToolsCompat.Busy || !MultiplayerParty.PlayerReady) return;
-            try { if (_flush.MoveNext()) return; DisposeFlush(); _report(); _flushed = true; }
+            try
+            {
+                if (_flush.MoveNext()) return;
+                DisposeFlush();
+                if (!MultiplayerSleepers.Report()) return;
+                _flushed = true;
+            }
             catch (Exception error) { _flushed = false; Log.Error("[Multiplayer] Owner save flush failed; waiting for a retry", error); DisposeFlush(); return; }
             Multiplayer.Send(101, w => { w.Write(_token); w.Write(_phase); });
         }
@@ -320,6 +339,8 @@ namespace WildWasteland.Core
             { if (Multiplayer.Hosting && token == _token && phase == _phase) Waiting.Remove(from); return; }
             if (!Multiplayer.Client || from != 0) return;
             if (phase == 0) { if (token == _token) { DisposeFlush(); SetFrozen(false); } return; }
+            // A loading player's scaled-time waits must never be frozen by another player's save.
+            if (!Multiplayer.WorldReady || !MultiplayerParty.PlayerReady || !CanOwnerReport()) return;
             if (Frozen && token == _token && phase == _phase)
             {
                 if (_flush == null)
@@ -330,5 +351,6 @@ namespace WildWasteland.Core
             _generation = SaveBus.Generation; _hostRole = false;
             _flushed = false; DisposeFlush(); _flush = MultiplayerItems.FlushOwned();
         }
+        static bool CanOwnerReport() { return !MultiplayerSleepers.RestoringSleeper; }
     }
 }

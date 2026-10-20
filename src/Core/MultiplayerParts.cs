@@ -55,10 +55,13 @@ namespace WildWasteland.Core
         static bool Finite(Vector3 value) { return Finite(value.sqrMagnitude); }
         internal static bool HitPart(GameObject part, float damage, byte mode, Vector3 direction)
         {
-            if (!Multiplayer.Active) return false;
-            if (Part(part) && Finite(damage) && Finite(direction) && Mathf.Abs(damage) > .001f && Local.Count < 1024)
-                Local.Enqueue(new Hit { Part = part, Damage = damage, Mode = mode, Direction = direction.normalized });
-            else if (Local.Count >= 1024) Capacity();
+            if (!Multiplayer.Active || !Part(part) || mode > 2 || !Finite(damage) || !Finite(direction)
+                || Mathf.Abs(damage) <= .001f || Multiplayer.ObjectId(part) == 0 || mode != 2 && DamageLoss == null) return false;
+            if (Local.Count + _queued >= 1024) { Capacity(); return false; }
+            var fields = MultiplayerItems.Conditions(part); if (fields == null || fields.Length == 0) return false;
+            float loss = mode == 2 ? Mathf.Abs(damage) : DamageLoss(part, damage, mode);
+            if (!(loss > 0f) || !Finite(loss)) return false;
+            Local.Enqueue(new Hit { Part = part, Damage = damage, Loss = loss, Mode = mode, Direction = direction.normalized });
             return true;
         }
         static void Capacity()
@@ -71,7 +74,7 @@ namespace WildWasteland.Core
             if (id == 0 || hit.Mode != 2 && DamageLoss == null) return;
             if (_queued >= 1024) { Capacity(); return; }
             var fields = MultiplayerItems.Conditions(hit.Part); if (fields != null && fields.Length == 0) return;
-            float loss = hit.Mode == 2 ? Mathf.Abs(hit.Damage) : DamageLoss(hit.Part, hit.Damage, hit.Mode);
+            float loss = hit.Loss > 0f ? hit.Loss : hit.Mode == 2 ? Mathf.Abs(hit.Damage) : DamageLoss(hit.Part, hit.Damage, hit.Mode);
             if (!(loss > 0f) || !Finite(loss)) return;
             Work work;
             if (!Parts.TryGetValue(id, out work) || work.Part != hit.Part) { work = new Work { Part = hit.Part }; Parts[id] = work; }

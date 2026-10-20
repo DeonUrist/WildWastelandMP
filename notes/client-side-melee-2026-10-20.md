@@ -18,18 +18,18 @@ The goal: combat looks smooth for each player. Damage a player takes or deals ta
 ## Changes
 
 1. **`src/Core/MultiplayerCombat.Melee.cs`** (new) adds two hooks:
-   - **Host:** a prefix on native `Patches.ForwardDamagePatch.Prefix`. When a tracked creature's `Damage` FSM sends Damage to a guest presence, the host sends WW kind 160 (seq, creature id, damage, reach from the `AttackRaycast` RaySensor) instead of native PlayerDamage. It also keeps a pending record. Everything else (Damage Ranged, explosions, spikes, WW bullets) stays native.
-   - **Guest:** the guest handles kind 160 as follows:
+   - **Host:** a prefix on native `Patches.ForwardDamagePatch.Prefix`. When a tracked creature's `Damage` FSM sends Damage to a guest presence, the host sends WW kind 180 (seq, creature id, damage, reach from the `AttackRaycast` RaySensor) instead of native PlayerDamage. It also keeps a pending record. Everything else (Damage Ranged, explosions, spikes, WW bullets) stays native.
+   - **Guest:** the guest handles kind 180 as follows:
      - It skips the hit when downed or protected in a vehicle (`VehicleMeleeProtection.CanHit`).
      - Otherwise it measures the distance from its own copy of the creature's `AttackRaycast` (or root + 0.25 m) to the closest point of its own collider.
      - A hit needs distance ≤ reach + 0.8 m. The slack covers the guest seeing the creature about 0.1–0.2 s late.
      - If the creature is not spawned on the guest, the host's decision is applied.
      - A hit is applied exactly like vanilla: Bodypart.Damage is set, then "Damage" goes to every enabled FSM on the player (Bodypart and DamageEffectSound or DamageEffectSound_InCar).
-     - The guest answers with kind 161 (seq, hit, distance, health after) and always logs `[Multiplayer] Melee N from X: hit/dodged (...)`.
+     - The guest answers with kind 181 (seq, hit, distance, health after) and always logs `[Multiplayer] Melee N from X: hit/dodged (...)`.
    - **Host:** logs the result in verbose mode and marks combat activity on a hit. Guest health stays guest-owned.
    - **Guest:** a postfix on native `NetSession.ApplyPlayerDamage` fires DamageEffectSound or DamageEffectSound_InCar, so the remaining native hits (NPC bullets, explosions) also give feedback.
 2. **`src/Core/MultiplayerReliable.cs`:**
-   - Adds a second ordered lane (frame version byte 2, retry 0.2 s) for CreatureDamage, PlayerDamage and WW kinds 160/161.
+   - Adds a second ordered lane (frame version byte 2, retry 0.2 s) for CreatureDamage, PlayerDamage and WW kinds 180/181 (renumbered from 160/161 on 2026-10-20: those are the sleeper Pose/Remove packets, and the shared Message reader meant GuestMelee consumed 16 bytes of every host Pose packet).
    - World traffic stays on lane 0 (version 1, retry 0.35 s).
    - Dealt and received damage no longer wait behind lost world packets.
 3. **`src/Core/MultiplayerHandshake.cs`:** handshake 25 → 26. Every peer needs this build.

@@ -65,7 +65,7 @@ namespace WildWasteland.Modules.PlayerBody
             ulong epoch = reader.ReadUInt64(), peer = reader.ReadUInt64(); int hidden = reader.ReadUInt16();
             if (epoch == 0 || epoch != MultiplayerParts.Epoch || hidden > 511) return;
             if (Multiplayer.Hosting) { if (from == 0 || Multiplayer.PlayerFor(from) == null) return; peer = from; }
-            else if (!Multiplayer.Client || from != 0 || peer == Multiplayer.LocalPeer) return;
+            else if (!Multiplayer.Client || from != 0 || peer == Multiplayer.LocalPeer || !MultiplayerPlayers.Known(peer)) return;
             for (int i = 0; i < ReadEquipment.Length; i++)
             {
                 string name = reader.ReadString();

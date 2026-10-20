@@ -42,13 +42,13 @@ namespace WildWasteland.Core
         }
         static bool Event(Fsm fsm, FsmEvent ev, FsmEventData data)
         {
-            if (!HostSaveSystem.LocalWorld || ev == null || fsm == null) return true;
-            if (ev.Name == "Damage" || ev.Name == "Animal_Attack" || ev.Name == "Animal_Attack_Ranged") Activity();
+            if (ev == null || fsm == null || (ev.Name != "Damage" && ev.Name != "Animal_Attack" && ev.Name != "Animal_Attack_Ranged")) return true;
+            if (HostSaveSystem.LocalWorld) Activity();
             return true;
         }
         static void Attack(Fsm fsm, FsmState state)
         {
-            if (!HostSaveSystem.LocalWorld || fsm == null || fsm.Name != "Attack" || state == null) return;
+            if (fsm == null || fsm.Name != "Attack" || state == null || !HostSaveSystem.LocalWorld) return;
             if (state.Name == "fire" || state.Name == "attack" || state.Name == "attack_ranged" || state.Name == "throw") Activity();
         }
         internal static bool Check()

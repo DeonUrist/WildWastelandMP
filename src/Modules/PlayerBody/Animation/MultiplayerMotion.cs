@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 using WildWasteland.Core;
 
 namespace WildWasteland.Modules.PlayerBody
@@ -53,6 +55,7 @@ namespace WildWasteland.Modules.PlayerBody
         static readonly List<GameObject> UnusedDrivers = new List<GameObject>();
         static void ResetMotion()
         {
+            foreach (var body in Bodies.Values) EndDownedRest(body);
             foreach (var mask in DriverMasks.Values) mask.Restore(); DriverMasks.Clear(); UnusedDrivers.Clear();
             MotionFrames.Clear(); _nextMotion = 0; _motionEpoch = 0; _jumpState = ""; _jump = 0; _weaponBody = null; _weaponFrame = -1;
         }
@@ -116,10 +119,16 @@ namespace WildWasteland.Modules.PlayerBody
                 var body = pair.Value; HideNativeDriver(body);
                 if (body.Model == null || body.Remote == null) continue;
                 bool downed = _remoteDowned(body.Remote);
+                if (!downed) EndDownedRest(body);
                 if (!body.Motion && !downed) continue;
                 Frame first, second; float blend;
-                if (!MotionAt(body.Peer, _renderTime(body.Remote), body.Choice, out first, out second, out blend)) continue;
-                if (downed && (first.Mode != 4 || !string.IsNullOrEmpty(first.Weapon))) continue;
+                bool motion = MotionAt(body.Peer, _renderTime(body.Remote), body.Choice, out first, out second, out blend);
+                if (downed && (!motion || first.Mode != 4 || !string.IsNullOrEmpty(first.Weapon)))
+                {
+                    DownedRest(pair.Key, body); continue;
+                }
+                if (!motion) continue;
+                EndDownedRest(body);
                 var root = body.Model.transform;
                 var position = Vector3.Lerp(first.Position, second.Position, blend);
                 var rotation = Quaternion.Slerp(first.Rotation, second.Rotation, blend);
@@ -178,6 +187,32 @@ namespace WildWasteland.Modules.PlayerBody
             }
             _writing = Outgoing; Multiplayer.Send(82, WriteMotion, reliable: false);
         }
+        static void DownedRest(object native, BodyState body)
+        {
+            var parent = _remoteRoot(body.Remote); if (parent == null) return;
+            if (body.Character != null) body.Character.Suspended = true;
+            var pose = _pose(native); if (pose != null) pose.enabled = false;
+            var graph = _graph(native); if (graph.IsValid() && graph.IsPlaying()) graph.Stop();
+            _showAction(native, "", Time.unscaledDeltaTime);
+            if (!body.RestGraph.IsValid() && Crawling.Clip != null)
+            {
+                var animator = body.Model.GetComponent<Animator>();
+                if (animator != null && animator.isHuman)
+                {
+                    body.RestGraph = PlayableGraph.Create("MP downed rest");
+                    body.RestGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                    var clip = AnimationClipPlayable.Create(body.RestGraph, Crawling.Clip);
+                    clip.SetApplyFootIK(false); clip.SetApplyPlayableIK(false); clip.SetSpeed(0); clip.SetTime(0);
+                    var output = AnimationPlayableOutput.Create(body.RestGraph, "Downed rest", animator);
+                    output.SetSourcePlayable(clip); body.RestGraph.Play();
+                }
+            }
+            if (body.RestGraph.IsValid()) body.RestGraph.Evaluate(0);
+            var forward = -parent.transform.up; forward.y = 0;
+            if (forward.sqrMagnitude < .001f) forward = Vector3.forward;
+            body.Model.transform.SetPositionAndRotation(parent.transform.position - Vector3.up * .25f, Quaternion.LookRotation(forward.normalized, Vector3.up));
+        }
+        static void EndDownedRest(BodyState body) { if (body.RestGraph.IsValid()) body.RestGraph.Destroy(); }
         static short Packed(float value) { return (short)Mathf.Clamp(Mathf.RoundToInt(value * 32767), -32767, 32767); }
         static void Rotation(BinaryWriter writer, Quaternion rotation) { writer.Write(Packed(rotation.x)); writer.Write(Packed(rotation.y)); writer.Write(Packed(rotation.z)); writer.Write(Packed(rotation.w)); }
         static Quaternion Rotation(BinaryReader reader)
@@ -208,7 +243,7 @@ namespace WildWasteland.Modules.PlayerBody
             frame.Choice = reader.ReadByte(); frame.Jump = reader.ReadByte(); frame.Airborne = reader.ReadBoolean(); frame.Mode = reader.ReadByte();
             if (frame.Epoch != MultiplayerParts.Epoch || frame.Mode > 4 || frame.Choice >= MultiplayerModels.ChoiceCount || float.IsNaN(frame.Time) || float.IsInfinity(frame.Time) || frame.Time < 0) return;
             if (Multiplayer.Hosting) { if (from == 0 || Multiplayer.PlayerFor(from) == null) return; frame.Peer = from; }
-            else if (!Multiplayer.Client || from != 0 || frame.Peer == Multiplayer.LocalPeer) return;
+            else if (!Multiplayer.Client || from != 0 || frame.Peer == Multiplayer.LocalPeer || !MultiplayerPlayers.Known(frame.Peer)) return;
             if (frame.Mode != 0)
             {
                 frame.Position = Position(reader); frame.Rotation = Rotation(reader); frame.Hips = Position(reader);
@@ -218,7 +253,7 @@ namespace WildWasteland.Modules.PlayerBody
             if (reader.BaseStream.Position != reader.BaseStream.Length) return;
             Frames frames; if (!MotionFrames.TryGetValue(frame.Peer, out frames)) MotionFrames.Add(frame.Peer, frames = new Frames());
             frames.Add(frame);
-            if (Multiplayer.Hosting) { _writing = frame; Multiplayer.Send(82, WriteMotion, reliable: false); }
+            if (Multiplayer.Hosting) { _writing = frame; Multiplayer.Send(82, WriteMotion, reliable: false, except: frame.Peer); }   // no echo to the origin
         }
     }
     internal sealed partial class Body

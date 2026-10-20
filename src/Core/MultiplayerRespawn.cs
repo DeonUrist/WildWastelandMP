@@ -24,6 +24,9 @@ namespace WildWasteland.Core
         static Func<object, bool> _hasBed;
         static Action<object, bool> _setHasBed, _teleporting, _frozen;
         static Func<object, bool> _isFrozen;
+        static Func<object, bool> _respawning;
+        static Action<object, bool> _setRespawning;
+        static Action<string> _end;
         static Func<object, Vector3> _bed, _bedLocal;
         static Action<object, Vector3> _setBed, _setBedLocal;
         static Func<object, int> _bedItem;
@@ -51,15 +54,19 @@ namespace WildWasteland.Core
         static int _lookFrame = -1;
         static GameObject _looked;
         static int _networkAnchor, _anchorNumber;
+        static float _anchorSeenAt;          // guest: when the host last reported the selected anchor's live position
         static ulong _epoch;
         internal static bool Resetting { get; private set; }
         internal static bool ResetSucceeded { get; private set; }
         internal static bool Placing { get { return _moving; } }
+        internal static bool Unsafe { get { return _moving || _respawning != null && _respawning(null); } }
         static Func<GameObject, IEnumerator> _leaveCar;
         static Action<GameObject> _kickOut;
         internal static void Install()
         {
             var survival = Multiplayer.Type("Game.Survival"); var world = Multiplayer.Type("Net.WorldObjects"); var session = Multiplayer.Type("Net.NetSession");
+            _respawning = MultiplayerAccess.Get<bool>(survival, "respawning"); _setRespawning = MultiplayerAccess.Set<bool>(survival, "respawning");
+            _end = MultiplayerAccess.Call<Action<string>>(session, "End", typeof(string));
             _hostPosition = MultiplayerAccess.Call<HostPosition>(session, "TryGetHostPosition", typeof(Vector3).MakeByRefType());
             _leaveCar = MultiplayerAccess.Call<Func<GameObject, IEnumerator>>(survival, "LeaveCar", typeof(GameObject));
             _kickOut = MultiplayerAccess.Call<Action<GameObject>>(world, "KickOutOf", typeof(GameObject));
@@ -88,7 +95,7 @@ namespace WildWasteland.Core
                 throw new InvalidOperationException("MP revive countdown presentation hook failed");
             Type routine = null;
             foreach (var nested in survival.GetNestedTypes(BindingFlags.NonPublic)) if (nested.Name.StartsWith("<DieAndRespawn>", StringComparison.Ordinal)) { routine = nested; break; }
-            if (routine == null || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(routine, "MoveNext"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "RespawnTarget"))
+            if (routine == null || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(routine, "MoveNext"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "RespawnTarget"), finalizer: AccessTools.Method(typeof(MultiplayerRespawn), "RespawnFinished"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "TryRestorePlayer"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "ReconnectTarget"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "TrySpawnNextToHost"), transpiler: AccessTools.Method(typeof(MultiplayerRespawn), "ReconnectTarget")))
                 throw new InvalidOperationException("MP safe respawn/reconnect placement hooks failed");
@@ -108,7 +115,7 @@ namespace WildWasteland.Core
         static void Changed()
         {
             if (Multiplayer.SessionActive && _epoch == MultiplayerParts.Epoch) return;
-            _epoch = MultiplayerParts.Epoch; Anchors.Clear(); Protected.Clear(); _selected = _hasCamp = false; _networkAnchor = _anchorNumber = 0; _nextCache = _nextCamp = 0; Hint(null);
+            _epoch = MultiplayerParts.Epoch; Anchors.Clear(); Protected.Clear(); _selected = _hasCamp = false; _networkAnchor = _anchorNumber = 0; _anchorSeenAt = 0; _nextCache = _nextCamp = 0; Hint(null);
         }
         static void NoDeadline() { if (Multiplayer.Active) _downedUntil(null, float.PositiveInfinity); }
         static bool CanWait(ref bool __result) { if (!Multiplayer.Active) return true; __result = _downedEnabled.Value; return false; }
@@ -311,9 +318,16 @@ namespace WildWasteland.Core
             int network = r.ReadInt32(); var point = Read(r);
             if (mode > 2 || !Multiplayer.Client || from != 0 || r.BaseStream.Position != r.BaseStream.Length) return;
             if (mode == 1) { ApplySelection(id, point); _report(); _notice("Respawn point set. Previous respawn point replaced."); }
-            if (_selected && _bedItem(null) == id) { _anchorNumber = id; _networkAnchor = network; _nextCache = 0; }
+            // The host follows the live object (a bed in a moving truck, a dragged sleeping bag); the saved point follows it too,
+            // so a respawn lands at the object's current place even when this guest's copy of it is inactive or not yet spawned.
+            if (_selected && _bedItem(null) == id) { _anchorNumber = id; _networkAnchor = network; _setBed(null, point); _anchorSeenAt = Time.unscaledTime; _nextCache = 0; }
         }
         static IEnumerator Respawn(Vector3 ignored) { return Place(Vector3.zero, true); }
+        static Exception RespawnFinished(bool __result, Exception __exception)
+        {
+            if (__exception != null || !__result) _setRespawning(null, false);
+            return __exception;
+        }
         internal static bool StartingPosition(out Vector3 position) { position = _camp; return _hasCamp; }
         internal static bool BesideHost(out Vector3 position)
         {
@@ -344,22 +358,49 @@ namespace WildWasteland.Core
         internal static IEnumerator FinishWake(Vector3 position) { return Place(position, false, true); }
         static IEnumerator Place(Vector3 saved, bool respawn, bool handoff = false, bool reset = false, bool nearHost = false)
         {
-            var player = GameRefs.Player; var body = player != null ? player.GetComponent<Rigidbody>() : null;
-            if (body == null) yield break;
-            bool wasKinematic = body.isKinematic, wasFrozen = _isFrozen(null); _moving = true; body.isKinematic = true; _teleporting(null, true); _frozen(null, true);
-            ulong resetEpoch = MultiplayerParts.Epoch; int resetGeneration = SaveBus.Generation;
-            float fallbackAt = Time.unscaledTime + 30f; bool campOnly = false;
+            var routine = PlaceCore(saved, respawn, handoff, reset, nearHost);
             try
             {
+                while (true)
+                {
+                    bool next; Exception failure = null;
+                    try { next = routine.MoveNext(); }
+                    catch (Exception error) { failure = error; next = false; }
+                    if (failure != null)
+                    {
+                        Log.Error("[Multiplayer] Safe player placement failed; movement guards released", failure);
+                        if (Multiplayer.Client) _end("A safe player spawn could not be completed. Your saved state was retained; reconnect to try again.");
+                        else _notice("A safe player spawn could not be completed. Check the log before continuing.");
+                        yield break;
+                    }
+                    if (!next) yield break;
+                    yield return routine.Current;
+                }
+            }
+            finally { (routine as IDisposable)?.Dispose(); }
+        }
+        static IEnumerator PlaceCore(Vector3 saved, bool respawn, bool handoff, bool reset, bool nearHost)
+        {
+            var player = GameRefs.Player; var body = player != null ? player.GetComponent<Rigidbody>() : null;
+            if (body == null) throw new InvalidOperationException("Player rigidbody is unavailable for safe placement");
+            Vector3 initialPosition = Origin.World(player.transform.position); bool placed = false;
+            bool wasKinematic = body.isKinematic, wasFrozen = _isFrozen(null);
+            ulong resetEpoch = MultiplayerParts.Epoch; int resetGeneration = SaveBus.Generation;
+            float fallbackAt = Time.unscaledTime + 30f, deadline = Time.unscaledTime + 90f; bool campOnly = false;
+            try
+            {
+                _moving = true; body.isKinematic = true; _teleporting(null, true); _frozen(null, true);
                 while (Multiplayer.Active && Multiplayer.WorldReady && player != null && body != null
                     && (!reset || resetEpoch == MultiplayerParts.Epoch && resetGeneration == SaveBus.Generation))
                 {
+                    if (Time.unscaledTime >= deadline) throw new TimeoutException("No clear loaded surface became available for player placement");
                     if (MultiplayerSaving.Frozen || SaveBus.Busy) { yield return new WaitForSecondsRealtime(.25f); continue; }
-                    RefreshAnchors(); Vector3 target = saved; GameObject anchor = null;
+                    RefreshAnchors(); Vector3 target = saved; GameObject anchor = null; bool atAnchor = false;
                     if (respawn)
                     {
-                        if (!campOnly && _selected && Anchors.TryGetValue(_bedItem(null), out anchor)) target = Origin.World(anchor.transform.position);
-                        else if (!campOnly && _selected && Time.unscaledTime < fallbackAt) target = _bed(null);
+                        bool hostPoint = Multiplayer.Client && Time.unscaledTime - _anchorSeenAt < 10f;   // host-confirmed live position
+                        if (!campOnly && _selected && Anchors.TryGetValue(_bedItem(null), out anchor)) { target = Origin.World(anchor.transform.position); atAnchor = true; }
+                        else if (!campOnly && _selected && (hostPoint || Time.unscaledTime < fallbackAt)) { target = _bed(null); atAnchor = hostPoint; }
                         else
                         {
                             if (Multiplayer.Client ? !BesideHost(out target) : !StartingPosition(out target)) { yield return new WaitForSecondsRealtime(.25f); continue; }
@@ -370,7 +411,7 @@ namespace WildWasteland.Core
                     player.transform.position = Origin.Scene(target) + Vector3.up * 3f;
                     Physics.SyncTransforms();
                     Vector3 place;
-                    if ((!respawn || anchor != null || campOnly) && Surface(Origin.Scene(target), player.transform, out place))
+                    if ((!respawn || atAnchor || campOnly) && Surface(Origin.Scene(target), player.transform, out place))
                     {
                         player.transform.position = place; VehicleLoadPlacement.Stand(player); body.isKinematic = false; body.velocity = Vector3.zero; body.angularVelocity = Vector3.zero; body.isKinematic = wasKinematic;
                         Physics.SyncTransforms();
@@ -383,17 +424,36 @@ namespace WildWasteland.Core
                             {
                                 body.isKinematic = true;
                                 MultiplayerSleepers.WakePlaced(Origin.World(place));
-                                while (Multiplayer.Client && MultiplayerSleepers.AwaitingWake) yield return null;
+                                while (Multiplayer.Client && MultiplayerSleepers.AwaitingWake)
+                                {
+                                    if (Time.unscaledTime >= deadline) throw new TimeoutException("The server did not confirm the sleeping-player handoff");
+                                    yield return null;
+                                }
                             }
                             else MultiplayerSleepers.InitialPlaced();
                         }
-                        yield break;
+                        placed = true; yield break;
                     }
                     if (respawn && Time.unscaledTime >= fallbackAt) campOnly = true;
                     yield return new WaitForSecondsRealtime(.25f);
                 }
             }
-            finally { if (body != null) body.isKinematic = wasKinematic; _teleporting(null, false); _frozen(null, wasFrozen); _moving = false; }
+            finally
+            {
+                try
+                {
+                    if (body != null)
+                    {
+                        if (!placed && player != null) player.transform.position = Origin.Scene(initialPosition);
+                        body.isKinematic = wasKinematic;
+                    }
+                }
+                finally
+                {
+                    try { _teleporting(null, false); }
+                    finally { try { _frozen(null, wasFrozen); } finally { _moving = false; } }
+                }
+            }
         }
         internal static bool Surface(Vector3 center, Transform player, out Vector3 position)
         {

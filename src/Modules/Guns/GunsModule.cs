@@ -197,6 +197,7 @@ namespace WildWasteland.Modules.Guns
             Ironsights.Init(this);
             WeaponTransition.Init(this);
             EmptyGunSound.Init(this);
+            Bosses.Install();
 
             // shared targets: Core dispatchers (module init order NPC -> Guns keeps NPCAI's shot counting before the projectile prefix)
             Hooks.SensorRayHitEnter.Prefix(this, Tracers.BeforeRayHit);

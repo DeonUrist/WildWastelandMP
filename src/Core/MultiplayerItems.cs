@@ -9,7 +9,7 @@ using UnityEngine;
 namespace WildWasteland.Core
 {
     // MP only discovers variables referenced by vanilla load actions. WW adds saved fields beyond those actions.
-    internal static class MultiplayerItems
+    internal static partial class MultiplayerItems
     {
         internal static event Action<GameObject, List<NamedVariable>> Variables;
         internal static event Action BeforeFlush;
@@ -76,6 +76,8 @@ namespace WildWasteland.Core
                 prefix: AccessTools.Method(typeof(MultiplayerItems), "BeforeRelease"), postfix: AccessTools.Method(typeof(MultiplayerItems), "AfterRelease")))
                 throw new InvalidOperationException("MP dropped item publication hook could not be installed");
             MultiplayerEdits.Install();
+            InstallLifecycle();
+            InstallResources();
         }
         static void Extend(GameObject __0, ref object __result)
         {
@@ -152,7 +154,7 @@ namespace WildWasteland.Core
                 var vars = state != null ? _stateVars(state) : null;
                 if (vars != null) SendNative(30, w => { w.Write(item.Key); _writeVars(vars, w); });
             }
-            return _pendingCreates(null).Count == 0 && !MultiplayerParts.Pending && !MultiplayerEdits.Busy && !UltimateToolsCompat.Busy;
+            return _pendingCreates(null).Count == 0 && !ResourceBusy && !MultiplayerParts.Pending && !MultiplayerEdits.Busy && !UltimateToolsCompat.Busy;
         }
         static object Vars(GameObject part)
         { var state = Multiplayer.TrackedState(part); return state != null ? _stateVars(state) : null; }
@@ -160,6 +162,8 @@ namespace WildWasteland.Core
         {
             if (!Multiplayer.Active) return true;
             var root = Multiplayer.TrackedObject(__0);
+            // A leased item keeps native's own decision: answering false here makes ItemsTick Revert() the variables mid-use
+            // (the lease debit would be undone every 0.5 s); the host drops a guest's ObjectVars for a locked id in BeforeVars.
             if (ServerOwned(root)) { __result = Multiplayer.Hosting; return false; }
             if (root == null || !Multiplayer.OwnedElsewhere(root) || Time.realtimeSinceStartup < _quiet(__0)) return true;
             if (GameRefs.Player != null && (root.transform.position - GameRefs.Player.transform.position).sqrMagnitude < 16f)
@@ -171,6 +175,7 @@ namespace WildWasteland.Core
         internal static byte[] PrepareEdit(GameObject root, byte[] changes)
         {
             var vars = Vars(root); if (vars == null) return null;
+            if (ResourceLocked(Multiplayer.ObjectId(root))) return null;
             var fields = _variables(vars);
             using (var reader = new BinaryReader(new MemoryStream(changes, false)))
             using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
@@ -184,8 +189,10 @@ namespace WildWasteland.Core
                     if (type <= 1)
                     {
                         double delta = reader.ReadDouble(); if (double.IsNaN(delta) || double.IsInfinity(delta) || Math.Abs(delta) > 1000000) return null;
-                        if (type == 0 && fields[index] is FsmFloat) writer.Write(Math.Max(0, ((FsmFloat)fields[index]).Value + delta));
-                        else if (type == 1 && fields[index] is FsmInt) writer.Write(Math.Max(0, Math.Min(int.MaxValue, ((FsmInt)fields[index]).Value + delta)));
+                        if (type == 0 && fields[index] is FsmFloat)
+                        { double value = ((FsmFloat)fields[index]).Value + delta; if (value < 0 || value > float.MaxValue || double.IsNaN(value) || double.IsInfinity(value)) return null; writer.Write(value); }
+                        else if (type == 1 && fields[index] is FsmInt)
+                        { double value = ((FsmInt)fields[index]).Value + delta; if (value < 0 || value > int.MaxValue || value != Math.Truncate(value)) return null; writer.Write(value); }
                         else return null;
                     }
                     else if (type == 2 && fields[index] is FsmBool)
@@ -298,7 +305,7 @@ namespace WildWasteland.Core
             if (!Multiplayer.Hosting) return true;
             long position = __1.BaseStream.Position;
             try { _varsId = __1.ReadInt32(); } finally { __1.BaseStream.Position = position; }
-            return __0 == 0 || !ServerOwned(Multiplayer.ObjectById(_varsId));
+            return !ResourceLocked(_varsId) && (__0 == 0 || !ServerOwned(Multiplayer.ObjectById(_varsId)));
         }
         internal static void Consume(GameObject root)
         {

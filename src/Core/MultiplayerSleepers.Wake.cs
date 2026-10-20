@@ -43,6 +43,9 @@ namespace WildWasteland.Core
         static bool _restored, _placed, _requested, _finishing, _connected;
         static float _nextOffer, _nextWakeRequest;
         static byte _playerSave;
+        static Action _sendReport;
+        static Func<bool> _originReady;
+        static uint _reportVersion;
         internal static bool AwaitingWake { get { return _wakeId != 0; } }
         internal static bool RestoringSleeper { get { return AwaitingWake || _restoreRecord != null && _stats(_restoreRecord).ContainsKey(SleepingKey); } }
         static void InstallWake(Type session, Type record)
@@ -66,9 +69,11 @@ namespace WildWasteland.Core
             _savedSlot = MultiplayerAccess.Get<string>(Multiplayer.Type("Worlds.SavedItem"), "Slot");
             _localInventory = MultiplayerAccess.Call<Func<List<KeyValuePair<int, string>>>>(Multiplayer.Type("Net.WorldObjects"), "LocalInventory", Type.EmptyTypes);
             _playerSave = Convert.ToByte(Enum.Parse(Multiplayer.Type("Net.MessageType"), "PlayerSave"));
+            _sendReport = MultiplayerAccess.Call<Action>(session, "SendPlayerSave", Type.EmptyTypes);
+            _originReady = MultiplayerAccess.Call<Func<bool>>(Multiplayer.Type("Game.WorldOrigin"), "get_IsReady", Type.EmptyTypes);
             Require(session, "Welcome", "Welcomed");
             Require(session, "Players", "PlayerPositions");
-            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendPlayerSave"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "CanReport"))
+            if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendPlayerSave"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "BeforeReport"), postfix: AccessTools.Method(typeof(MultiplayerSleepers), "AfterReport"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(Multiplayer.Type("Net.WorldObjects"), "RefreshInventory"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "CanRefresh"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(remote, "Update"), prefix: AccessTools.Method(typeof(MultiplayerSleepers), "RemoteUpdating")))
                 throw new InvalidOperationException("Sleeping-player spawn handoff hooks failed");
@@ -114,9 +119,30 @@ namespace WildWasteland.Core
         static bool CanReport()
         {
             if (!Multiplayer.Client) return true;
-            if (MultiplayerRespawn.Placing) return false;
             var record = _restoreRecord ?? _pending(null);
             return !AwaitingWake && (record == null || !_stats(record).ContainsKey(SleepingKey));
+        }
+        static bool BeforeReport(out bool __state)
+        {
+            bool allowed = CanReport();
+            // These are the native SendPlayerSave guards. Placement may retain an old position,
+            // but its current inventory must still replace the pre-death inventory on the host.
+            __state = allowed && Multiplayer.Client && GameRefs.Player != null && Multiplayer.WorldReady
+                && _originReady() && _pending(null) == null && !_joinSpawn(null).HasValue;
+            return allowed;
+        }
+        static void AfterReport(bool __state, bool __runOriginal) { if (__state && __runOriginal) _reportVersion++; }
+        internal static bool Report()
+        {
+            if (!MultiplayerReliable.SendHealthy(0)) return false;
+            uint before = _reportVersion; _sendReport();
+            return before != _reportVersion && MultiplayerReliable.SendHealthy(0);
+        }
+        internal static bool AbortFailedInventory()
+        {
+            if (!Multiplayer.Client || MultiplayerItems.InventoryAdoptionFailure == null) return false;
+            _endJoin("Inventory objects could not be adopted by the server. Your sleeping body and saved state were retained; reconnect to try again.");
+            return true;
         }
         internal static bool AllowReport(ulong from, byte[] data)
         { return !Multiplayer.Hosting || data[0] != _playerSave || !Wakes.ContainsKey(from); }
@@ -196,7 +222,7 @@ namespace WildWasteland.Core
             {
                 _nextWakeRequest = Time.unscaledTime + 1f;
                 if (!InventoryRestored()) { _endJoin("Inventory restoration did not fill every saved slot. Your sleeping body and saved state were retained."); return; }
-                if (!MultiplayerItems.FlushInventory()) return;
+                if (!MultiplayerItems.FlushInventory()) { AbortFailedInventory(); return; }
                 if (!_requested) Log.Always("[Multiplayer] Sleeper join ready: inventory and initial placement complete");
                 _requested = true;
                 Multiplayer.Send(WakePacket, w => { w.Write(_wakeEpoch); w.Write((byte)1); w.Write(_wakeId); w.Write(_wakeToken); });

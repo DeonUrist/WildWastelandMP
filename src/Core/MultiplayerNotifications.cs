@@ -7,6 +7,7 @@ namespace WildWasteland.Core
     {
         internal static event Func<string, bool> Present;
         static Action[] _draw;
+        static Action _closeChat;
         static bool Hidden { get { return LoadingProgress.MenusBlocked || SaveBus.Loading || SaveBus.Saving; } }
         internal static void Install()
         {
@@ -16,6 +17,14 @@ namespace WildWasteland.Core
             Patch("ModRunner", "OnGUI", "Draw");
             Patch("UI.Chat", "Notice", "ChatNotice");
             Patch("UI.Hud", "Show", "Notice");
+            _closeChat = MultiplayerAccess.Call<Action>(Multiplayer.Type("UI.Chat"), "Close", Type.EmptyTypes);
+            Patch("UI.Chat", "Tick", "ChatTick");
+        }
+        static bool ChatTick()
+        {
+            if (!UI.EditorSession.Busy && !ApocasetterBridge.InputBlocked) return true;
+            if (Multiplayer.Typing) _closeChat();
+            return false;
         }
         static void Patch(string type, string method, string prefix)
         {

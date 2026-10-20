@@ -19,9 +19,11 @@ namespace WildWasteland.Core
         sealed class Outgoing
         {
             internal ulong Nonce = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0);
-            internal uint Sequence, Sent;
+            internal uint Sequence, Sent, Acked;
+            internal bool Failed;
             internal readonly SortedDictionary<uint, Pending> Pending = new SortedDictionary<uint, Pending>();
         }
+        sealed class Fragment { internal byte[] Data; internal int Offset; }
         sealed class Incoming
         {
             internal ulong Nonce; internal uint Next = 1;
@@ -32,17 +34,21 @@ namespace WildWasteland.Core
         static readonly float[] RetrySeconds = { .35f, .2f };
         static readonly Dictionary<ulong, Outgoing>[] Out = { new Dictionary<ulong, Outgoing>(), new Dictionary<ulong, Outgoing>() };
         static readonly Dictionary<ulong, Incoming>[] In = { new Dictionary<ulong, Incoming>(), new Dictionary<ulong, Incoming>() };
+        static readonly Dictionary<ulong, Fragment>[] Fragments = { new Dictionary<ulong, Fragment>(), new Dictionary<ulong, Fragment>() };
         static readonly HashSet<byte> Combat = new HashSet<byte>();
         static readonly HashSet<ulong> Peers = new HashSet<ulong>();
         static readonly List<ulong> Gone = new List<ulong>();
+        static readonly List<ulong> FailedPeers = new List<ulong>();
         static readonly List<uint> Acked = new List<uint>();
         static Func<object, IDictionary> _connections;
         static Func<object, byte> _id;
         static Func<object, bool> _welcomed;
+        static Func<object, float> _chatTime;
+        static Action<object, float> _setChatTime;
         static readonly HashSet<byte> Native = new HashSet<byte>();
         static readonly HashSet<byte> Forward = new HashSet<byte>();
-        static readonly HashSet<byte> Snapshot = new HashSet<byte> { 5, 8, 18, 24, 26, 27, 35, 37 };
-        static byte _relayed;
+        static readonly HashSet<byte> Snapshot = new HashSet<byte> { 5, 8, 18, 24, 26, 27, 35, 37, 248 };
+        static byte _relayed, _chat;
         static float _nextPeers, _nextFullLog;
         static bool _active, _hosting;
         internal static void Install()
@@ -50,21 +56,28 @@ namespace WildWasteland.Core
             var session = Multiplayer.Type("Net.NetSession"); var peer = Multiplayer.Type("Net.NetSession+Peer");
             _connections = MultiplayerAccess.Get<IDictionary>(session, "byConnection");
             _id = MultiplayerAccess.Get<byte>(peer, "Id"); _welcomed = MultiplayerAccess.Get<bool>(peer, "Welcomed");
+            _chatTime = MultiplayerAccess.Get<float>(peer, "LastChatTime"); _setChatTime = MultiplayerAccess.Set<float>(peer, "LastChatTime");
             var messages = Multiplayer.Type("Net.MessageType");
             _relayed = Convert.ToByte(Enum.Parse(messages, "Relayed")); Native.Add(_relayed);
-            foreach (string name in new[] { "Switch", "Thrown" }) Forward.Add(Convert.ToByte(Enum.Parse(messages, name)));
-            foreach (string name in new[] { "ObjectVars", "ObjectSpawn", "ObjectDespawn", "ObjectGone", "ObjectCreate", "ObjectAdopted", "ObjectClaim", "ObjectRelease", "ObjectRevoke", "CarClaim", "CarGrant", "CarDeny", "CarRelease", "CarRequest", "CreatureDamage", "PlayerDamage", "Switch", "SwitchRequest", "Thrown", "Revive", "SleepVote", "SleepNow", "PlayerSave", "PlayerRestore" })
+            _chat = Convert.ToByte(Enum.Parse(messages, "Chat"));
+            Native.Add(27);
+            Native.Add(Convert.ToByte(Enum.Parse(messages, "CreatureFx")));
+            foreach (string name in new[] { "Switch", "Thrown", "Chat", "PlayerProfile", "PlayerDied" }) Forward.Add(Convert.ToByte(Enum.Parse(messages, name)));
+            foreach (string name in new[] { "ObjectVars", "ObjectSpawn", "ObjectDespawn", "ObjectGone", "ObjectCreate", "ObjectAdopted", "ObjectClaim", "ObjectRelease", "ObjectRevoke", "CarClaim", "CarGrant", "CarDeny", "CarRelease", "CarRequest", "CreatureDamage", "PlayerDamage", "Switch", "SwitchRequest", "Thrown", "Revive", "SleepVote", "SleepNow", "PlayerSave", "PlayerRestore", "Chat", "Notice", "PlayerDied", "PlayerProfile", "TradeList" })
                 Native.Add(Convert.ToByte(Enum.Parse(messages, name)));
-            foreach (string name in new[] { "CreatureDamage", "PlayerDamage" }) Combat.Add(Convert.ToByte(Enum.Parse(messages, name)));
+            foreach (string name in new[] { "CreatureDamage", "PlayerDamage", "Revive", "PlayerRestore" }) Combat.Add(Convert.ToByte(Enum.Parse(messages, name)));
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAll"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeAll"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeTo"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAllExcept"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeExcept"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "Relay"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeRelay")))
                 throw new InvalidOperationException("MP reliable part-state transport hooks could not be installed");
             Multiplayer.SessionChanged += Changed;
+            MultiplayerPlayers.Left += Left;
             Scheduler.Interval(Multiplayer.PatchOwner, "Reliable MP messages", .05f, Tick);
         }
-        static void Reset() { for (int lane = 0; lane < Lanes; lane++) { Out[lane].Clear(); In[lane].Clear(); } Peers.Clear(); _nextPeers = 0; }
+        static void Reset() { for (int lane = 0; lane < Lanes; lane++) { Out[lane].Clear(); In[lane].Clear(); Fragments[lane].Clear(); } Peers.Clear(); _nextPeers = 0; }
+        static void Left(ulong peer)
+        { for (int lane = 0; lane < Lanes; lane++) { Out[lane].Remove(peer); In[lane].Remove(peer); Fragments[lane].Remove(peer); } Peers.Remove(peer); }
         static int Lane(byte[] data)
         {
             if (Combat.Contains(data[0])) return 1;
@@ -104,6 +117,16 @@ namespace WildWasteland.Core
             foreach (DictionaryEntry entry in _connections(null)) if (_welcomed(entry.Value)) Peers.Add(_id(entry.Value));
         }
         internal static HashSet<ulong> ConnectedPeers() { RefreshPeers(); return new HashSet<ulong>(Peers); }
+        internal static bool CanQueue(ulong peer, int count = 1, int lane = 0)
+        { Outgoing output; return !Out[lane].TryGetValue(peer, out output) || !output.Failed && output.Pending.Count + count <= 256; }
+        internal static bool CanBroadcast(int count = 1)
+        { RefreshPeers(); foreach (ulong peer in Peers) if (!CanQueue(peer, count)) return false; return true; }
+        internal static uint QueuedSequence(ulong peer)
+        { Outgoing output; return Out[0].TryGetValue(peer, out output) ? output.Sequence : 0; }
+        internal static bool Acknowledged(ulong peer, uint sequence)
+        { Outgoing output; return sequence == 0 || Out[0].TryGetValue(peer, out output) && !output.Failed && output.Acked >= sequence; }
+        internal static bool SendHealthy(ulong peer)
+        { Outgoing output; return !Out[0].TryGetValue(peer, out output) || !output.Failed; }
         internal static void Send(byte[] data, ulong? peer)
         {
             if (peer.HasValue) { To(peer.Value, data); return; }
@@ -114,11 +137,22 @@ namespace WildWasteland.Core
             if (data.Length > 60000) throw new InvalidDataException("MP reliable payload exceeds 60000 bytes");
             int lane = Lane(data);
             Outgoing output; if (!Out[lane].TryGetValue(peer, out output)) { output = new Outgoing(); Out[lane].Add(peer, output); }
-            if (output.Pending.Count >= 4096)
+            int chunks = data.Length <= 1000 ? 1 : (data.Length + 899) / 900;
+            if (output.Failed || output.Pending.Count + chunks > 4096)
             {
-                if (Time.unscaledTime >= _nextFullLog) { _nextFullLog = Time.unscaledTime + 5f; Log.Warn("[Multiplayer] Reliable queue full for player " + peer); }
+                output.Failed = true;
+                if (Time.unscaledTime >= _nextFullLog) { _nextFullLog = Time.unscaledTime + 5f; Log.Warn("[Multiplayer] Reliable queue exhausted for player " + peer + "; reconnect required"); }
                 return;
             }
+            if (chunks == 1) { Enqueue(peer, lane, output, data); return; }
+            for (int offset = 0; offset < data.Length; offset += 900)
+            {
+                using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
+                { writer.Write((byte)248); writer.Write(data.Length); writer.Write(offset); writer.Write(data, offset, Math.Min(900, data.Length - offset)); Enqueue(peer, lane, output, stream.ToArray()); }
+            }
+        }
+        static void Enqueue(ulong peer, int lane, Outgoing output, byte[] data)
+        {
             uint sequence = ++output.Sequence;
             var packet = Frame(lane, output.Nonce, sequence, false, data);
             var pending = new Pending { Data = packet }; output.Pending.Add(sequence, pending);
@@ -139,14 +173,16 @@ namespace WildWasteland.Core
                 for (int lane = 0; lane < Lanes; lane++)
                 {
                     Gone.Clear(); foreach (var pair in Out[lane]) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
-                    foreach (ulong peer in Gone) { Out[lane].Remove(peer); In[lane].Remove(peer); }
+                    foreach (ulong peer in Gone) { Out[lane].Remove(peer); In[lane].Remove(peer); Fragments[lane].Remove(peer); }
                     Gone.Clear(); foreach (var pair in In[lane]) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
-                    foreach (ulong peer in Gone) In[lane].Remove(peer);
+                    foreach (ulong peer in Gone) { In[lane].Remove(peer); Fragments[lane].Remove(peer); }
                 }
             }
+            FailedPeers.Clear();
             for (int lane = 0; lane < Lanes; lane++)
             foreach (var pair in Out[lane])
             {
+                if (pair.Value.Failed) { if (!FailedPeers.Contains(pair.Key)) FailedPeers.Add(pair.Key); continue; }
                 int count = 0, sent = 0;
                 foreach (var packet in pair.Value.Pending)
                 {
@@ -157,6 +193,9 @@ namespace WildWasteland.Core
                     Multiplayer.RawTo(pair.Key, packet.Value.Data); sent++;
                 }
             }
+            // Ending a connection may synchronously reset state or raise departure callbacks.
+            // Do it after traversing the outgoing dictionaries and broadcast peer set.
+            for (int i = 0; i < FailedPeers.Count; i++) MultiplayerHandshake.Overflow(FailedPeers[i]);
         }
         internal static void Receive(ulong from, byte[] data)
         {
@@ -174,6 +213,7 @@ namespace WildWasteland.Core
                         if (data.Length != 19 || !Out[lane].TryGetValue(from, out output) || output.Nonce != nonce || sequence > output.Sent) return;
                         Acked.Clear(); foreach (var packet in output.Pending) { if (packet.Key > sequence) break; Acked.Add(packet.Key); }
                         foreach (uint key in Acked) output.Pending.Remove(key);
+                        output.Acked = Math.Max(output.Acked, sequence);
                         return;
                     }
                     if (data.Length == 19 || sequence == 0) return;
@@ -182,6 +222,7 @@ namespace WildWasteland.Core
                     {
                         if (sequence != 1 || input.Retired.Contains(nonce)) return;
                         input.Retired.Add(input.Nonce); input.Nonce = nonce; input.Next = 1; input.Pending.Clear();
+                        Fragments[lane].Remove(from);
                     }
                     if (sequence >= input.Next && sequence - input.Next < Window * 2 && !input.Pending.ContainsKey(sequence))
                         input.Pending.Add(sequence, reader.ReadBytes(data.Length - 19));
@@ -190,20 +231,42 @@ namespace WildWasteland.Core
                     {
                         input.Pending.Remove(input.Next++);
                         if (payload.Length == 0 || (payload[0] != Multiplayer.PacketType && !Native.Contains(payload[0]) && !Snapshot.Contains(payload[0]))) continue;
-                        try { Deliver(from, payload); } catch (Exception e) { Log.Error("[Multiplayer] Reliable message failed", e); }
+                        try { Deliver(from, payload, lane); } catch (Exception e) { if (Multiplayer.Complain(from)) Log.Error("[Multiplayer] Reliable message from " + from + " failed", e); }
                     }
                     Multiplayer.RawTo(from, Frame(lane, nonce, input.Next - 1, true));
                 }
             }
-            catch (Exception e) { Log.Warn("[Multiplayer] Rejected reliable packet: " + e.Message); }
+            catch (Exception e) { if (Multiplayer.Complain(from)) Log.Warn("[Multiplayer] Rejected reliable packet from " + from + ": " + e.Message); }
         }
-        static void Deliver(ulong from, byte[] payload)
+        static void Deliver(ulong from, byte[] payload, int lane)
         {
+            if (Multiplayer.Hosting && from != 0 && (!MultiplayerSleepers.WelcomedPeer(from) || !MultiplayerPlayers.AllowAvatarPacket(from, payload))) return;
+            if (payload[0] == 248)
+            {
+                if (payload.Length < 10 || payload.Length > 909) return;
+                int length = BitConverter.ToInt32(payload, 1), offset = BitConverter.ToInt32(payload, 5), count = payload.Length - 9;
+                if (length < 1001 || length > 60000 || offset < 0 || offset + count > length || offset % 900 != 0 || count != Math.Min(900, length - offset)) return;
+                Fragment fragment;
+                if (offset == 0) { fragment = new Fragment { Data = new byte[length] }; Fragments[lane][from] = fragment; }
+                else if (!Fragments[lane].TryGetValue(from, out fragment)) return;
+                if (fragment.Data.Length != length || fragment.Offset != offset) { Fragments[lane].Remove(from); return; }
+                Array.Copy(payload, 9, fragment.Data, offset, count); fragment.Offset += count;
+                if (fragment.Offset != length) return;
+                Fragments[lane].Remove(from);
+                if (fragment.Data[0] == 248 || (fragment.Data[0] != Multiplayer.PacketType && !Native.Contains(fragment.Data[0]) && !Snapshot.Contains(fragment.Data[0]))) return;
+                Deliver(from, fragment.Data, lane); return;
+            }
             if (payload[0] == _relayed)
             {
                 if (!Multiplayer.Client || from != 0 || payload.Length < 3 || !(Forward.Contains(payload[2]) || payload[2] == 8 || payload[2] == 18)) return;
                 var inner = new byte[payload.Length - 2]; Array.Copy(payload, 2, inner, 0, inner.Length);
                 Multiplayer.Deliver(payload[1], inner); return;
+            }
+            if (Multiplayer.Hosting && from != 0 && payload[0] == _chat)
+            {
+                foreach (DictionaryEntry entry in _connections(null))
+                    if (_id(entry.Value) == from)
+                    { float now = Time.realtimeSinceStartup; if (now - _chatTime(entry.Value) < .3f) return; _setChatTime(entry.Value, now); break; }
             }
             Multiplayer.Deliver(from, payload);
             // Native OnDataReceived normally relays these after Handle. The ordered envelope bypasses that outer switch.
