@@ -216,6 +216,7 @@ namespace WildWasteland.Core
                 MultiplayerEffects.Install();
                 MultiplayerForces.Install();
                 MultiplayerVehicles.Install();
+                UltimateToolsCompat.Install();
                 MultiplayerHeadless.Install();
                 Message += AppearanceMessage;
                 _ready = true;
@@ -365,7 +366,7 @@ namespace WildWasteland.Core
         public static void RegisterRig(GameObject actor, Transform[] transforms, bool seated = false) { if (Hosting) MultiplayerActors.Register(actor, transforms, seated); }
         public static void RefreshRig(GameObject actor) { if (Hosting) MultiplayerActors.Refresh(actor); }
         static void Registered(GameObject __0, object __result)
-        { Actor actor; if (_ready && __result != null && __0 != null && Actors.TryGetValue(__0, out actor)) _prefab(__result, actor.Prefab); }
+        { UltimateToolsCompat.Registered(__0); Actor actor; if (_ready && __result != null && __0 != null && Actors.TryGetValue(__0, out actor)) _prefab(__result, actor.Prefab); }
         static bool FindPrefab(string __0, ref GameObject __result)
         {
             if (!_ready) return true;

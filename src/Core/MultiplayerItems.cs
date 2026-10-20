@@ -152,7 +152,7 @@ namespace WildWasteland.Core
                 var vars = state != null ? _stateVars(state) : null;
                 if (vars != null) SendNative(30, w => { w.Write(item.Key); _writeVars(vars, w); });
             }
-            return _pendingCreates(null).Count == 0 && !MultiplayerParts.Pending && !MultiplayerEdits.Busy;
+            return _pendingCreates(null).Count == 0 && !MultiplayerParts.Pending && !MultiplayerEdits.Busy && !UltimateToolsCompat.Busy;
         }
         static object Vars(GameObject part)
         { var state = Multiplayer.TrackedState(part); return state != null ? _stateVars(state) : null; }

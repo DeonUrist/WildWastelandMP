@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC12 · 0.1.48** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC13 · 0.1.49** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -17,7 +17,9 @@ Offline and host saves now drain pending terrain work, hold streaming through pu
 
 Offline saving uses the integrated named save library, backups/recovery and autosaves even without Apocalypter Multiplayer. The dependency is still required to host or join a multiplayer world.
 
-RC12 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+RC13 uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+
+RC13 adds optional Ultimate Tools synchronization: host and client part/hinge adjustments and suspension width, ride height and balance are relayed through the host to all clients, including late joiners. Extra adjustment data is embedded in the real host world save and its backups, with no new config or external save-data file. Install Ultimate Tools separately on every peer if using it; all peers must update to handshake 25. The reported on-foot dog one-shot remains under investigation.
 
 RC12 protects seated drivers and passengers from animal contact and enemy melee while the vehicle is moving or its engine is running. It also corrects false dog bite reach against seated guests and makes remote shout voices follow the speaker's character.
 
@@ -42,6 +44,6 @@ With nothing equipped and fists lowered, drivers grip and animate the wheel; pas
 - **WORLD:** Fog of war on/off, plus Shared vision when Multiplayer is installed. Radius, edge fade and opacity are under **Debug → CleanHUD → Map fog of war**.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC12 is an official release candidate; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC13 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC12 release notes](notes/release-0.1.48-RC12.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC13 release notes](notes/release-0.1.49-RC13.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

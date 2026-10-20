@@ -194,10 +194,10 @@ namespace WildWasteland.Core
             {
                 // Freeze and drain queued hits before taking the final owner snapshots.
                 StartPhase(1);
-                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy)) { Prune(); Warn(); yield return null; }
+                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy || UltimateToolsCompat.Busy)) { Prune(); Warn(); yield return null; }
                 if (!Multiplayer.Hosting) yield break;
                 StartPhase(2);
-                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy)) { Prune(); Warn(); yield return null; }
+                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy || UltimateToolsCompat.Busy)) { Prune(); Warn(); yield return null; }
                 if (!Multiplayer.Hosting) yield break;
                 // MP glides remote poses in real time; let the acknowledged final samples reach the saved transforms.
                 yield return new WaitForSecondsRealtime(.35f);
@@ -273,7 +273,7 @@ namespace WildWasteland.Core
             if (Frozen && (_generation != SaveBus.Generation || _hostRole != Multiplayer.Hosting || !Multiplayer.Active))
             { DisposeFlush(); Waiting.Clear(); _preparing = _serializing = false; _excluded = null; SetFrozen(false); }
             if (Frozen) Time.timeScale = 0f;
-            if (!Multiplayer.Client || _flush == null || !Multiplayer.WorldReady || MultiplayerParts.Pending || !MultiplayerParty.PlayerReady) return;
+            if (!Multiplayer.Client || _flush == null || !Multiplayer.WorldReady || MultiplayerParts.Pending || UltimateToolsCompat.Busy || !MultiplayerParty.PlayerReady) return;
             try { if (_flush.MoveNext()) return; DisposeFlush(); _report(); _flushed = true; }
             catch (Exception error) { _flushed = false; Log.Error("[Multiplayer] Owner save flush failed; waiting for a retry", error); DisposeFlush(); return; }
             Multiplayer.Send(101, w => { w.Write(_token); w.Write(_phase); });

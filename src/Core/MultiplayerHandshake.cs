@@ -10,7 +10,7 @@ namespace WildWasteland.Core
     internal static class MultiplayerHandshake
     {
         const uint Magic = 0x4857574D;
-        const uint Revision = 24;
+        const uint Revision = 25;
         static Func<object, IDictionary> _connections;
         static Func<object, byte> _id;
         static Func<object, bool> _welcomed;

@@ -245,7 +245,7 @@ namespace WildWasteland.Core
                 int count = 0; foreach (string line in ES3.Load<string[]>(PlayerKey, settings)) if (line.StartsWith("player\t", StringComparison.Ordinal)) count++;
                 _savedPlayers = count;
             }
-            HostSaveCleanup.SaveProtection(); HostSaveCompatibility.SavePoses();
+            HostSaveCleanup.SaveProtection(); HostSaveCompatibility.SavePoses(); UltimateToolsCompat.Save();
         }
         static void CapturePicture()
         {
