@@ -15,6 +15,8 @@ namespace WildWasteland.Modules.PlayerBody
         sealed class BodyState { internal GameObject Model; internal IAnimatedCharacter Character; internal byte Attacks, Kicks, Jump; internal bool Counters, JumpKnown, Motion, Driver, WeaponMotion; internal string Action, ItemName; internal Transform Item; internal Material Material; internal ulong Peer; internal int Choice, Car; internal Transform[] Bones; internal object Remote; internal Equipment Equipment; }
         static readonly Dictionary<object, BodyState> Bodies = new Dictionary<object, BodyState>();
         static readonly Dictionary<ulong, int> Choices = new Dictionary<ulong, int>();
+        internal static AudioClip Shout(ulong peer)
+        { int choice; return Choices.TryGetValue(peer, out choice) ? FemalePain.Shout(choice) : null; }
         static Func<object, ulong> _peer;
         static Func<object, IDictionary> _remotes;
         static Func<object, GameObject> _model, _item;

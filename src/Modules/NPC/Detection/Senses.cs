@@ -1216,17 +1216,17 @@ namespace WildWasteland.Modules.NPC
         }
 
         private static AudioSource _voiceSrc;
-        internal static void ShoutAudio(Vector3 position, bool local)
+        internal static void ShoutAudio(Vector3 position, bool local, ulong peer = 0)
         {
-            var clip = Voice(); if (clip == null) return;
+            var clip = Voice(local ? (ulong?)null : peer); if (clip == null) return;
             if (local) { var source = VoiceSource(); if (source != null) source.PlayOneShot(clip, Mathf.Clamp01(NpcModule.ShoutVolume.Value)); }
             else AudioSource.PlayClipAtPoint(clip, position, Mathf.Clamp01(NpcModule.ShoutVolume.Value));
         }
-        internal static void RemoteShout(GameObject player)
+        internal static void RemoteShout(GameObject player, ulong peer)
         {
             if (!On || player == null) return;
             Noise(player, player.transform.position, NpcModule.PlayerShoutRange.Value, Src.Shout, "a player shouting", a => a.Hostile.Contains("Player"), null, player);
-            ShoutAudio(player.transform.position, false);
+            ShoutAudio(player.transform.position, false, peer);
         }
         private static AudioSource VoiceSource()
         {
@@ -1294,10 +1294,11 @@ namespace WildWasteland.Modules.NPC
             return true;
         }
 
-        private static AudioClip Voice()
+        private static AudioClip Voice(ulong? peer = null)
         {
             var animation = Core.Services.Animation;
-            if (animation != null && animation.PlayerShout != null) return animation.PlayerShout;
+            var clip = animation != null ? (peer.HasValue ? animation.PlayerShoutFor(peer.Value) : animation.PlayerShout) : null;
+            if (clip != null) return clip;
             if (_voice == null || _voice.Length == 0 || _voice[0] == null)
             {
                 // Flexa's own shouts, read from the Flexa prefab asset (Gungirl's voice swap only ever edits spawned instances, so the

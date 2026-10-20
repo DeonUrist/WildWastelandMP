@@ -24,11 +24,15 @@ namespace WildWasteland.Core
             internal ulong Source;
             internal bool BrakeKnown, BrakeWritten, RadioKnown, PlayWritten, SnapshotKnown, SnapshotPlay;
             internal float VolumeWritten, SnapshotVolume, Refresh, SendAt;
+            internal bool MeleeKnown, EngineRunning;
+            internal Vector3 Velocity, AngularVelocity;
         }
         static readonly Dictionary<GameObject, Controls> Cars = new Dictionary<GameObject, Controls>();
         static readonly List<GameObject> Gone = new List<GameObject>();
         static readonly List<PlayMakerFSM> Fsms = new List<PlayMakerFSM>();
         static Func<object, float> _handbrake;
+        static Func<object, bool> _engineRunning;
+        static Func<object, Vector3> _velocity, _angularVelocity;
         static Func<object, Transform> _passengerSeat;
         static Func<object, float> _passengerSpeed;
         static Func<Vector3> _exitSpot;
@@ -44,6 +48,10 @@ namespace WildWasteland.Core
         {
             var world = Multiplayer.Type("Net.WorldObjects");
             _handbrake = MultiplayerAccess.Get<float>(Multiplayer.Type("Net.WorldObjects+CarSnapshot"), "Handbrake");
+            var snapshot = Multiplayer.Type("Net.WorldObjects+CarSnapshot");
+            _engineRunning = MultiplayerAccess.Get<bool>(snapshot, "Running");
+            _velocity = MultiplayerAccess.Get<Vector3>(snapshot, "Velocity");
+            _angularVelocity = MultiplayerAccess.Get<Vector3>(snapshot, "AngularVelocity");
             Patch(world, "CurrentCarState", "Captured");
             Patch(world, "ApplyCarVisuals", "Copied");
             Patch(world, "TakeOverCarState", "TakenOver");
@@ -146,6 +154,7 @@ namespace WildWasteland.Core
         {
             if (!Ready() || __0 == null) return;
             var c = Get(__0);
+            c.EngineRunning = _engineRunning(__1); c.Velocity = _velocity(__1); c.AngularVelocity = _angularVelocity(__1); c.MeleeKnown = true;
             if (c.BrakeKnown && c.Brake != null && BrakeOn(c.Brake) != c.BrakeWritten)
                 Request(c, 1, BrakeOn(c.Brake) ? 1f : 0f);
             Brake(c, _handbrake(__1) > .5f);
@@ -162,6 +171,12 @@ namespace WildWasteland.Core
         {
             if (!Ready() || __0 == null) return;
             var c = Get(__0); Brake(c, _handbrake(__1) > .5f); c.RadioKnown = false; c.SendAt = 0;
+        }
+        internal static bool TryMeleeState(GameObject car, out bool running, out Vector3 velocity, out Vector3 angular)
+        {
+            Controls c; running = true; velocity = angular = Vector3.zero;
+            if (car == null || !Cars.TryGetValue(car, out c) || !c.MeleeKnown) return false;
+            running = c.EngineRunning; velocity = c.Velocity; angular = c.AngularVelocity; return true;
         }
         static void Radio(Controls c, bool play, float volume)
         {

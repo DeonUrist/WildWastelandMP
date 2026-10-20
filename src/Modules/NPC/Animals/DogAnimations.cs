@@ -296,6 +296,7 @@ namespace WildWasteland.Modules.NPC
         private static bool InReach(Dog d, GameObject target)
         {
             if (target == null || !target.activeInHierarchy || d.Agent.Target != target) return false;
+            if (!Core.VehicleMeleeProtection.CanHit(target)) return false;
             if (d.Companion != null && !d.Companion.TargetAlive(target)) return false;
             Vector3 origin = Origin(d);
             Vector3 point = ReachPoint(d, target, origin);
@@ -317,7 +318,8 @@ namespace WildWasteland.Modules.NPC
             if (d.ReachFrame == frame && ReferenceEquals(d.ReachOf, target) && d.ReachOrigin.x == origin.x && d.ReachOrigin.y == origin.y && d.ReachOrigin.z == origin.z) return d.ReachPoint;
             var col = TargetCollider(d, target);
             d.ReachFrame = frame; d.ReachOf = target; d.ReachOrigin = origin; d.ReachLine = 0;
-            d.ReachPoint = col != null ? col.ClosestPoint(origin) : target.transform.position;
+            // MP disables seated players' presence colliders; ClosestPoint then returns origin (false zero reach).
+            d.ReachPoint = col != null && col.enabled && col.gameObject.activeInHierarchy ? col.ClosestPoint(origin) : target.transform.position;
             return d.ReachPoint;
         }
         private static Collider TargetCollider(Dog d, GameObject target)

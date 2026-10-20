@@ -14,7 +14,9 @@ namespace WildWasteland.Modules.PlayerBody
         private static FsmFloat[] _weights;
         private static FsmObject _death;
         private static readonly AudioClip[] Shouts = new AudioClip[2];
-        internal static AudioClip PlayerShout { get { return Shouts[PlayerBodyModule.Female ? 1 : 0]; } }
+        internal static AudioClip PlayerShout { get { return Shout(PlayerBodyModule.Character != null ? (int)PlayerBodyModule.Character.Value : 1); } }
+        internal static AudioClip Shout(int choice)
+        { return Shouts[choice == (int)PlayerBodyModule.Gender.Female || choice == (int)PlayerBodyModule.Gender.Gungirl || choice == (int)PlayerBodyModule.Gender.Shoota ? 1 : 0]; }
 
         // (WW) the clips are decoded once per game session (module Init), the patch is a module patch through Core.Patches
         internal static IEnumerator LoadClips()

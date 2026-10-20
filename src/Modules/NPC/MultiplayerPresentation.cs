@@ -54,11 +54,11 @@ namespace WildWasteland.Modules.NPC
                 var player = Multiplayer.PlayerFor(peer); float next;
                 if (peer == 0 || player == null || !Multiplayer.RemoteTargetable(player) || (Shouts.TryGetValue(peer, out next) && Time.unscaledTime < next)) return;
                 Shouts[peer] = Time.unscaledTime + Mathf.Max(.1f, ShoutCooldown.Value);
-                Senses.RemoteShout(player); RelayShout(peer, player.transform.position); return;
+                Senses.RemoteShout(player, peer); RelayShout(peer, player.transform.position); return;
             }
             if (kind != 91 || peer != 0 || !Multiplayer.Client) return;
             ulong source = reader.ReadUInt64(); var worldPosition = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-            if (source != Multiplayer.LocalPeer && !float.IsNaN(worldPosition.sqrMagnitude) && !float.IsInfinity(worldPosition.sqrMagnitude)) Senses.ShoutAudio(Origin.Scene(worldPosition), false);
+            if (source != Multiplayer.LocalPeer && !float.IsNaN(worldPosition.sqrMagnitude) && !float.IsInfinity(worldPosition.sqrMagnitude)) Senses.ShoutAudio(Origin.Scene(worldPosition), false, source);
         }
         static GameObject NetworkPrefab(string name)
         {

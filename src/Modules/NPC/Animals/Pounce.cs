@@ -238,6 +238,7 @@ namespace WildWasteland.Modules.NPC
 
         private static void Bite(P p, GameObject player, float now)
         {
+            if (!Core.VehicleMeleeProtection.CanHit(player)) { End(p, now, 2f, "player protected in vehicle"); return; }
             var target = p.A.DetectedVar != null && p.A.DetectedVar.Value != null ? p.A.DetectedVar.Value : player;
             var bp = BodypartOf(player) ?? BodypartOf(target);      // the player's body: its DamageEffectSound has the hurt sound and the red flash
             if (bp != null)

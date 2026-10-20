@@ -1,0 +1,17 @@
+# Wild Wasteland MP RC12 (0.1.48) — Vehicle melee protection and dog reach
+
+- **Protection while riding:** animal contact attacks and enemy melee can damage seated player drivers/passengers only when their vehicle is **stationary and its engine is off**. Applies to host and clients, including guest-driven cars and bikes. Moving with the engine off and idling while stopped both protect occupants. A small motion tolerance ignores suspension jitter. On-foot damage, gunfire, ranged creature projectiles, explosions and vehicle-part damage retain their existing rules; the collision-damage switch is separate.
+- **Dog bite reach:** fixes a disabled seated-player collider producing a false zero-distance bite check. Dogs now use the player's actual position when that collider is disabled. Host logs from the reported incident show repeated creature hits matching Nightwalker bite damage; the exact backward placement on downing remains unresolved and is not claimed fixed by this release.
+- **Remote shout voices:** remote shouting now follows the speaker's selected character, rather than the listener's. Female, Gungirl and Shoota use the existing female shout clip; other characters use the male clip. Existing volume, cooldown, hearing and native fallback remain.
+
+Vehicle protection runs before native melee damage is forwarded to a guest. Cars owned elsewhere use replicated engine/motion state rather than the observing peer's kinematic Rigidbody. Unresolved seated vehicle state remains protected. Native melee, animated dog contact, spider pounce contact and optional Dog Companion contact use the same policy. Existing dog attack reach is still required when a parked, switched-off vehicle permits damage.
+
+All peers must update and restart with matching builds. No new configuration keys, save format or network payload changes; handshake 24 remains. Extract the full ZIP into `BepInEx/plugins`, keeping standard Wild Wasteland disabled. Multiplayer requires separately installed **BepInEx 5 x64** and [Apocalypter Multiplayer 0.4.1](https://www.nexusmods.com/apocalypter/mods/10); dependency DLLs are not bundled.
+
+Manual checks: as host and guest driver/passenger, try moving engine-on/off and stopped engine-on/off near dogs and human melee enemies. Only stopped engine-off occupants should take reachable contact damage. Confirm ordinary on-foot hits and gunfire still work, then test reconnect/ownership handoff and a nearby/far-away dog. Test opposite-character shout playback in host/guest and guest-to-guest directions. Gameplay, visual and performance acceptance remains **Testing**; no game or harness was launched by the agent.
+
+Source and extended checks: [vehicle melee policy](vehicle-melee-policy-2026-10-20.md), [dog reach and supplied log review](dog-seated-reach-2026-10-20.md), [speaker shout selection](speaker-shout-gender-2026-10-20.md).
+
+Windows Release/Deploy=false passed with zero warnings/errors. Exact stage `V:/Repos/Apocalypter/_releases/WildWastelandMP_0.1.48-RC12a.dll`, built/staged DLL MD5 **BED1583903BED8151A5581B608DC2940**. No deployment to the current standard-WW installation, which lacks the MP assets/dependency. No live config/save edits.
+
+Runtime-only ZIP: 287 files, 236,666,672 bytes; SHA256 **ce15004db24688086e5e64a25618689b6d9bd378760fe3a7076df95ba50a0d6e**. CRC, exact source bytes, safe unique paths, single plugin DLL, 18 loading screens and 156 retained baseline assets checked. Dependency DLLs, documentation and personal runtime data are excluded.

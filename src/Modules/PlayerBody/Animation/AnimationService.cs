@@ -18,6 +18,8 @@ namespace WildWasteland.Modules.PlayerBody
         public bool Ready { get { return ModAPI.Ready; } }
         public bool PlayerThirdPerson { get { return ThirdPerson.On && !ThirdPerson.Peek; } }
         public AudioClip PlayerShout { get { return FemalePain.PlayerShout; } }
+        public AudioClip PlayerShoutFor(ulong peer)
+        { return peer == Multiplayer.LocalPeer ? FemalePain.PlayerShout : MultiplayerAvatars.Shout(peer); }
         public bool TryPlayerJumpHead(GameObject player, out Vector3 position) { return BodyRunner.TryPlayerJumpHead(player, out position); }
         public bool TryPlayerWeaponMuzzle(out Vector3 position)
         {

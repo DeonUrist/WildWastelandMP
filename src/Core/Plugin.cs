@@ -47,7 +47,7 @@ namespace WildWasteland
         public const string GUID = "com.denis.apocalypter.wildwastelandmp";
         public const string LegacyGUID = "com.denis.apocalypter.wildwasteland";
         public const string NAME = "Wild Wasteland MP";
-        public const string VERSION = "0.1.47";
+        public const string VERSION = "0.1.48";
 
         public static Plugin Instance;
         public static ConfigFile Main, Settings, Tools;
@@ -109,6 +109,7 @@ namespace WildWasteland
                 Core.HealthStacks.Init();
                 Core.ColorGrading.Init();
                 Core.VehicleCollisionDamage.Install(Modules.Patrols.PatrolsModule.RamDamageInCar);
+                Core.VehicleMeleeProtection.Install();
                 Core.ITweenGuard.Init();
                 Core.QuietFsm.Install();
                 Core.VistasWorldGen.Init();

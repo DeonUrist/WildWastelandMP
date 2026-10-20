@@ -243,6 +243,7 @@ namespace WildWasteland.Modules.NPC
             internal void Contact(GameObject victim)
             {
                 if (!Active || Riding || !TargetAlive(victim)) return;
+                if (!Core.VehicleMeleeProtection.CanHit(victim)) return;
                 _hurt(_target(Dog), biteDamage.Value);
                 if (Senses.PlayerObj != null) Senses.Hurt(victim, Senses.PlayerObj);
                 _snarl(Dog);

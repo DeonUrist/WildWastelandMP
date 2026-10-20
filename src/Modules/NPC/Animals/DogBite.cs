@@ -88,7 +88,7 @@ namespace WildWasteland.Modules.NPC
                 // (1.9.1) the gap to the target's body, not to its pivot: a dog held at pivot distance reach + 0.5 m stood short of biting range
                 if (!ReferenceEquals(d.ColOf, tgt)) { d.ColOf = tgt; d.Col = tgt.GetComponent<Collider>(); }
                 var tc = d.Col;
-                Vector3 tp = tc != null ? tc.ClosestPoint(d.T.position + Vector3.up * 0.25f) : tgt.transform.position;
+                Vector3 tp = tc != null && tc.enabled && tc.gameObject.activeInHierarchy ? tc.ClosestPoint(d.T.position + Vector3.up * 0.25f) : tgt.transform.position;
                 Vector3 gap = tp - d.T.position; gap.y = 0f;
                 float dist = gap.magnitude;
                 float near = d.Reach + 0.1f, far = d.Reach + 0.8f;

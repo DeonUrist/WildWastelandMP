@@ -181,6 +181,7 @@ namespace WildWasteland.Core
         bool Ready { get; }
         bool PlayerThirdPerson { get; }
         AudioClip PlayerShout { get; }
+        AudioClip PlayerShoutFor(ulong peer);
         bool TryPlayerJumpHead(GameObject player, out Vector3 position);
         bool TryPlayerWeaponMuzzle(out Vector3 position);
         string[] ClipNames();
