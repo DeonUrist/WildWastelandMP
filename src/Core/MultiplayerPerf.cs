@@ -26,7 +26,6 @@ namespace WildWasteland.Core
         static readonly Dictionary<GameObject, RendererCache> Renderers = new Dictionary<GameObject, RendererCache>();
         static readonly Dictionary<GameObject, string> Tags = new Dictionary<GameObject, string>();
         static object _looked; static float _lookedAt = -1f;
-        static float _nextSweep;
         // Native per-object caches that are never pruned on despawn (ids) or destruction (Unity keys).
         static Func<object, IDictionary> _objects;
         static readonly List<Func<object, IDictionary>> ById = new List<Func<object, IDictionary>>(), ByObject = new List<Func<object, IDictionary>>();

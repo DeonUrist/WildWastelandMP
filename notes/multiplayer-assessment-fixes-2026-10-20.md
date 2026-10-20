@@ -1,5 +1,7 @@
 # Multiplayer assessment fixes (2026-10-20, Testing)
 
+Release checkpoint: the integration and both performance follow-ups below are included in [RC14 / 0.1.50](release-0.1.50-RC14.md), handshake27. The final sections supersede the initial resource-failure policy and open-item list; original build/commit/deployment statements below describe their respective historical checkpoints. Runtime acceptance remains Testing.
+
 Denis requested fixes from Claude's supplied source assessment, explicitly using multiple agents and checking that their changes work together. The starting commit is `c3cc44e` (the previously deployed melee-b changes). Changes are limited to WWMP; native ApocalypterMP source/DLLs, the single-player repository, live configuration and saves remain untouched.
 
 Three agents own networking, saves/lifecycle, and objects/gameplay. The coordinating agent owns player/avatar/input fixes and the combined integration review. Findings are checked against the installed native baseline's decompile at `V:/Repos/Apocalypter/_staging/apocapatrol-multiplayer-audit-20261011/mp-source`. Compilation is not runtime acceptance.
