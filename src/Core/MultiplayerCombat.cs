@@ -10,12 +10,14 @@ namespace WildWasteland.Core
     // MP's creature damage handler drops the sender; inspect at Handle, before its unchanged damage dispatch.
     internal static partial class MultiplayerCombat
     {
-        static byte _creatureDamage;
+        static byte _creatureDamage, _playerDamage;
         internal static void Install()
         {
             _creatureDamage = Convert.ToByte(Enum.Parse(Multiplayer.Type("Net.MessageType"), "CreatureDamage"));
+            _playerDamage = Convert.ToByte(Enum.Parse(Multiplayer.Type("Net.MessageType"), "PlayerDamage"));
             Hooks.ProcessEvent.Prefix(Multiplayer.PatchOwner, BeforeEvent);
             InstallCars();
+            InstallMelee();
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(typeof(FsmFloatAdd), "OnEnter"), prefix: AccessTools.Method(typeof(MultiplayerCombat), "Sanity")))
                 throw new InvalidOperationException("MP sanity damage forwarding hook failed");
             Multiplayer.Message += ReceiveSanity;
@@ -40,7 +42,7 @@ namespace WildWasteland.Core
         }
         static bool BeforeEvent(Fsm fsm, FsmEvent ev, FsmEventData data)
         {
-            if (!Multiplayer.Active || ev == null || ev.Name != "Damage" || fsm == null || (fsm.Name != "Bodypart" && fsm.Name != "Health")) return true;
+            if (ev == null || ev.Name != "Damage" || fsm == null || (fsm.Name != "Bodypart" && fsm.Name != "Health") || !Multiplayer.Active) return true;
             if (fsm.Name == "Bodypart" && fsm.GameObject != null && (fsm.GameObject.CompareTag("vehPart") || fsm.GameObject.CompareTag("vehPartRemoved")))
             {
                 var damage = fsm.Variables.FindFsmFloat("Damage");
@@ -53,7 +55,10 @@ namespace WildWasteland.Core
         }
         internal static bool BeforeNative(ulong from, byte[] packet)
         {
-            if (!Multiplayer.Present || packet[0] != _creatureDamage) return true;
+            if (!Multiplayer.Present) return true;
+            // Native applies PlayerDamage on any non-host without checking the sender; guests do receive other guests' broadcasts.
+            if (packet[0] == _playerDamage) return Multiplayer.Hosting || from == 0;
+            if (packet[0] != _creatureDamage) return true;
             if (!Multiplayer.Hosting || !Multiplayer.WorldReady || from == 0 || packet.Length < 10 || packet.Length > 1024) return false;
             var player = Multiplayer.PlayerFor(from);
             if (player == null) return false;

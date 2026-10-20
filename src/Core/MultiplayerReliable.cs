@@ -7,7 +7,9 @@ using UnityEngine;
 
 namespace WildWasteland.Core
 {
-    // The supplied UDP transport ignores reliable=true. WW and native part-state packets share one ordered stream.
+    // The supplied UDP transport ignores reliable=true. WW and native part-state packets share one ordered stream (lane 0).
+    // Combat (native CreatureDamage/PlayerDamage, WW melee hit requests/results) has its own ordered lane 1 with a shorter
+    // retry, so a lost world-state packet never holds back given or received damage.
     internal static class MultiplayerReliable
     {
         internal const byte Packet = 249;
@@ -26,8 +28,11 @@ namespace WildWasteland.Core
             internal readonly SortedDictionary<uint, byte[]> Pending = new SortedDictionary<uint, byte[]>();
             internal readonly HashSet<ulong> Retired = new HashSet<ulong>();
         }
-        static readonly Dictionary<ulong, Outgoing> Out = new Dictionary<ulong, Outgoing>();
-        static readonly Dictionary<ulong, Incoming> In = new Dictionary<ulong, Incoming>();
+        const int Lanes = 2;
+        static readonly float[] RetrySeconds = { .35f, .2f };
+        static readonly Dictionary<ulong, Outgoing>[] Out = { new Dictionary<ulong, Outgoing>(), new Dictionary<ulong, Outgoing>() };
+        static readonly Dictionary<ulong, Incoming>[] In = { new Dictionary<ulong, Incoming>(), new Dictionary<ulong, Incoming>() };
+        static readonly HashSet<byte> Combat = new HashSet<byte>();
         static readonly HashSet<ulong> Peers = new HashSet<ulong>();
         static readonly List<ulong> Gone = new List<ulong>();
         static readonly List<uint> Acked = new List<uint>();
@@ -50,6 +55,7 @@ namespace WildWasteland.Core
             foreach (string name in new[] { "Switch", "Thrown" }) Forward.Add(Convert.ToByte(Enum.Parse(messages, name)));
             foreach (string name in new[] { "ObjectVars", "ObjectSpawn", "ObjectDespawn", "ObjectGone", "ObjectCreate", "ObjectAdopted", "ObjectClaim", "ObjectRelease", "ObjectRevoke", "CarClaim", "CarGrant", "CarDeny", "CarRelease", "CarRequest", "CreatureDamage", "PlayerDamage", "Switch", "SwitchRequest", "Thrown", "Revive", "SleepVote", "SleepNow", "PlayerSave", "PlayerRestore" })
                 Native.Add(Convert.ToByte(Enum.Parse(messages, name)));
+            foreach (string name in new[] { "CreatureDamage", "PlayerDamage" }) Combat.Add(Convert.ToByte(Enum.Parse(messages, name)));
             if (!Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAll"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeAll"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendTo"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeTo"))
                 || !Patches.Patch(Multiplayer.PatchOwner, AccessTools.Method(session, "SendToAllExcept"), prefix: AccessTools.Method(typeof(MultiplayerReliable), "BeforeExcept"))
@@ -58,7 +64,12 @@ namespace WildWasteland.Core
             Multiplayer.SessionChanged += Changed;
             Scheduler.Interval(Multiplayer.PatchOwner, "Reliable MP messages", .05f, Tick);
         }
-        static void Reset() { Out.Clear(); In.Clear(); Peers.Clear(); _nextPeers = 0; }
+        static void Reset() { for (int lane = 0; lane < Lanes; lane++) { Out[lane].Clear(); In[lane].Clear(); } Peers.Clear(); _nextPeers = 0; }
+        static int Lane(byte[] data)
+        {
+            if (Combat.Contains(data[0])) return 1;
+            return data[0] == Multiplayer.PacketType && data.Length > 6 && (data[6] == MultiplayerCombat.MeleeHitKind || data[6] == MultiplayerCombat.MeleeResultKind) ? 1 : 0;
+        }
         static void Changed()
         {
             bool active = Multiplayer.SessionActive, hosting = Multiplayer.Hosting;
@@ -101,42 +112,47 @@ namespace WildWasteland.Core
         static void To(ulong peer, byte[] data)
         {
             if (data.Length > 60000) throw new InvalidDataException("MP reliable payload exceeds 60000 bytes");
-            Outgoing output; if (!Out.TryGetValue(peer, out output)) { output = new Outgoing(); Out.Add(peer, output); }
+            int lane = Lane(data);
+            Outgoing output; if (!Out[lane].TryGetValue(peer, out output)) { output = new Outgoing(); Out[lane].Add(peer, output); }
             if (output.Pending.Count >= 4096)
             {
                 if (Time.unscaledTime >= _nextFullLog) { _nextFullLog = Time.unscaledTime + 5f; Log.Warn("[Multiplayer] Reliable queue full for player " + peer); }
                 return;
             }
             uint sequence = ++output.Sequence;
-            var packet = Frame(output.Nonce, sequence, false, data);
+            var packet = Frame(lane, output.Nonce, sequence, false, data);
             var pending = new Pending { Data = packet }; output.Pending.Add(sequence, pending);
             if (sequence <= output.Sent + Window && output.Pending.Count <= Window)
-            { pending.Retry = Time.unscaledTime + .35f; output.Sent = sequence; Multiplayer.RawTo(peer, packet); }
+            { pending.Retry = Time.unscaledTime + RetrySeconds[lane]; output.Sent = sequence; Multiplayer.RawTo(peer, packet); }
         }
-        static byte[] Frame(ulong nonce, uint sequence, bool ack, byte[] payload = null)
+        static byte[] Frame(int lane, ulong nonce, uint sequence, bool ack, byte[] payload = null)
         {
             using (var stream = new MemoryStream()) using (var writer = new BinaryWriter(stream))
-            { writer.Write(Packet); writer.Write(Magic); writer.Write((byte)1); writer.Write(ack); writer.Write(nonce); writer.Write(sequence); if (payload != null) writer.Write(payload); return stream.ToArray(); }
+            { writer.Write(Packet); writer.Write(Magic); writer.Write((byte)(1 + lane)); writer.Write(ack); writer.Write(nonce); writer.Write(sequence); if (payload != null) writer.Write(payload); return stream.ToArray(); }
         }
         static void Tick()
         {
             if (!Multiplayer.Active) return;
             if (Time.unscaledTime >= _nextPeers)
             {
-                _nextPeers = Time.unscaledTime + .5f; RefreshPeers(); Gone.Clear();
-                foreach (var pair in Out) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
-                foreach (ulong peer in Gone) { Out.Remove(peer); In.Remove(peer); }
-                Gone.Clear(); foreach (var pair in In) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
-                foreach (ulong peer in Gone) In.Remove(peer);
+                _nextPeers = Time.unscaledTime + .5f; RefreshPeers();
+                for (int lane = 0; lane < Lanes; lane++)
+                {
+                    Gone.Clear(); foreach (var pair in Out[lane]) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
+                    foreach (ulong peer in Gone) { Out[lane].Remove(peer); In[lane].Remove(peer); }
+                    Gone.Clear(); foreach (var pair in In[lane]) if (!Peers.Contains(pair.Key)) Gone.Add(pair.Key);
+                    foreach (ulong peer in Gone) In[lane].Remove(peer);
+                }
             }
-            foreach (var pair in Out)
+            for (int lane = 0; lane < Lanes; lane++)
+            foreach (var pair in Out[lane])
             {
                 int count = 0, sent = 0;
                 foreach (var packet in pair.Value.Pending)
                 {
                     if (++count > Window || sent >= 16) break;
                     if (Time.unscaledTime < packet.Value.Retry) continue;
-                    packet.Value.Retry = Time.unscaledTime + .35f;
+                    packet.Value.Retry = Time.unscaledTime + RetrySeconds[lane];
                     pair.Value.Sent = Math.Max(pair.Value.Sent, packet.Key);
                     Multiplayer.RawTo(pair.Key, packet.Value.Data); sent++;
                 }
@@ -149,18 +165,19 @@ namespace WildWasteland.Core
             {
                 using (var reader = new BinaryReader(new MemoryStream(data, false)))
                 {
-                    reader.ReadByte(); if (reader.ReadUInt32() != Magic || reader.ReadByte() != 1) return;
+                    reader.ReadByte(); if (reader.ReadUInt32() != Magic) return;
+                    int lane = reader.ReadByte() - 1; if (lane < 0 || lane >= Lanes) return;
                     bool ack = reader.ReadBoolean(); ulong nonce = reader.ReadUInt64(); uint sequence = reader.ReadUInt32();
                     if (ack)
                     {
                         Outgoing output;
-                        if (data.Length != 19 || !Out.TryGetValue(from, out output) || output.Nonce != nonce || sequence > output.Sent) return;
+                        if (data.Length != 19 || !Out[lane].TryGetValue(from, out output) || output.Nonce != nonce || sequence > output.Sent) return;
                         Acked.Clear(); foreach (var packet in output.Pending) { if (packet.Key > sequence) break; Acked.Add(packet.Key); }
                         foreach (uint key in Acked) output.Pending.Remove(key);
                         return;
                     }
                     if (data.Length == 19 || sequence == 0) return;
-                    Incoming input; if (!In.TryGetValue(from, out input)) { input = new Incoming { Nonce = nonce }; In.Add(from, input); }
+                    Incoming input; if (!In[lane].TryGetValue(from, out input)) { input = new Incoming { Nonce = nonce }; In[lane].Add(from, input); }
                     if (input.Nonce != nonce)
                     {
                         if (sequence != 1 || input.Retired.Contains(nonce)) return;
@@ -175,7 +192,7 @@ namespace WildWasteland.Core
                         if (payload.Length == 0 || (payload[0] != Multiplayer.PacketType && !Native.Contains(payload[0]) && !Snapshot.Contains(payload[0]))) continue;
                         try { Deliver(from, payload); } catch (Exception e) { Log.Error("[Multiplayer] Reliable message failed", e); }
                     }
-                    Multiplayer.RawTo(from, Frame(nonce, input.Next - 1, true));
+                    Multiplayer.RawTo(from, Frame(lane, nonce, input.Next - 1, true));
                 }
             }
             catch (Exception e) { Log.Warn("[Multiplayer] Rejected reliable packet: " + e.Message); }

@@ -39,6 +39,7 @@ namespace WildWasteland.Modules.NPC
             public GameObject ColOf; public Collider TargetCol; public float ColAt;
             public int ReachFrame = -1; public GameObject ReachOf; public Vector3 ReachOrigin, ReachPoint; public sbyte ReachLine;
             public readonly Dictionary<Wait, float> OriginalWaits = new Dictionary<Wait, float>();
+            public float VanillaWait, AttackStart;     // (WWMP) the Damage FSM's own attack Wait; when the current bite started
             public GameObject BiteTarget; public Fsm DamageFsm;
             public Transform[] LegTop, LegPaw;      // (1.9.2) the two front legs: shoulder bone and paw (deepest skinned bone)
             public Transform[] HindTop; public Transform FrontRoot; public bool LevelLogged; public float ShoulderOverHip;   // (1.9.3) hind leg tops; the bone that carries the front half (chest, front legs, neck)
@@ -356,6 +357,8 @@ namespace WildWasteland.Modules.NPC
             Switch(d, running ? Pose.RunningBite : Pose.Bite, running ? "MovingBite" : "Bite");
             d.AttackRate = d.Clips[d.Playing].length / (running ? .70f : .48f);
             d.NextBite = Time.time + (running ? 1.02f : .58f) + UnityEngine.Random.Range(0f, .04f);
+            d.AttackStart = Time.time;
+            if (VanillaPace(d)) d.NextBite = Mathf.Max(d.NextBite, Time.time + VanillaInterval(d, damage));
             if (d.Companion != null) d.Companion.SetCooldown(d.NextBite);
             d.RecoveryUntil = Time.time + (running ? .90f : .56f);
             if (!running) return;
@@ -397,7 +400,36 @@ namespace WildWasteland.Modules.NPC
             var fsm = __instance.Fsm; Dog d;
             if (fsm == null || fsm.Name != "Damage" || fsm.ActiveStateName != "attack" || fsm.GameObject == null || !Dogs.TryGetValue(fsm.GameObject.GetInstanceID(), out d) || !Eligible(d) || __instance.time == null) return;
             if (!d.OriginalWaits.ContainsKey(__instance)) d.OriginalWaits[__instance] = __instance.time.Value;
+            // (WWMP) in multiplayer the next bite lands one vanilla Wait after this one: the Wait covers what is left after the lunge
+            if (VanillaPace(d))
+            {
+                bool biting = d.Pose == Pose.Bite || d.Pose == Pose.RunningBite || d.Pose == Pose.JumpAttack;   // a vanilla attack that slipped past StartAttack has no lunge to subtract
+                __instance.time.Value = biting ? Mathf.Max(.05f, VanillaInterval(d, fsm) - (Time.time - d.AttackStart)) : VanillaInterval(d, fsm);
+                return;
+            }
             __instance.time.Value = d.Pose == Pose.RunningBite ? .48f : .32f;
+        }
+        // (WWMP) multiplayer keeps hostile dogs at the vanilla bite rate (one bite per attack-state Wait, 1 s for every dog);
+        // single player keeps the faster animated rate. Companions are not hostile and keep theirs.
+        private static bool VanillaPace(Dog d) { return d.Companion == null && Core.Multiplayer.Active; }
+        private static float VanillaInterval(Dog d, Fsm damage)
+        {
+            if (d.VanillaWait > 0f) return d.VanillaWait;
+            float wait = 1f;
+            if (damage != null && damage.States != null)
+                foreach (var state in damage.States)
+                {
+                    if (state.Name != "attack" || state.Actions == null) continue;
+                    foreach (var action in state.Actions)
+                    {
+                        var w = action as Wait; float original;
+                        if (w == null || w.time == null) continue;
+                        wait = d.OriginalWaits.TryGetValue(w, out original) ? original : w.time.Value;
+                        break;
+                    }
+                }
+            d.VanillaWait = Mathf.Clamp(wait, .25f, 5f);
+            return d.VanillaWait;
         }
 
         public static bool BeforeDamageEvent(Fsm __instance, FsmEvent fsmEvent, FsmEventData eventData)
@@ -410,7 +442,7 @@ namespace WildWasteland.Modules.NPC
             if (d.Agent.State != Senses.State.Combat || d.Agent.Target == null) return true;
             StartAttack(d, __instance, false);
             bool leap = jumping.Value && d.Clips.ContainsKey("JumpAttack") && Grounded(d) && !Senses.PlayerInCar && UnityEngine.Random.value < .25f;
-            if (leap) { Switch(d, Pose.JumpAttack, "JumpAttack"); d.NextBite = Time.time + d.Clips[d.Playing].length; }
+            if (leap) { Switch(d, Pose.JumpAttack, "JumpAttack"); d.NextBite = Time.time + d.Clips[d.Playing].length; if (VanillaPace(d)) d.NextBite = Mathf.Max(d.NextBite, Time.time + VanillaInterval(d, __instance)); }
             if (leap)
             {
                 Vector3 direction = d.BiteTarget.transform.position - d.Agent.T.position; direction.y = 0f;
