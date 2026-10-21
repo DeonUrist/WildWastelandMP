@@ -35,7 +35,7 @@ namespace WildWasteland.Modules.Patrols
     [Serializable] public sealed class MerchantDemand
     {public string type;public string[] names=new string[0];public int[] prices=new int[0];}
     [Serializable] public sealed class MerchantStock
-    {public string type,prefab,nativeName="";public int slot,buyPrice=-1;public bool purchased;}
+    {public string type,prefab,nativeName="";public int slot,buyPrice=-1,objectId;public bool purchased,hostilityReleased;}
     [Serializable] public sealed class MerchantTurret
     {public int slot;public string prefab;public float health,maxHealth;public Vector3 position;public bool standing;}
     [Serializable] public sealed class MerchantSave

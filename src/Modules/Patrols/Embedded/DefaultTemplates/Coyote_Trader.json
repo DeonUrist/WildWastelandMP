@@ -5,7 +5,7 @@
     "kind": "small",
     "explodeChance": 0,
     "faction": "Coyotes",
-    "lootPreset": "car-medical",
+    "lootPreset": "car-empty",
     "rams": "Pedestrians",
     "driver": "Bodyguard",
     "passenger": "Merchant",

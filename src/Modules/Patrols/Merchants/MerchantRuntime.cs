@@ -9,6 +9,7 @@ namespace WildWasteland.Modules.Patrols
 {
     internal static class MerchantRuntime
     {
+        internal static bool StockOnly(CarTemplate template)=>template.Name=="Coyote_Trader"||template.MerchantTypes!=null&&template.MerchantTypes.Length>0;
         internal static void SpawnTemplate(Patrol patrol,CarTemplate source,SpawnGroup group)
         {if(source==null||!CrewFactions.Compatible(source,(group??MerchantCatalog.DefaultGroup()).Faction))return;group=group??MerchantCatalog.DefaultGroup();if(WorldTraffic.MerchantTypeInUse(MerchantCatalog.Selected(group.MerchantTypes))){Core.Log.Warn("[Patrols] " + "That merchant type already exists; remove its current bus before spawning another.");return;}var copy=source.CloneForSpawn();Configure(copy,group);copy.SetupOnly=true;patrol.Spawn(copy);}
         internal static void Configure(CarTemplate template,SpawnGroup group)
@@ -41,6 +42,7 @@ namespace WildWasteland.Modules.Patrols
         internal readonly List<MerchantObject> Objects=new List<MerchantObject>();
         private readonly List<PlayMakerFSM> _lists=new List<PlayMakerFSM>(),_sellers=new List<PlayMakerFSM>();
         private readonly Dictionary<MerchantStock,GameObject> _stock=new Dictionary<MerchantStock,GameObject>();
+        internal bool OwnsStock(GameObject item){foreach(var pair in _stock)if(ReferenceEquals(pair.Value,item))return true;return false;}
         private Transform _inactiveProbes;
         private readonly List<GameObject> _probes=new List<GameObject>();
         private Transform _root;private float _next;private Collider[] _chassis;internal bool Ready;
@@ -142,13 +144,20 @@ namespace WildWasteland.Modules.Patrols
                 GameObject existing;existingItems.TryGetValue(record.nativeName??"",out existing);
                 var prefab=Prefabs.FindAny(record.prefab);if(existing==null&&prefab==null)continue;
                 var item=existing??Instantiate(prefab,sale.position,sale.rotation);item.transform.SetParent(sale,true);item.transform.localPosition=Vector3.zero;item.transform.localRotation=Quaternion.identity;
-                if(existing==null){Register.Name(item,prefab.name);Register.Add(item,false);Register.Commit(item);}record.nativeName=item.name;_stock[record]=item;
+                if(existing==null)Register.Name(item,prefab.name);record.nativeName=item.name;_stock[record]=item;
                 var rb=item.GetComponent<Rigidbody>();if(rb!=null)rb.isKinematic=true;
                 foreach(var c in item.GetComponentsInChildren<Collider>(true))foreach(var car in _chassis)if(c!=null&&car!=null&&c!=car)Physics.IgnoreCollision(c,car,true);
                 yield return null;
                 foreach(var f in item.GetComponents<PlayMakerFSM>())if(f.FsmName=="Value"||f.FsmName=="ForBuy"||f.FsmName=="Buyable"){Init(f);if(f.FsmName=="Value")f.Fsm.SetState("value");}
                 var value=item.GetComponents<PlayMakerFSM>().FirstOrDefault(f=>f.FsmName=="Value")?.FsmVariables.FindFsmInt("BuyValue");if(value!=null){if(record.buyPrice>=0)value.Value=record.buyPrice;else record.buyPrice=value.Value;}
                 var buy=item.GetComponents<PlayMakerFSM>().FirstOrDefault(f=>f.FsmName=="ForBuy");if(buy!=null){buy.FsmVariables.FindFsmInt("ForBuyInt").Value=1;buy.Fsm.SetState("forBuy");}
+                if(record.hostilityReleased)
+                {
+                    if(TrafficFactions.PlayerHostile(GetComponent<PatrolMarker>()?.Faction))
+                    {var interaction=Core.FsmUtil.Find(item,"Buyable");if(interaction!=null)interaction.SendEvent("FactionCoyotesEnemy");}
+                    else record.hostilityReleased=false;
+                }
+                if(existing==null){Register.Add(item,false);Register.Commit(item);}
                 item.SetActive(true);yield return null;
             }
             Park();Ready=true;
@@ -187,6 +196,11 @@ namespace WildWasteland.Modules.Patrols
         private static void Text(Transform node,string text){var component=node.GetComponents<Component>().FirstOrDefault(c=>c!=null&&c.GetType().Name=="TextMeshPro");component?.GetType().GetProperty("text")?.SetValue(component,text,null);}
         internal void ApplyNetwork(MerchantSave data,MerchantPose[] poses,bool trading)
         {
+            if(!ReferenceEquals(Data,data))
+            {
+                _deadFsms.Clear();foreach(var pair in _itemFsms)if(pair.Value.Item==null)_deadFsms.Add(pair.Key);
+                foreach(int id in _deadFsms)_itemFsms.Remove(id);
+            }
             Data=data;NetworkPoses=poses;NetworkTrading=trading;if(!Ready)return;
             foreach(var list in _lists){var demand=Data.demands.FirstOrDefault(d=>d.type==list.gameObject.name);if(demand!=null)SetDemand(list,demand);}
             foreach(var pose in poses??new MerchantPose[0]){var obj=Objects.FirstOrDefault(o=>o.Id==pose.id);if(obj?.Transform!=null){obj.Transform.position=transform.TransformPoint(pose.position);obj.Transform.rotation=transform.rotation*Quaternion.Euler(pose.rotation);}}
@@ -201,31 +215,96 @@ namespace WildWasteland.Modules.Patrols
             CleanProbes();
         }
         // Perf: each stock item's ForBuy / Value / Buyable FSMs found once per item (was GetComponents + LINQ x3 per item, 2/s)
-        private sealed class ItemFsms{internal GameObject Item;internal PlayMakerFSM Buy,Value,Buyable;}
-        private readonly Dictionary<MerchantStock,ItemFsms> _itemFsms=new Dictionary<MerchantStock,ItemFsms>();
+        private sealed class ItemFsms{internal GameObject Item;internal PlayMakerFSM Buy,Value,Buyable,Name;}
+        private readonly Dictionary<int,ItemFsms> _itemFsms=new Dictionary<int,ItemFsms>();
+        private readonly List<int> _deadFsms=new List<int>();
         private static readonly List<PlayMakerFSM> _fs=new List<PlayMakerFSM>();
-        private ItemFsms FsmsOf(MerchantStock record,GameObject item)
+        private float _nextReconcile,_nextStock;
+        internal static bool BeforeEvent(Fsm fsm,FsmEvent ev,FsmEventData data)
         {
-            if(_itemFsms.TryGetValue(record,out var c)&&ReferenceEquals(c.Item,item))return c;
+            if(!PatrolsModule.Running||Core.Multiplayer.Client||ev==null||ev.Name!="FactionCoyotesEnemy"||fsm==null||fsm.Name!="Buyable"||fsm.GameObject==null)return true;
+            var host=fsm.GameObject.GetComponentInParent<MerchantHost>();if(host==null||host.Presentation)return true;
+            foreach(var pair in host._stock)
+            {
+                if(pair.Key.purchased||!ReferenceEquals(pair.Value,fsm.GameObject))continue;
+                var sale=host.FsmsOf(pair.Value).Buy?.FsmVariables.FindFsmInt("ForBuyInt");
+                // Purchase reconciliation arrives after setting zero; hostility arrives while stock is still for sale.
+                if(sale!=null&&sale.Value>0)pair.Key.hostilityReleased=true;
+                break;
+            }
+            return true;
+        }
+        private ItemFsms FsmsOf(GameObject item)
+        {
+            int id=item.GetInstanceID();if(_itemFsms.TryGetValue(id,out var c)&&ReferenceEquals(c.Item,item))return c;
             c=new ItemFsms{Item=item};_fs.Clear();item.GetComponents(_fs);
-            foreach(var f in _fs){if(f==null)continue;if(c.Buy==null&&f.FsmName=="ForBuy")c.Buy=f;else if(c.Value==null&&f.FsmName=="Value")c.Value=f;else if(c.Buyable==null&&f.FsmName=="Buyable")c.Buyable=f;}
-            _fs.Clear();_itemFsms[record]=c;return c;
+            foreach(var f in _fs){if(f==null)continue;if(c.Buy==null&&f.FsmName=="ForBuy")c.Buy=f;else if(c.Value==null&&f.FsmName=="Value")c.Value=f;else if(c.Buyable==null&&f.FsmName=="Buyable")c.Buyable=f;else if(c.Name==null&&f.FsmName=="ItemName")c.Name=f;}
+            _fs.Clear();_itemFsms[id]=c;return c;
+        }
+        private static void ReconcileItem(ItemFsms fsms,bool forSale,int price)
+        {
+            var sale=fsms.Buy?.FsmVariables.FindFsmInt("ForBuyInt");if(sale==null||fsms.Buyable==null)return;
+            if(forSale)
+            {
+                var value=fsms.Value?.FsmVariables.FindFsmInt("BuyValue");if(value!=null&&price>=0&&value.Value!=price)value.Value=price;
+                if(sale.Value==0||!fsms.Buyable.enabled||fsms.Name!=null&&fsms.Name.enabled){sale.Value=1;fsms.Buy.Fsm.SetState("forBuy");}
+            }
+            else if(sale.Value!=0||fsms.Buyable.enabled||fsms.Name!=null&&!fsms.Name.enabled)
+            {
+                sale.Value=0;fsms.Buyable.enabled=true;fsms.Buyable.SendEvent("FactionCoyotesEnemy");
+            }
+        }
+        internal void ReconcileStock(bool trading)
+        {
+            if(!Ready||Data==null||!Core.GameRefs.WorldRunning||Time.unscaledTime<_nextReconcile)return;_nextReconcile=Time.unscaledTime+3f;
+            if(Presentation)
+            {
+                foreach(var record in Data.stock)
+                {
+                    var item=record.objectId>0?Core.Multiplayer.ObjectById(record.objectId):null;if(item==null)continue;
+                    var fsms=FsmsOf(item);var sale=fsms.Buy?.FsmVariables.FindFsmInt("ForBuyInt");if(sale==null)continue;
+                    // A zero on a friendly guest may be a purchase awaiting host confirmation; never undo it here.
+                    ReconcileItem(fsms,!record.purchased&&trading&&sale.Value>0,record.buyPrice);
+                }
+                return;
+            }
+            foreach(var pair in _stock)
+            {
+                var item=pair.Value;if(item==null)continue;
+                if(!pair.Key.purchased&&!trading)pair.Key.hostilityReleased=true;
+                ReconcileItem(FsmsOf(item),!pair.Key.purchased&&trading,pair.Key.buyPrice);
+            }
         }
         private void ObserveStock(bool trading)
         {
+            if(!Ready||!Core.SaveBus.Busy&&Time.unscaledTime<_nextStock)return;_nextStock=Time.unscaledTime+3f;
             foreach(var pair in _stock)
             {
                 var item=pair.Value;if(pair.Key.purchased)continue;if(item==null){pair.Key.purchased=true;continue;}
-                var fsms=FsmsOf(pair.Key,item);var buy=fsms.Buy!=null?fsms.Buy:null;
+                var fsms=FsmsOf(item);var buy=fsms.Buy!=null?fsms.Buy:null;
+                if(pair.Key.hostilityReleased&&item.transform.IsChildOf(transform)&&(!Core.Multiplayer.Active||Core.Multiplayer.OwnerOf(item)==0))
+                {
+                    if(!trading)continue;
+                    var sale=buy?.FsmVariables.FindFsmInt("ForBuyInt");
+                    if(sale!=null)
+                    {
+                        var price=fsms.Value?.FsmVariables.FindFsmInt("BuyValue");if(price!=null&&pair.Key.buyPrice>=0)price.Value=pair.Key.buyPrice;
+                        sale.Value=1;buy.Fsm.SetState("forBuy");pair.Key.hostilityReleased=false;
+                        if(Core.Log.Verbose)Core.Log.Info("[Patrols] Merchant stock returned to sale after hostility: "+item.name);
+                    }
+                }
                 if(Ready&&buy?.FsmVariables.FindFsmInt("ForBuyInt")?.Value==0){pair.Key.purchased=true;item.transform.SetParent(null,true);foreach(var a in item.GetComponentsInChildren<Collider>(true))foreach(var b in _chassis??new Collider[0])if(a!=null&&b!=null&&a!=b)Physics.IgnoreCollision(a,b,false);continue;}
                 var value=fsms.Value!=null?fsms.Value.FsmVariables.FindFsmInt("BuyValue"):null;if(value!=null)pair.Key.buyPrice=value.Value;
                 var buyable=fsms.Buyable;if(buyable!=null&&buyable.enabled!=trading)buyable.enabled=trading;
             }
+            ReconcileStock(trading);
         }
         internal string Snapshot()
         {
             MerchantGuards.Capture(this);
             ObserveStock(Ready&&!TrafficFactions.PlayerHostile(GetComponent<PatrolMarker>()?.Faction));
+            foreach(var record in Data.stock)record.objectId=0;
+            foreach(var pair in _stock)if(pair.Value!=null)pair.Key.objectId=Core.Multiplayer.ObjectId(pair.Value);
             Data.demands=_lists.Select(f=>new MerchantDemand{type=f.gameObject.name,names=(f.FsmVariables.FindFsmArray("ItemNameArray")?.Values??new object[0]).Select(Convert.ToString).ToArray(),prices=(f.FsmVariables.FindFsmArray("ItemPriceArray")?.Values??new object[0]).Select(Convert.ToInt32).ToArray()}).Where(d=>d.names.Length>0&&d.names.Length==d.prices.Length).ToArray();
             return TrafficCodec.WriteRecord(Data);
         }

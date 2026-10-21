@@ -187,27 +187,30 @@ namespace WildWasteland.Modules.Patrols
             return part;
         }
 
-        internal static GameObject Spawn(Entry entry, Vector3 position, Quaternion rotation)
+        internal static GameObject Spawn(Entry entry, Vector3 position, Quaternion rotation,bool merchant=false)
         {
             // Clone while dormant, assign unique native save names, then activate the entire independent hierarchy.
             var car = entry.Reserves.Dequeue(); entry.Ready = entry.Reserves.Count > 0; Enqueue(entry);
             try
             {
                 car.SetActive(false);
+                if(merchant)MerchantSpawnAudit.Begin(car);
                 Register.Defer(car); Register.Name(car, entry.Template.Body); Register.Add(car, true);
                 foreach (var item in entry.Items)
                 {
                     var node = car.transform; foreach (int index in item.Path) node = node.GetChild(index);
                     Register.Name(node.gameObject, item.Prefab); Register.Add(node.gameObject, false);
+                    if(merchant)MerchantSpawnAudit.Keep(node.gameObject);
                 }
                 car.transform.SetParent(null, false);
                 SceneManager.MoveGameObjectToScene(car, SceneManager.GetActiveScene());
                 car.transform.SetPositionAndRotation(position, rotation);
+                if(merchant)MerchantSpawnAudit.CaptureArea(car);
                 car.SetActive(true);
                 PatrolsModule.Verbose("Vehicle build cache hit: " + entry.Template.Name + " -> " + car.name);
                 return car;
             }
-            catch { Register.Discard(car); UnityEngine.Object.Destroy(car); throw; }
+            catch { MerchantSpawnAudit.Clear(car);Register.Discard(car); UnityEngine.Object.Destroy(car); throw; }
         }
 
         internal static void Reset()

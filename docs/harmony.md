@@ -201,6 +201,8 @@ Dropped from Apocapatrol / War Rig: the 6 + 1 Harmony ids, `TrafficSpace.OriginJ
 
 Every patch is installed once when its feature first starts and stays for the module lifetime; bodies test the feature's static flag first (Off = one bool test). Hook subscriptions: `Fsm.ProcessEvent` prefix (FS1 wake, CT8 Coyote filter; both return true unless CT8 drops a no-op repeat), `Fsm.EnterState` postfix (PollSleep wake, CT2), `CreateObject.OnEnter` postfix (render scan of spawned objects), `PlayMakerFSM.OnEnable` postfix (above).
 
+Merchant stock (2026-10-21, Testing): Patrols subscribes `MerchantHost.BeforeEvent` to the existing `Fsm.ProcessEvent` prefix dispatcher. It only observes `FactionCoyotesEnemy` on tracked bus Buyable FSMs while their sale flag is positive, distinguishing hostility releases from paid reconciliation after zero. It never suppresses the event. Three-second sale reconciliation and the one-time PhysicsLock spawn audit introduce no Harmony targets or object-creation hooks. See notes/merchant-stock-reconciliation-2026-10-21.md.
+
 FS4 is an exception to the Off fast path: once installed, its prefix always runs the ActionDataPort copy; Off selects reflection inside that copy. No ActionData method is transpiled.
 
 | Feature | Target | Kind |

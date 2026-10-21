@@ -499,6 +499,7 @@ namespace WildWasteland.Modules.Patrols
                 for (int i = 0; i < record.trailerLootNames.Length && i < record.trailerLootCounts.Length; i++) t.Trailer.SpawnLoot[record.trailerLootNames[i]] = record.trailerLootCounts[i];
             }
             t.RestoreCrewAppearance = record.crew != null;
+            t.RestoredTraffic = record.crew != null || record.partPaths != null;
             if (record.crew != null) { t.Driver = record.crew.driverPresent ? record.crew.driverPrefab : ""; t.Passenger = record.crew.passengerPresent ? record.crew.passengerPrefab : ""; }
             if (record.turrets != null)
                 for (int i = 0; i < record.turrets.Length; i++)

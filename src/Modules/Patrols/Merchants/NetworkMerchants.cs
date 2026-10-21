@@ -58,6 +58,8 @@ namespace WildWasteland.Modules.Patrols
                     int id = r.ReadInt32(); string json = r.ReadString(); if (json.Length > 131072) throw new InvalidDataException("Merchant record too large");
                     var shop = new Shop { Data = TrafficCodec.ReadRecord<MerchantSave>(json), Trading = r.ReadBoolean() };
                     if (shop.Data == null || shop.Data.version != 1 || shop.Data.types == null || shop.Data.types.Length != 1 || !MerchantCatalog.Known(shop.Data.types[0]) || shop.Data.demands == null || shop.Data.stock == null) throw new InvalidDataException("Invalid merchant record");
+                    if (shop.Data.stock.Length > 36) throw new InvalidDataException("Invalid merchant stock");
+                    foreach (var stock in shop.Data.stock) if (stock == null || stock.objectId < 0) throw new InvalidDataException("Invalid merchant item");
                     foreach (var demand in shop.Data.demands) if (demand == null || demand.names == null || demand.prices == null || demand.names.Length != demand.prices.Length || demand.names.Length > 64) throw new InvalidDataException("Invalid merchant demand");
                     int poses = r.ReadInt32(); if (poses < 0 || poses > 64) throw new InvalidDataException("Invalid merchant layout");
                     shop.Poses = new MerchantPose[poses];
@@ -85,6 +87,7 @@ namespace WildWasteland.Modules.Patrols
                     host = car.AddComponent<MerchantHost>(); host.Presentation = true; Copies.Add(pair.Key, host);
                 }
                 host.ApplyNetwork(pair.Value.Data, pair.Value.Poses, pair.Value.Trading);
+                host.ReconcileStock(pair.Value.Trading);
             }
         }
     }

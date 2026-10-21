@@ -108,6 +108,7 @@ namespace WildWasteland.Modules.Patrols
             Core.Hooks.SetFsmFloatEnter.Postfix(this, Ram.AfterSetFsmFloat);
             Core.Hooks.SetFsmFloatDo.Prefix(this, Ram.BeforeSetFsmFloat);   // a car never rams its own (trigger-only) crew
             Core.Hooks.SendEventEnter.Prefix(this, Ram.BeforeSendEvent);
+            Core.Hooks.ProcessEvent.Prefix(this, MerchantHost.BeforeEvent);
             Ram.StartNetwork();
             Try("Motorcycle save hook (saved motorcycles may not load)", () => MotorcycleIntegration.Install(this));
 

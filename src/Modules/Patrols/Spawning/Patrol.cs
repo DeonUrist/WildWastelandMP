@@ -189,7 +189,9 @@ namespace WildWasteland.Modules.Patrols
                 if (!saveOk[0]) yield break;
                 // An origin jump can occur while a custom build warms.
                 if (at.HasValue) pos = TrafficSpace.Scene(trafficSpawn);
-                car = VehicleBuildCache.Spawn(packed, pos, rot);
+                bool merchant=MerchantRuntime.StockOnly(tpl);
+                bool firstMerchantSpawn=merchant&&!tpl.RestoredTraffic;
+                car = VehicleBuildCache.Spawn(packed, pos, rot,firstMerchantSpawn);
                 if(!menu&&tpl.Origin!="POI")EncounterCar.Attach(car,eventId,tpl.ConvoyMember,true);
                 car.SetActive(true);
                 Paint.Apply(car, body.name,tpl.Faction);
@@ -230,13 +232,13 @@ namespace WildWasteland.Modules.Patrols
                 var loot = tpl.IsTruck ? (tpl.SpawnLoot == null ? (EditorStore.Loot(true, tpl.LootPreset) ?? EditorStore.RollTruckLoot(() => UnityEngine.Random.value, tpl.SpawnCargoOptions)) : null) : EditorStore.Loot(false, tpl.LootPreset);
                 var rolled = tpl.SpawnLoot ?? (loot != null ? loot.Roll(() => UnityEngine.Random.value) : new Dictionary<string, int>());
                 lootKey = tpl.SpawnCargoKey ?? EditorStore.CargoTexture(rolled, loot != null ? loot.TextureKey : "");
-                if (rolled.Count > 0)
+                if (!firstMerchantSpawn && rolled.Count > 0)
                 {
                     cargo = new List<GameObject>();
                     yield return Cargo.Load(car, rolled, tpl.IsTruck, cargo);
                     if (car == null) yield break;
                 }
-                if (trailer != null && tpl.Trailer.SpawnLoot != null)
+                if (!firstMerchantSpawn && trailer != null && tpl.Trailer.SpawnLoot != null)
                 {
                     trailerCargo = new List<GameObject>();
                     yield return Cargo.Load(trailer, tpl.Trailer.SpawnLoot, true, trailerCargo);
@@ -297,6 +299,7 @@ namespace WildWasteland.Modules.Patrols
                 if (Core.Log.Verbose) PatrolsModule.Verbose("Running gear of " + car.name + ": " + Suspension.Describe(car));
                 if (DayLight.Dark) Headlights(car, true, carFsms);   // raiders drive with their lights on at night
                 RaiderMusic(car, carFsms);                            // a cassette in the template's radio: on, full volume ([General] Raider music)
+                if(firstMerchantSpawn&&MerchantSpawnAudit.Complete(car)>0)yield return null;
                 yield return WaitForSave(gen, saveOk);
                 if (car == null) yield break;
                 int committed = Register.Commit(car);
@@ -308,6 +311,7 @@ namespace WildWasteland.Modules.Patrols
             }
             finally
             {
+                MerchantSpawnAudit.Clear(car);
                 if(reserved){EventBudget.Release(eventId);if(car!=null)EncounterCar.Attach(car,eventId,tpl.ConvoyMember);}
                 // stopped early (a wreck, an error): what exists is registered as before; a destroyed car's list is dropped
                 if (car != null) { if (Register.Pending(car)) Register.Commit(car); }
@@ -1534,6 +1538,8 @@ namespace WildWasteland.Modules.Patrols
 
         internal static void Defer(GameObject car) { if (car != null && !_pending.ContainsKey(car)) _pending[car] = new List<KeyValuePair<GameObject, bool>>(); }
         internal static bool Pending(GameObject car) { return !ReferenceEquals(car, null) && _pending.Count > 0 && _pending.ContainsKey(car); }
+        internal static void CaptureItems(HashSet<GameObject> items)
+        {if(Registry()!=null&&_items?.arrayList!=null)foreach(var entry in _items.arrayList){var item=entry as GameObject;if(item!=null)items.Add(item);}}
         internal static void Discard(GameObject car) { if (!ReferenceEquals(car, null)) _pending.Remove(car); }
 
         // registers everything deferred for this car (objects destroyed meanwhile are skipped); returns the count

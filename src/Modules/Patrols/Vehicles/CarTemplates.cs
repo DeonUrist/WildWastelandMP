@@ -145,6 +145,7 @@ namespace WildWasteland.Modules.Patrols
                 Origin = origin,
             };
             if (t.LootPreset.Length == 0 && f.schema < 2) t.LootPreset = t.IsTruck ? (f.cargo.Length > 0 ? "truck-food" : "truck-empty") : "car-standard";
+            if(t.Name=="Coyote_Trader")t.LootPreset="car-empty";
             for (int i = 0; i < (isTrailer ? 4 : 3); i++) { t.Turrets[i] = S(f.Turret(i)); t.TurretPos[i] = f.TurretPos(i) ?? new float[0]; t.TurretStanding[i]=f.TurretStanding(i); }
             if (f.trailer != null)
             {

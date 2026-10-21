@@ -88,9 +88,11 @@ namespace WildWasteland.Modules.Patrols
 
         private static void CaptureCargo(GameObject car, Dictionary<string, int> counts)
         {
+            var merchant=car.GetComponent<MerchantHost>();
             foreach (var fsm in car.GetComponentsInChildren<PlayMakerFSM>(true))
             {
                 if (fsm.FsmName != "LockPhysics" || fsm.CompareTag("vehPart") || VehicleAttachments.IsFreeAttachment(fsm.gameObject)) continue;
+                if(merchant!=null&&merchant.OwnsStock(fsm.gameObject))continue; // merchant JSON already restores this exact stock
                 if (fsm.GetComponent<ES3Internal.ES3Prefab>() == null) continue;
                 string name = TemplateExporter.PrefabName(fsm.name); int count;
                 counts.TryGetValue(name, out count); counts[name] = count + 1;
