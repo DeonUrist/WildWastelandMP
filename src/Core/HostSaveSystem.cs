@@ -183,13 +183,17 @@ namespace WildWasteland.Core
         {
             if (_pendingNotice == null || !(LocalReady || Multiplayer.WorldReady) || LoadingProgress.MenusBlocked) return;
             string text = _pendingNotice; bool broadcast = _broadcastNotice; _pendingNotice = null;
-            _notice(text);
-            if (broadcast && Multiplayer.Hosting) Multiplayer.Send(NoticePacket, writer => { writer.Write(MultiplayerParts.Epoch); writer.Write(text.Length > 250 ? text.Substring(0, 250) : text); });
+            if (text.StartsWith("Save warning:", StringComparison.Ordinal)) HostSaveWarning.Notice(text);
+            else _notice(text);
+            if (broadcast && Multiplayer.Hosting) Multiplayer.Send(NoticePacket, writer => { writer.Write(MultiplayerParts.Epoch); writer.Write(text.StartsWith("Save warning:", StringComparison.Ordinal) ? text : text.Length > 250 ? text.Substring(0, 250) : text); });
         }
+        internal static void Warn(string text)
+        { Log.Warn("[System] " + text); _pendingNotice = text; _broadcastNotice = Multiplayer.Hosting; DeliverNotice(); }
         static void ReceiveNotice(ulong peer, byte kind, BinaryReader reader)
         {
             if (kind != NoticePacket || !Multiplayer.Client || peer != 0 || reader.ReadUInt64() != MultiplayerParts.Epoch) return;
-            string text = reader.ReadString(); if (text.Length > 250 || reader.BaseStream.Position != reader.BaseStream.Length) return;
+            string text = reader.ReadString(); if (text.Length > (text.StartsWith("Save warning:", StringComparison.Ordinal) ? 1024 : 250) || reader.BaseStream.Position != reader.BaseStream.Length) return;
+            if (text.StartsWith("Save warning:", StringComparison.Ordinal)) Log.Warn("[System] " + text);
             _pendingNotice = text; _broadcastNotice = false; DeliverNotice();
         }
         internal static SaveInfo Info(string file, string fallback = null)

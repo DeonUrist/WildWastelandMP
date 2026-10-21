@@ -1,6 +1,6 @@
 # WildWastelandMP
 
-**RC15 · 0.1.51** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
+**RC16 · 0.1.52** — Wild Wasteland for multiplayer Apocalypter: shared exploration, vehicles, NPCs, quests, weather and survival, with host-managed saves and player recovery.
 
 ## Requirements
 
@@ -18,6 +18,8 @@ Offline and host saves now drain pending terrain work, hold streaming through pu
 Offline saving uses the integrated named save library, backups/recovery and autosaves even without Apocalypter Multiplayer. The dependency is still required to host or join a multiplayer world.
 
 Wild Wasteland MP uses plugin ID `com.denis.apocalypter.wildwastelandmp` and cannot run alongside single-player Wild Wasteland. Existing settings and saves are retained.
+
+RC16 prevents pending owner/mod synchronization from holding a host save forever: after 30 seconds, saving proceeds with the host's last confirmed state. A yellow top-left warning names the pending work, queue counts and elapsed wait, also recorded in the log. Unconfirmed changes may be absent from that snapshot; actual save-write failures still retain existing protections. Update all peers. Runtime verification remains Testing.
 
 RC15 fixes offline loading with the Multiplayer dependency installed: the selected save remains pinned during scene startup, preventing the early new-game state from replacing its path and restoring the wrong world. This addresses the seed 8975309 save/load/fall report; in-game confirmation remains pending.
 
@@ -50,6 +52,6 @@ With nothing equipped and fists lowered, drivers grip and animate the wheel; pas
 - **WORLD:** Fog of war on/off, plus Shared vision when Multiplayer is installed. Radius, edge fade and opacity are under **Debug → CleanHUD → Map fog of war**.
 - **Host player controls:** TAB → PLAYERS → RECALL brings a guest or sleeping body beside you; RESET keeps its camp/body-removal behavior. Guests joining without a body spawn beside the host.
 
-The host owns world saves. Reloading a save restores its matching player snapshot. RC15 is an official release candidate; gameplay and recovery checks are still in progress.
+The host owns world saves. Reloading a save restores its matching player snapshot. RC16 is an official release candidate; gameplay and recovery checks are still in progress.
 
-[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC15 release notes](notes/release-0.1.51-RC15.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)
+[Detailed multiplayer/local testing guide](README-MULTIPLAYER.md) · [RC16 release notes](notes/release-0.1.52-RC16.md) · [Inherited module guide](WILD-WASTELAND-GUIDE.md)

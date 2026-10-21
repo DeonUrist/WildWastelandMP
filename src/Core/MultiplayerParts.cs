@@ -36,6 +36,7 @@ namespace WildWasteland.Core
             get { if (Local.Count != 0 || _queued != 0 || Inbox.Count != 0) return true; foreach (var work in Parts.Values) if (work.Barriers.Count != 0) return true; return false; }
         }
         internal static ulong Epoch { get { return _epoch; } }
+        internal static string SavePending { get { int receipts = 0; foreach (var work in Parts.Values) receipts += work.Barriers.Count; return "parts: queued " + _queued + ", local " + Local.Count + ", incoming " + Inbox.Count + ", receipts " + receipts; } }
         internal static void Install()
         {
             Multiplayer.Message += Receive; Multiplayer.SessionChanged += Reset;

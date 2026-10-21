@@ -16,8 +16,10 @@ namespace WildWasteland.Core
         internal static bool Frozen { get; private set; }
         static bool _serializing, _preparing, _wroteWorld, _snapshotPrepared;
         static float _scale, _warn;
-        static float _phaseRetry, _phaseStarted;
-        const float PhaseBound = 30f;   // a participant that cannot answer (restore still waiting for objects) must not pause everyone for longer
+        static float _phaseRetry;
+        static float _syncStarted;
+        static string _syncWarning;
+        const float PhaseBound = 30f;   // total owner/optional-mod synchronization budget before using confirmed host state
         static ulong _token;
         static byte _phase;
         static IEnumerator _flush;
@@ -193,15 +195,18 @@ namespace WildWasteland.Core
             _preparing = true; _token = BitConverter.ToUInt64(Guid.NewGuid().ToByteArray(), 0);
             _generation = SaveBus.Generation; _hostRole = true;
             _wroteWorld = _snapshotPrepared = _completed = false;
-            SetFrozen(true); _warn = Time.unscaledTime + 15f;
+            SetFrozen(true); _warn = Time.unscaledTime + 15f; _syncStarted = Time.unscaledTime; _syncWarning = null;
             try
             {
                 // Freeze and drain queued hits before taking the final owner snapshots.
                 StartPhase(1);
-                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy || UltimateToolsCompat.Busy)) { Prune(); Warn(); yield return null; }
+                while (Multiplayer.Hosting && !OwnersSettled()) { Warn(); yield return null; }
                 if (!Multiplayer.Hosting) yield break;
-                StartPhase(2);
-                while (Multiplayer.Hosting && (Waiting.Count != 0 || MultiplayerParts.Pending || MultiplayerEdits.Busy || UltimateToolsCompat.Busy)) { Prune(); Warn(); yield return null; }
+                if (_syncWarning == null)
+                {
+                    StartPhase(2);
+                    while (Multiplayer.Hosting && !OwnersSettled()) { Warn(); yield return null; }
+                }
                 if (!Multiplayer.Hosting) yield break;
                 // MP glides remote poses in real time; let the acknowledged final samples reach the saved transforms.
                 yield return new WaitForSecondsRealtime(.35f);
@@ -232,7 +237,7 @@ namespace WildWasteland.Core
                         SaveTerrain.Release();
                         try { if (Multiplayer.Hosting) Multiplayer.Send(100, w => { w.Write(_token); w.Write((byte)0); }); }
                         finally { Waiting.Clear(); _preparing = _serializing = false; SetFrozen(false); }
-                        if (_completed) { HostSaveSystem.Notify(HostSaveSystem.Status); MultiplayerRecovery.Checkpoint(); if (after != null) after(); }
+                        if (_completed) { HostSaveSystem.Notify(HostSaveSystem.Status); if (_syncWarning != null) HostSaveSystem.Warn(_syncWarning); MultiplayerRecovery.Checkpoint(); if (after != null) after(); }
                     }
                 }
             }
@@ -250,23 +255,32 @@ namespace WildWasteland.Core
         static void StartPhase(byte phase)
         {
             _phase = phase; Waiting.Clear();
-            _phaseRetry = Time.unscaledTime + 1f; _phaseStarted = Time.unscaledTime;
+            _phaseRetry = Time.unscaledTime + 1f;
             foreach (ulong peer in MultiplayerReliable.ConnectedPeers())
                 if (Participant(peer)) Waiting.Add(peer);
             foreach (ulong peer in Waiting) Multiplayer.Send(100, w => { w.Write(_token); w.Write(phase); }, peer);
         }
         static bool Participant(ulong peer)
         { return MultiplayerSleepers.ReadyPeer(peer) && MultiplayerPlayers.HasSnapshot(peer) && !MultiplayerHandshake.Joining(peer); }
+        static bool OwnersSettled()
+        {
+            Prune();
+            if (Waiting.Count == 0 && !MultiplayerParts.Pending && !MultiplayerEdits.Busy && !UltimateToolsCompat.Busy) return true;
+            if (Time.unscaledTime - _syncStarted < PhaseBound) return false;
+            string pending = (Waiting.Count != 0 ? "player replies " + Waiting.Count + "; " : "")
+                + (MultiplayerParts.Pending ? MultiplayerParts.SavePending + "; " : "")
+                + (MultiplayerEdits.Busy ? MultiplayerEdits.SavePending + "; " : "")
+                + (UltimateToolsCompat.Busy ? UltimateToolsCompat.SavePending + "; " : "");
+            _syncWarning = "Save warning: waited " + Mathf.CeilToInt(Time.unscaledTime - _syncStarted) + "s (phase " + _phase + ") for " + pending.TrimEnd(';', ' ') + ". Using last confirmed state.";
+            Log.Warn("[Multiplayer] " + _syncWarning);
+            if (Waiting.Count != 0) Log.Warn("[Multiplayer] Save pending player IDs: " + string.Join(",", Waiting));
+            Waiting.Clear(); return true;
+        }
         static void Prune()
         {
             Gone.Clear(); var peers = MultiplayerReliable.ConnectedPeers();
             foreach (ulong peer in Waiting) if (!peers.Contains(peer) || !Participant(peer)) Gone.Add(peer);
             foreach (ulong peer in Gone) Waiting.Remove(peer);
-            if (Waiting.Count != 0 && Time.unscaledTime - _phaseStarted > PhaseBound)
-            {
-                foreach (ulong peer in Waiting) Log.Warn("[Multiplayer] Server save: player " + peer + " did not report within " + PhaseBound + " s; its last report is used");
-                Waiting.Clear();
-            }
             if (Time.unscaledTime >= _phaseRetry)
             {
                 _phaseRetry = Time.unscaledTime + 1f;
@@ -277,7 +291,7 @@ namespace WildWasteland.Core
         {
             if (Time.unscaledTime < _warn) return;
             _warn = Time.unscaledTime + 15f;
-            Log.Warn("[Multiplayer] Server save waiting for owner state; gameplay stays paused (no partial save)");
+            Log.Warn("[Multiplayer] Server save waiting for synchronization; after 30s the last confirmed host state will be used");
         }
         internal static void Tick()
         {

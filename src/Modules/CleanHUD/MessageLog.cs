@@ -96,7 +96,7 @@ namespace WildWasteland.Modules.CleanHUD
 
         private Line Make()
         {
-            if (_pool.Count > 0) { var p = _pool.Pop(); p.Rt.gameObject.SetActive(true); return p; }
+            if (_pool.Count > 0) { var p = _pool.Pop(); p.Txt.horizontalOverflow = HorizontalWrapMode.Overflow; p.Txt.rectTransform.sizeDelta = new Vector2(Width - 16, LineH); p.Txt.color = _white; p.Rt.gameObject.SetActive(true); return p; }
             var go = new GameObject("line", typeof(RectTransform));
             go.transform.SetParent(_root, false);
             var rt = (RectTransform)go.transform;
@@ -141,6 +141,7 @@ namespace WildWasteland.Modules.CleanHUD
         internal void Tick()
         {
             string warning = Core.HostSaveWarning.Text;
+            int warningRows = warning == null ? 0 : Core.HostSaveWarning.IsNotice ? Mathf.Max(1, Mathf.CeilToInt(warning.Length / 40f)) : 1;
             while (MessageHook.Pending.Count > 0) { var m = MessageHook.Pending[0]; MessageHook.Pending.RemoveAt(0); Add(m); }
             float now = Time.unscaledTime, dt = Mathf.Min(Time.unscaledDeltaTime, .1f);
             if (now >= _nextDrop)
@@ -162,7 +163,7 @@ namespace WildWasteland.Modules.CleanHUD
             for (int i = 0; i < _lines.Count; i++)
             {
                 var l = _lines[i];
-                float target = (i + (warning == null ? 0 : 1)) * LineH;
+                float target = (i + warningRows) * LineH;
                 l.Y = Mathf.Abs(l.Y - target) < .5f ? target : Mathf.Lerp(l.Y, target, 1f - Mathf.Exp(-dt * 14f));
                 var position = new Vector2(0, -l.Y); if (l.Rt.anchoredPosition != position) l.Rt.anchoredPosition = position;
             }
@@ -175,6 +176,9 @@ namespace WildWasteland.Modules.CleanHUD
             {
                 if (_autosave == null) { _autosave = Make(); _autosave.Msg = null; _autosave.G.alpha = 1f; }
                 if (_autosave.Msg != warning) { _autosave.Msg = warning; _autosave.Txt.text = warning; }
+                _autosave.Txt.color = Core.HostSaveWarning.IsNotice ? Color.yellow : _white;
+                _autosave.Txt.horizontalOverflow = Core.HostSaveWarning.IsNotice ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
+                _autosave.Txt.rectTransform.sizeDelta = new Vector2(Width - 16, LineH * warningRows);
                 var position = Vector2.zero;
                 if (_autosave.Rt.anchoredPosition != position) _autosave.Rt.anchoredPosition = position;
             }

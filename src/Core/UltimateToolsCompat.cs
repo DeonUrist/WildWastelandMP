@@ -64,6 +64,7 @@ namespace WildWasteland.Core
         static Vector3 _hingePosition;
         static Quaternion _hingeRotation;
         internal static bool Busy { get { return _installed && (Pending.Count != 0 || Multiplayer.Hosting && (!_bootstrapped || Roots.Count != 0 || Children.Count != 0 || Unapplied.Count != 0)); } }
+        internal static string SavePending { get { return "Ultimate Tools: init " + (!_bootstrapped ? 1 : 0) + ", requests " + Pending.Count + ", roots " + Roots.Count + ", children " + Children.Count + ", unapplied " + Unapplied.Count; } }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void Install()

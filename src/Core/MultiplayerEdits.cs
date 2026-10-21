@@ -22,6 +22,7 @@ namespace WildWasteland.Core
         internal static bool WaitingForSnapshot(int id, ulong peer)
         { foreach (var edit in Pending.Values) if (edit.Id == id && (!edit.Settling || edit.Waiting.Contains(peer))) return true; return false; }
         internal static bool Busy { get { return Pending.Count != 0; } }
+        internal static string SavePending { get { return "item edits " + Pending.Count; } }
         internal static void Install()
         {
             Multiplayer.Message += Receive;
