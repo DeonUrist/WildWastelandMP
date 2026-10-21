@@ -121,14 +121,27 @@ namespace WildWasteland.Core
             if (!MultiplayerHosting.IsSaveFile(file) || !File.Exists(HostSaveFiles.WorldPath(file)) || HostSaveSystem.Info(file).Multiplayer) return;
             if (!Multiplayer.InMainMenu)
             { if (HostSaveSystem.LocalReady) Scheduler.StartCoroutine(ReturnAndLoad(file)); return; }
-            if (!_launch(file, 0)) HostSaveSystem.Notify("The save could not be loaded. Check the log.");
+            if (!Launch(file)) HostSaveSystem.Notify("The save could not be loaded. Check the log.");
+        }
+        static bool Launch(string file)
+        {
+            // The game scene enters setSeed before the menu broadcasts LoadGame, even for an existing save.
+            // Pin the selection for both launchers so that interval cannot create a new offline world/path.
+            OfflineSaveRuntime.SelectedFile = file;
+            bool launched = false;
+            try
+            {
+                Log.Always("[System] Loading offline save: " + file);
+                launched = _launch(file, 0); return launched;
+            }
+            finally { if (!launched) OfflineSaveRuntime.SelectedFile = null; }
         }
         static IEnumerator ReturnAndLoad(string file)
         {
             UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
             while (!Multiplayer.InMainMenu) yield return null;
             yield return null; yield return null;
-            if (!_launch(file, 0)) HostSaveSystem.Notify("The save could not be loaded. Open LOAD GAME to retry.");
+            if (!Launch(file)) HostSaveSystem.Notify("The save could not be loaded. Open LOAD GAME to retry.");
         }
     }
 }
