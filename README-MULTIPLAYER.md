@@ -1,6 +1,8 @@
 # WildWastelandMP multiplayer and local testing
 
-**RC18 / 0.1.54** requires **BepInEx 5 (Windows x64)** and the separate [Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10). Install both first, then extract the full WildWastelandMP release into `BepInEx\plugins`. Every player needs the same WildWastelandMP release, Multiplayer mod and compatible mod set. Keep standard WildWasteland disabled. See the [quick-start README](README.md) for the normal host/join flow; the three-instance launcher below is optional.
+**RC19 / 0.1.55** requires **BepInEx 5 (Windows x64)** and the separate [Apocalypter Multiplayer mod from Nexus Mods](https://www.nexusmods.com/apocalypter/mods/10). Install both first, then extract the full WildWastelandMP release into `BepInEx\plugins`. Every player needs the same WildWastelandMP release, Multiplayer mod and compatible mod set. Keep standard WildWasteland disabled. See the [quick-start README](README.md) for the normal host/join flow; the three-instance launcher below is optional.
+
+RC19 keeps the explicitly selected respawn object through downing, revival and repeated deaths. For host and both guests, select a seat once, move its car, die/Give Up twice and expect supported placement beside that same seat each time. Sleep elsewhere without selecting it: the original point must remain. Select another object to replace it, then save/reload/rejoin and confirm the matching saved choice. Optional Vistas host generation/weather/wind and ownership compatibility is included; all peers update to handshake 28. See [RC19 notes](notes/release-0.1.55-RC19.md) and [Vistas tests](notes/vistas-mp-compat-2026-10-22.md).
 
 RC18 fixes Windows error 1175 in personal/shared fog saves. Save twice, overwrite, save-and-exit/reload and check retained personal/shared map reveal.
 

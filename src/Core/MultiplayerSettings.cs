@@ -30,6 +30,15 @@ namespace WildWasteland.Core
                         Require(AccessTools.PropertySetter(entry.GetType(), "Value"), "BeforeSet");
                     if (IsWorld(entry)) { World.Add(Id(entry), entry); WorldEntries.Add(entry); }
                 }
+            var vistas = VistasWorldGen.Config;
+            if (vistas != null)
+                foreach (var key in vistas.Keys)
+                {
+                    var entry = vistas[key];
+                    if (setters.Add(entry.GetType()))
+                        Require(AccessTools.PropertySetter(entry.GetType(), "Value"), "BeforeSet");
+                    if (VistasWorldGen.IsWorld(entry)) { World.Add(Id(entry), entry); WorldEntries.Add(entry); }
+                }
             Require(AccessTools.Method(typeof(ConfigEntryBase), "GetSerializedValue"), "SerializeOriginal");
             Multiplayer.Message += Receive;
         }
@@ -81,7 +90,7 @@ namespace WildWasteland.Core
         static bool NavigationModule(ConfigEntryBase e)
         { return e.Definition.Section == "CleanHUD" && e.Definition.Key == "Enabled"; }
         static string Id(ConfigEntryBase e)
-        { return (ReferenceEquals(e.ConfigFile, Plugin.Tools) ? "T" : "S") + "\n" + e.Definition.Section + "\n" + e.Definition.Key; }
+        { return (ReferenceEquals(e.ConfigFile, Plugin.Tools) ? "T" : VistasWorldGen.Owns(e) ? "V" : "S") + "\n" + e.Definition.Section + "\n" + e.Definition.Key; }
         internal static byte[] CaptureWorld()
         {
             using (var stream = new MemoryStream())
@@ -117,6 +126,9 @@ namespace WildWasteland.Core
         }
         internal static bool CanEdit(ConfigEntryBase e)
         {
+            // Vistas generation/world values and the two forced switches are fixed for the whole session (a change rebuilds the terrain).
+            if (VistasWorldGen.Owns(e))
+                return !(VistasWorldGen.IsWorld(e) || VistasWorldGen.Forced(e)) || !MultiplayerSaving.Frozen && !Multiplayer.SessionActive;
             if (!Ours(e)) return true;
             if (MultiplayerSaving.Frozen) return false;
             if (Multiplayer.SessionActive && Performance(e) && e.Definition.Key == "Enabled") return false;
@@ -149,6 +161,10 @@ namespace WildWasteland.Core
             if (session)
                 foreach (var module in ModuleHost.Entries)
                     if (module.Module.Id == "Performance") Overlay(module.Config.Enabled, "false");
+            // The Vistas spawn track and dust devils are rolled per machine: off for everyone (Vistas weather follows the host instead).
+            if (session)
+                foreach (var forced in new[] { VistasWorldGen.SpawnTrack, VistasWorldGen.DustDevils })
+                    if (forced != null) Overlay(forced, "false");
             if (guest)
                 foreach (var file in new[] { Plugin.Main, Plugin.Settings, Plugin.Tools })
                     foreach (var key in file.Keys)

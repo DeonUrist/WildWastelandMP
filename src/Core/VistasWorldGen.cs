@@ -33,6 +33,31 @@ namespace WildWasteland.Core
         private static string _assemblyId;
         private static ConfigEntry<float> _bannerHeight;
         internal static float BannerHeight { get { return _bannerHeight != null ? _bannerHeight.Value : .18f; } }
+        internal static ConfigFile Config { get { return _config; } }
+        // Forced off for every peer while a multiplayer session is active (MultiplayerSettings.Changed): both are rolled from
+        // each machine's own player position (spawn track) or camera and random seed (dust devils), so they cannot match.
+        internal static ConfigEntryBase SpawnTrack, DustDevils;
+        internal static bool Forced(ConfigEntryBase e) { return e != null && (ReferenceEquals(e, SpawnTrack) || ReferenceEquals(e, DustDevils)); }
+        // Vistas' public weather network API (a.z): running, follow the host, capture, apply.
+        internal static Func<bool> WeatherRunning;
+        internal static Action<bool> WeatherFollow;
+        internal static Func<byte[]> WeatherCapture;
+        internal static Action<byte[]> WeatherApply;
+        static FieldInfo _heatActive, _dewTransform;
+        static MethodInfo _heatUnregister;
+        static readonly Dictionary<int, KeyValuePair<float, bool>> HeatDecisions = new Dictionary<int, KeyValuePair<float, bool>>();
+        static readonly HashSet<int> HeatUnregistered = new HashSet<int>();
+        // Host-owned Vistas values: everything that shapes the ground, roads, camps, vehicle physics and the weather rotation.
+        static readonly HashSet<string> WorldKeys = new HashSet<string>(StringComparer.Ordinal) {
+            "Regions:Enabled", "Regions:Scale", "Regions:Blend", "Regions:ExtraTypes", "Regions:Landmarks",
+            "Roads:Network", "Roads:Density", "Roads:Width", "Roads:Stitch", "Roads:Clean", "Tiles:WeldBoost", "Seams:CrossDetail",
+            "World:ElevationTiers", "World:TierStrength", "Water:AltitudeDew",
+            "Vehicles:EngineHeat", "Vehicles:LooseSlopes", "Vehicles:RoadLayers", "Vehicles:RoadBoost", "Vehicles:HillAssist",
+            "Weather:Enabled", "Weather:Gameplay", "Weather:GameplayStrength", "Weather:Haboob", "Weather:Thunderstorms",
+            "Weather:Aurora", "Weather:MeteorShower", "Weather:Nebula" };
+        internal static bool Owns(ConfigEntryBase e) { return _config != null && e != null && ReferenceEquals(e.ConfigFile, _config); }
+        internal static bool IsWorld(ConfigEntryBase e)
+        { return Owns(e) && (e.Definition.Section == "Terrain" || WorldKeys.Contains(e.Definition.Section + ":" + e.Definition.Key)); }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         internal static void Init()
@@ -43,6 +68,9 @@ namespace WildWasteland.Core
             var assembly = info.Instance.GetType().Assembly;
             _config = info.Instance.Config; _assemblyId = assembly.ManifestModule.ModuleVersionId.ToString();
             SettingsChanged(null, null); _config.SettingChanged += SettingsChanged;
+            ConfigEntry<bool> forced;
+            if (_config.TryGetEntry<bool>(new ConfigDefinition("Roads", "SpawnTrack"), out forced)) SpawnTrack = forced;
+            if (_config.TryGetEntry<bool>(new ConfigDefinition("Weather", "DustDevils"), out forced)) DustDevils = forced;
             if (info.Metadata.Version.ToString() != "1.0.7")
                 Log.Warn("[Vistas] Version " + info.Metadata.Version + " differs from the tested 1.0.7; attempting compatibility with this version.");
             try
@@ -72,6 +100,30 @@ namespace WildWasteland.Core
                 Hook(Find(assembly.GetType("A.q", true), "a", typeof(int), typeof(double[]), typeof(double[]), typeof(int), typeof(bool), typeof(string)), postfix: "RoadCreated");
                 Hook(Find(assembly.GetType("A.S", true), "A", typeof(void), assembly.GetType("A.q", true), typeof(MapMagicObject), typeof(TerrainTile), typeof(Terrain), typeof(TerrainData), assembly.GetType("A.S+A", true), typeof(int), typeof(float)), postfix: "GroundEdited");
                 Hook(Find(assembly.GetType("ApocalpyterWorldAmp.WorldAmpDriver", true), "ClearWorld", typeof(void)), postfix: "ClearRoads");
+                // Network reset (SpawnTrack/Density/Width change) bypasses ClearWorld; drop the captured lines with it.
+                Hook(Find(assembly.GetType("A.q", true), "A", typeof(void)), postfix: "ClearRoads");
+                // Engine heat: AI-held cars and cars another machine simulates are left alone (their own owner decides).
+                var heat = assembly.GetType("ApocalpyterWorldAmp.EngineHeat", true);
+                _heatActive = AccessTools.Field(heat, "Active"); _heatUnregister = AccessTools.Method(heat, "Unregister");
+                if (_heatActive == null || _heatUnregister == null) throw new MissingMemberException(heat.FullName, "Active/Unregister");
+                Hook(AccessTools.Method(heat, "FixedUpdate"), prefix: "HeatAllowed");
+                Hook(AccessTools.Method(heat, "PickActive"), postfix: "HeatReadout");
+                // Wind, hill assist and dust-devil forces only push bodies this machine simulates.
+                Hook(Find(assembly.GetType("a.y", true), "H", typeof(void)), transpiler: "LocalBodies");
+                Hook(Find(assembly.GetType("A.V", true), "A", typeof(void)), transpiler: "LocalBodies");
+                Hook(Find(assembly.GetType("B.E", true), "d", typeof(void)), transpiler: "LocalBodies");
+                // Dew collectors: the machine that owns a replicated collector sets its water; copies follow the owner.
+                var dew = assembly.GetType("a.T", true); var collector = assembly.GetType("a.T+A", true);
+                _dewTransform = Field(collector, "A", typeof(Transform));
+                Hook(Find(dew, "A", typeof(void), collector, typeof(bool)), prefix: "DewAllowed");
+                // Wind direction and gusts are functions of the local clock: guests use the host's.
+                Hook(Find(assembly.GetType("a.g", true), "A", typeof(float), typeof(float), typeof(int)), prefix: "SharedClock");
+                Hook(Find(assembly.GetType("a.H", true), "g", typeof(float), typeof(float)), prefix: "SharedClock");
+                var net = assembly.GetType("a.z", true);
+                WeatherRunning = (Func<bool>)Delegate.CreateDelegate(typeof(Func<bool>), Find(net, "a", typeof(bool)));
+                WeatherFollow = (Action<bool>)Delegate.CreateDelegate(typeof(Action<bool>), Find(net, "A", typeof(void), typeof(bool)));
+                WeatherCapture = (Func<byte[]>)Delegate.CreateDelegate(typeof(Func<byte[]>), Find(net, "B", typeof(byte[])));
+                WeatherApply = (Action<byte[]>)Delegate.CreateDelegate(typeof(Action<byte[]>), Find(net, "A", typeof(void), typeof(byte[])));
                 Log.Always("[Vistas] " + info.Metadata.Version + " compatibility ready: overlay defaults off; WW scouting, CleanHUD banners, WW sandstorms and replacement-road capture; routine logging follows WW VerboseLog.");
             }
             catch (Exception e) { Log.Error("[Vistas] Compatibility installation failed", e); }
@@ -100,7 +152,7 @@ namespace WildWasteland.Core
             var values = new List<string>();
             foreach (var entry in _config)
                 if (entry.Key.Section == "Terrain" || entry.Key.Section == "Regions" && (entry.Key.Key == "Enabled" || entry.Key.Key == "Scale" || entry.Key.Key == "Blend" || entry.Key.Key == "ExtraTypes" || entry.Key.Key == "Landmarks") || entry.Key.Section == "Roads" || entry.Key.Section == "Tiles" || entry.Key.Section == "Seams")
-                    values.Add(entry.Key.Section + ":" + entry.Key.Key + "=" + entry.Value.GetSerializedValue());
+                    values.Add(entry.Key.Section + ":" + entry.Key.Key + "=" + TomlTypeConverter.ConvertToString(entry.Value.BoxedValue, entry.Value.SettingType));
             values.Sort(StringComparer.Ordinal); RoadIdentity = _assemblyId + "|" + string.Join("|", values.ToArray());
         }
         private static FieldInfo Field(Type type, string name, Type value)
@@ -130,9 +182,44 @@ namespace WildWasteland.Core
         private static bool OriginalBanner() { return CleanBanners == null || !CleanBanners(); }
         private static bool NoScouting() { return false; }
         private static bool NearLandmark(bool __1) { return !__1; }
-        private static void DustAllowed(ref bool __result) { if (Services.Weather != null) __result = false; }
-        private static bool Allowed(bool original, int kind) { return original && (kind != 7 || Services.Weather == null); }
-        private static int Transition(int kind) { return Services.Weather != null && (kind == 4 || kind == 7) ? 2 : kind; }
+        // WW owns sandstorms when its Weather runs, and always in multiplayer (Vistas weather is rolled per machine).
+        private static bool WwDust { get { return Services.Weather != null || Multiplayer.SessionActive; } }
+        private static void DustAllowed(ref bool __result) { if (WwDust) __result = false; }
+        private static bool Allowed(bool original, int kind) { return original && (kind != 7 || !WwDust); }
+        private static int Transition(int kind) { return WwDust && (kind == 4 || kind == 7) ? 2 : kind; }
+        private static bool HeatSkipped(GameObject car)
+        {
+            int id = car.GetInstanceID(); float now = Time.unscaledTime; KeyValuePair<float, bool> known;
+            if (HeatDecisions.TryGetValue(id, out known) && now < known.Key) return known.Value;
+            if (HeatDecisions.Count > 1024) HeatDecisions.Clear();
+            var crew = car.GetComponent<Modules.Patrols.Crew>(); var marker = car.GetComponent<Modules.Patrols.PatrolMarker>();
+            bool skip = crew != null && crew.Locked || marker != null && !marker.PlayerEntered || VistasMultiplayer.Remote(car);
+            HeatDecisions[id] = new KeyValuePair<float, bool>(now + 1f, skip); return skip;
+        }
+        private static bool HeatAllowed(MonoBehaviour __instance)
+        {
+            int id = __instance.GetInstanceID();
+            if (!HeatSkipped(__instance.gameObject)) { if (HeatUnregistered.Count != 0) HeatUnregistered.Remove(id); return true; }
+            // Drop the power modifier once; FixedUpdate registers it again when the car becomes eligible.
+            if (HeatUnregistered.Add(id)) _heatUnregister.Invoke(__instance, null);
+            return false;
+        }
+        private static void HeatReadout()
+        { var active = _heatActive.GetValue(null) as Component; if (active != null && HeatSkipped(active.gameObject)) _heatActive.SetValue(null, null); }
+        private static bool Passive(Rigidbody body) { return body.isKinematic || VistasMultiplayer.Remote(body.gameObject); }
+        private static IEnumerable<CodeInstruction> LocalBodies(IEnumerable<CodeInstruction> instructions)
+        {
+            var getter = AccessTools.PropertyGetter(typeof(Rigidbody), "isKinematic"); int replaced = 0;
+            var list = new List<CodeInstruction>(instructions);
+            foreach (var instruction in list)
+                if ((instruction.opcode == OpCodes.Callvirt || instruction.opcode == OpCodes.Call) && Equals(instruction.operand, getter))
+                { instruction.opcode = OpCodes.Call; instruction.operand = AccessTools.Method(typeof(VistasWorldGen), "Passive"); replaced++; }
+            if (replaced == 0) throw new InvalidOperationException("Vistas force loop changed: no isKinematic check");
+            return list;
+        }
+        private static bool DewAllowed(object __0)
+        { var at = __0 != null ? _dewTransform.GetValue(__0) as Transform : null; return at == null || !VistasMultiplayer.Remote(at.gameObject); }
+        private static void SharedClock(ref float __0) { __0 += VistasMultiplayer.ClockOffset; }
         private static IEnumerable<CodeInstruction> HaboobAllowed(IEnumerable<CodeInstruction> instructions)
         {
             foreach (var instruction in instructions)

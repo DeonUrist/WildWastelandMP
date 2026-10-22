@@ -1,0 +1,2 @@
+# Preserve the exact bytes recorded in REFERENCE-MANIFEST.json.
+reference/** -text

@@ -44,6 +44,7 @@ namespace WildWasteland.Modules.Patrols
         private PatrolMarker _marker;         // the car's marker (attached after the crew on a fresh build: resolved lazily)
         private PlayMakerFSM[] _partDetach;   // the parts' de_Attach FSMs: off while the crew drives, so the wrench cannot take the wheels off
         private bool _locked;                 // the seat lock is on (a live driver holds the car)
+        internal bool Locked { get { return _locked; } }   // read by Core VistasWorldGen: AI-held cars ignore Vistas engine heat
         private readonly System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<FsmFloat, float>> _heat =
             new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<FsmFloat, float>>();   // engine heat values + originals
         private bool _vacated;                // the crew is gone (dead or bailed): the self-destruct has been scheduled

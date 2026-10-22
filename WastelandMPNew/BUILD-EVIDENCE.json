@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-22",
+  "sdk": "10.0.402",
+  "command": "dotnet build WastelandMPNew/steam/WastelandMPNew.Steam.csproj -c Release -p:Deploy=false -v:minimal",
+  "warnings": 0,
+  "errors": 0,
+  "verification": "Windows compile only; no game, harness, packet exchange, Steam runtime or performance test",
+  "deployed": false,
+  "binaryArtifacts": [
+    {
+      "name": "WastelandMPNew.dll",
+      "bytes": 22528,
+      "md5": "5D39F0B84A27243058FFBF7B5BCED379",
+      "sha256": "76EF0285B3C53CC0BCD6C1360DC3D10EAD0D738227E1F6CA7965B8100EB28BBF",
+      "staged": "V:\\Repos\\Apocalypter\\WildWastelandMP\\WastelandMPNew\\bin\\review-20261022_094639644\\WastelandMPNew.dll",
+      "stagedSha256": "76EF0285B3C53CC0BCD6C1360DC3D10EAD0D738227E1F6CA7965B8100EB28BBF"
+    },
+    {
+      "name": "WastelandMPNew.Steam.dll",
+      "bytes": 13312,
+      "md5": "3EF3A2B1562A1AD08DC787093702D237",
+      "sha256": "DC5B39B5EB854616C045ABC190D7467D77746F467AB17D79F3DA64503042F440",
+      "staged": "V:\\Repos\\Apocalypter\\WildWastelandMP\\WastelandMPNew\\bin\\review-20261022_094639644\\WastelandMPNew.Steam.dll",
+      "stagedSha256": "DC5B39B5EB854616C045ABC190D7467D77746F467AB17D79F3DA64503042F440"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/AdmissionBook.cs",
+      "sha256": "35681F879EFCF5D1F2CC026F6BAEB2FC9AB0E6B4C3C17A0E933DB1F24F64FF25"
+    },
+    {
+      "path": "src/AuthenticatedUdpLink.cs",
+      "sha256": "0EC2B0DEB72FDC24E44EF32C02D90D3A224CC3331E112E1AE925AB74EF897334"
+    },
+    {
+      "path": "src/CompatibilityStamp.cs",
+      "sha256": "B32A704F797D0E6DD9C48F540DCFACA092E5057ADB980F57035106B537977102"
+    },
+    {
+      "path": "src/Contracts.cs",
+      "sha256": "DA4A8E22677B1A5663B98C6D88F5CB4353E43DEB358BA75A9DB9F118C3726906"
+    },
+    {
+      "path": "src/FrameCodec.cs",
+      "sha256": "1650B0ACBB5F1A3B15AFC46B29E5A333AB642C5221A95FA7CA783C831BCE906C"
+    },
+    {
+      "path": "src/HostLaunchGate.cs",
+      "sha256": "10C7BA84453479BBC4DB18F8EAC917F2A9275F4F866630B88D2EF146660A1DCD"
+    },
+    {
+      "path": "src/LatestLane.cs",
+      "sha256": "3C2CF751BB92B2438D350EE8F13A622B421BF2FA22E05D6ECD7F452F0083B690"
+    },
+    {
+      "path": "src/MessageRouter.cs",
+      "sha256": "E23D038D098588903F0CE5B872BFE1EFFDFFE499F5291135E1D0307007BA60C9"
+    },
+    {
+      "path": "src/OperationJournal.cs",
+      "sha256": "B93B96F3AFB4B77B20266D95DE174FFEC3D4C399033EDAA873FCDE87BC811EA2"
+    },
+    {
+      "path": "src/OrderedLane.cs",
+      "sha256": "ACBAE586060FA65AA1170EB12A5F232E893FDF56FC434C013F420609B6661AB3"
+    },
+    {
+      "path": "src/OwnershipBook.cs",
+      "sha256": "D84C1B3F38DCF5C0B1C7E6021D0E4776BE53054C62BACA4261AE4B3EED628E08"
+    },
+    {
+      "path": "src/PeerChannel.cs",
+      "sha256": "CB3ED9317545C953841745DA23F3DCAB69FB018B9539AC2597431D51D0ACC9AC"
+    },
+    {
+      "path": "src/SaveBarrier.cs",
+      "sha256": "56895E663547AA5C2E4D65417996CEDA37DE5DB7F3186756F637124FDA7ED413"
+    },
+    {
+      "path": "src/SessionSettings.cs",
+      "sha256": "5E142D1B426CB271DF981BCF7AC77A71BAFFD2DA513735A2808E0D9BC75DB0E0"
+    },
+    {
+      "path": "src/SnapshotAssembler.cs",
+      "sha256": "0C0CB2A0C17CB8BD68FFB864CBAD40885C24E9864BA9DDB57E92C9981D7F828F"
+    },
+    {
+      "path": "src/VistasPolicy.cs",
+      "sha256": "BDE57A358AA759A12DB98DA3A78A9F48E6A3E6C373FBF1C4CD13B24D5BA4187D"
+    },
+    {
+      "path": "src/WorldPoint.cs",
+      "sha256": "B7020413ACEB9649BE447BCAC16C1E75FB52BC659100199DA8F4DC777C4EFA4E"
+    },
+    {
+      "path": "steam/SteamPeerLink.cs",
+      "sha256": "C8056346B8D8452BC2FF62DB00028A17A8CD8D8B438DC1AD584A61F453A888B6"
+    },
+    {
+      "path": "steam/SteamSession.cs",
+      "sha256": "1B370BF20D4E00102141EE86E773948D9ABA64F6F736CE328BD5E009957D2474"
+    }
+  ]
+}

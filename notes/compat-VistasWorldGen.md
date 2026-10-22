@@ -54,3 +54,7 @@ RC31 preparation: Denis subsequently requested resuming the release. His current
 6. Check frame pacing and the named `Traffic final terrain`, `Vantage terrain`, `Map fog painting` jobs in the WW performance page, plus Vistas through ModProfiler. No runtime/performance result is claimed by compilation.
 
 No new WW config entries, saved component types or game-save keys. Vistas' existing Debug.Overlay value is reset at startup. No commit/push/release requested. Build/deployment status is recorded in the chat handover.
+
+## Multiplayer (2026-10-22)
+
+Vistas generation settings are host-owned in sessions, guests follow the host's Vistas weather and wind clock, the spawn track and dust devils are off for every peer, engine heat/forces/dew only act on objects this machine simulates (AI-held cars never get Vistas heat), and a guest->host terrain probe reports alignment in both logs. Details and tests: notes/vistas-mp-compat-2026-10-22.md.

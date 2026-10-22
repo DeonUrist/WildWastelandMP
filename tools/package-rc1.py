@@ -6,8 +6,8 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-VERSION = "0.1.54"
-RELEASE = "RC18"
+VERSION = "0.1.55"
+RELEASE = "RC19"
 BASE_SHA256 = "a8e96e62922435e3ae5da8b5d92493ec6e9c1da7bc092509461db94d4a468dda"
 
 
@@ -104,7 +104,7 @@ def main():
             if archive.read("WildWastelandMP/" + name) != files[name]:
                 raise ValueError("Archive content mismatch: " + name)
     metadata = {
-        "version": VERSION, "release": RELEASE, "handshake": 27,
+        "version": VERSION, "release": RELEASE, "handshake": 28,
         "archive": args.output.name, "entries": len(files), "bytes": args.output.stat().st_size,
         "sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
         "dll_md5": hashlib.md5(dll).hexdigest().upper(),

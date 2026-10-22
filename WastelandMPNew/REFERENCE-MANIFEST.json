@@ -1,0 +1,800 @@
+[
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\AMMO-COUNT.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/AMMO-COUNT.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2146,
+    "sha256": "B66E58AFCCF19836949461EE4BAABFAC912A210D412A9229CA268D26AE7419B1"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\CHARACTER-BODIES.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/CHARACTER-BODIES.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 8559,
+    "sha256": "563C823539D2CEAF24D5434A414924070E73BAF47CBBC3B2E7D452EBF04D6D82"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\DROPPED-GUNS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/DROPPED-GUNS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3581,
+    "sha256": "83F5888439A53AB898EAB8246A3C445AF802F46DA596B7D01F8FF6E007E11462"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\EQUIPMENT-FLASHLIGHT.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/EQUIPMENT-FLASHLIGHT.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5618,
+    "sha256": "881AAF2F51B71C6952CC5276F5E90B18D1037514B9E13E724FC516FAD51C0A92"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\GUEST-WORLD-SYSTEMS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/GUEST-WORLD-SYSTEMS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 6471,
+    "sha256": "225BEE67B4F6A14C4E732F4608F46E732FBC18B8CAE816BEDCFA20F14FCA85E9"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\HOST-SAVES.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/HOST-SAVES.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 38238,
+    "sha256": "5F037132F5D2AFC9B07704999FF5883969EA1DFC3DBECA49C6444C3F9B283B41"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\HOSTING-SETTINGS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/HOSTING-SETTINGS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 11671,
+    "sha256": "CB4ABF9F23EF42310A37162A344747E956DCCFB3D25EC033C95E5C3D560B8616"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\INVENTORY-PLAYERS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/INVENTORY-PLAYERS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 12541,
+    "sha256": "BF44A7B2C143198444787D002417D7CFF9453DF8834A77E5F3032CFD44039F4D"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\ISSUE-1-PASSENGER.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/ISSUE-1-PASSENGER.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4307,
+    "sha256": "F3248C568C44BAEFDE4C4302A8B689DEFAC8821DC65D8BDC6580B94AE8905B85"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\ISSUE-3-MULTIPLAYER-UI.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/ISSUE-3-MULTIPLAYER-UI.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3899,
+    "sha256": "C354D5F8187607F9C857CF2F19AB758EDDE6342CFA4907D161BE1A81BA962070"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\ISSUE-4-MENU.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/ISSUE-4-MENU.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3282,
+    "sha256": "21F251EE46AD52389082F351C1B77976795E5EBF12B7C5EEAD38143A91895BD9"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\LOGGING-MENU.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/LOGGING-MENU.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4269,
+    "sha256": "2DB85E3CEEEE71AF5D31D1238C7BB7DFD670DAA969EC4C71EE02DAEBD2BB8172"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\MOTORCYCLE-OWNERSHIP.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/MOTORCYCLE-OWNERSHIP.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5036,
+    "sha256": "1E95BD20DE60900FFC1BDD53423BC139A5113B8D86877CD5C7C3BD9DD7497E74"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\NOTIFICATIONS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/NOTIFICATIONS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3421,
+    "sha256": "C7FFCBD5F2F68CD7C179E0CC480D521F042611BC9C0B44CDF6B17FBF7A02C67D"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\PART-STATE-CHECKLIST.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/PART-STATE-CHECKLIST.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 6163,
+    "sha256": "3E10D71BFD4F0A0663A29660F6E61933434E1917E0CDFD956D94877FEFDF6824"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\PASSENGER-GROUND.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/PASSENGER-GROUND.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2723,
+    "sha256": "5D9CC5754AA8F8A18EAACACE388B5C9D5C0775443424868CB66CCC3CAEA1E0FA"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\PLAYER-HUD-AND-MOD-CHECK.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/PLAYER-HUD-AND-MOD-CHECK.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7872,
+    "sha256": "12FE3A7DD1183FC3E044726BE366CB9A997427B192F677F982EECE9789117FF3"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\PLAYER-RECOVERY.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/PLAYER-RECOVERY.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 10842,
+    "sha256": "D955D3DF58AC54A79FB3ECDBCC21B42EEB0D01A9BC1EE955E83B363D08B5A6BF"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\POSES-EQUIPMENT.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/POSES-EQUIPMENT.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 9510,
+    "sha256": "27924FBDEB9DAF87568A8D463672833466A7040F0D82357707EF1A2DD9D11CFA"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\README.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/README.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2118,
+    "sha256": "37BC4893480DC86037ED0D1B516A1C068A1A894A5158042EEB6ED1BA120313B6"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\RESUME.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/RESUME.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 59361,
+    "sha256": "399532640BB808DFB0B82BD7D42759110C884E704E3205B6E9B69963207BB318"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\SHARED-FOG.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/SHARED-FOG.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4995,
+    "sha256": "2360BD12CEA3E233FB35807ED250B185756D36779CD728A78CAEE57EB6962643"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\SLEEPERS-RESPAWN.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/SLEEPERS-RESPAWN.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 30280,
+    "sha256": "3ECB92BDE4273F77C4F88243CDF69892135D2B97DD2E6A37084D53A66C409677"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-01-NPC-PERCEPTION.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-01-NPC-PERCEPTION.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4593,
+    "sha256": "9194B07F23128BAC0E8AA4CC4A7D6CC6A3F006F9E88952C4CE163257EE99FEC4"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-02-SEATED-PERCEPTION.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-02-SEATED-PERCEPTION.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4978,
+    "sha256": "EA046025E233A95231D323C365E07F8F02F1F15A1A5972CBDD711A5CC64A8928"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-03-CREATURE-DAMAGE.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-03-CREATURE-DAMAGE.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 6316,
+    "sha256": "884A16678B2F41F1187E3FC1FA1127B51555B20AC8232C70E33D5A42237BF88F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-04-VEHICLE-COLLISIONS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-04-VEHICLE-COLLISIONS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7183,
+    "sha256": "705EDDA49A65019DD6389525ADF9ED3272AD1CF0022569C841C562C5E01DAABD"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-05-PART-STATE.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-05-PART-STATE.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 12105,
+    "sha256": "657209D1C0381B777C1FDF0A1FFB1AED6F88EE347E91BC5EFBB964D947894DFC"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-13-ITERATION-HANDOVER.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-13-ITERATION-HANDOVER.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 9926,
+    "sha256": "6DE3CA34601E8189A92FFFAAD7BD519D076CDB0D85BE5326E645EC4B40680EA9"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-14-CLIENT-IMPACTS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-14-CLIENT-IMPACTS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 8299,
+    "sha256": "563A6A325C89CA7B86B29C2060F6D0560A41991D7B5458F6CD65E5C3247E74DF"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-15-REVIEW-AND-TESTS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-15-REVIEW-AND-TESTS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 11900,
+    "sha256": "D6410D9F50AE23EEDAA674E0469D1A39D9B99B4290F82CB93873E175759CB847"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEP-16-PLAYER-PRESENTATION.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEP-16-PLAYER-PRESENTATION.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 6501,
+    "sha256": "0A6640590E7746AC8BDCB630CA9B53C0E53824313E06A77E8BA2D76AD6772625"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\STEW-PACKET-ROUTING.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/STEW-PACKET-ROUTING.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3392,
+    "sha256": "5BF7ACFCDD040F768064E349DAFED6DC84110C33D5DA45CF229511CCEAE9B4F4"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\UI-WORLD-RUNNING.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/UI-WORLD-RUNNING.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3529,
+    "sha256": "FF1F1CCBC405CA527873A079DBC65E39FA6C04569E5704F04DBD880DE7212B68"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\ULTIMATE-TOOLS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/ULTIMATE-TOOLS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7940,
+    "sha256": "8C132DA4FA0EC3E898732AAE8E63C16B1123FC9CAA92CDCC72B87556C2EF4EB2"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\compat\\ApocalypterMP\\WEAPON-ANIMATIONS.md",
+    "bundled": "reference/wwmp/compat/ApocalypterMP/WEAPON-ANIMATIONS.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3949,
+    "sha256": "B31EFFD6AB53CBC2F85EDC4A96C32210F7D50FECC0B03AAD95D7BC83ACA9E160"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\docs\\harmony.md",
+    "bundled": "reference/wwmp/docs/harmony.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 76764,
+    "sha256": "2222FBDDCAD2BF49E66E5E0ED04D82A7AE6C0983BE2A4E35E61507D2CF8E10B7"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\docs\\modules.md",
+    "bundled": "reference/wwmp/docs/modules.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 41550,
+    "sha256": "F1AE676B4AA5B24A3D2F5DDE1EDC89DE5EBAB34CF9BEABFF9F2AF8EED8CCFD19"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\docs\\perf-log.md",
+    "bundled": "reference/wwmp/docs/perf-log.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 60054,
+    "sha256": "A022D88707223141299CE21F75A18040EC5534852642113CFCAA94326DE25246"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\docs\\PORTING.md",
+    "bundled": "reference/wwmp/docs/PORTING.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 14929,
+    "sha256": "ADB365ADFF93601BAF70A6A7A78B117DACEC55D5BEC8A8B4350F498E5FA3ECFF"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\client-side-melee-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/client-side-melee-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5805,
+    "sha256": "2E22637EA92FDB25ED810C872123144F895A355591FBA399D8077756ED197C3E"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\compat-Apocapocket-CleanHUD.md",
+    "bundled": "reference/wwmp/notes/compat-Apocapocket-CleanHUD.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7607,
+    "sha256": "4347FDECBC54E44846AE76E8289E72D87B27ECD36D62363BD5B8BC4DDCD623BA"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\compat-EngineSim.md",
+    "bundled": "reference/wwmp/notes/compat-EngineSim.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7003,
+    "sha256": "03E160AA0185438B0B37933E000CD3DA8D29DF0630223A6BE5B7AE64E6B574F2"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\compat-VistasWorldGen.md",
+    "bundled": "reference/wwmp/notes/compat-VistasWorldGen.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 14617,
+    "sha256": "14492CCA5619B913E795E08A2AA833FC3F06A3B8B83E1D217F04F6A271E8980A"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\console-noise-20261018.md",
+    "bundled": "reference/wwmp/notes/console-noise-20261018.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7065,
+    "sha256": "37D22EF562E03183BD3DD3C1397ADCF091B459F43D970FEA1E97B4A55CD6F7AE"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\dog-on-foot-damage-audit-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/dog-on-foot-damage-audit-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4252,
+    "sha256": "09A9EA15C7B9535A0AED38981507FE8F63A5E88D6587E54D1603B04E62459586"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\dog-seated-reach-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/dog-seated-reach-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7502,
+    "sha256": "842F1E8D1BCA7BA73C7DD8772825F81C27F0D5DD6F16AD3E1462BC5F27B9C89C"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\guest-quest-targeting-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/guest-quest-targeting-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3055,
+    "sha256": "ACE6CB74FA719ABEE292148B8D023F353E6023354FD0289F584A7CA8B24739A5"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\merchant-hostility-return-to-sale-2026-10-21.md",
+    "bundled": "reference/wwmp/notes/merchant-hostility-return-to-sale-2026-10-21.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3217,
+    "sha256": "AFAABE2A3587E075CA6470858F63DE955182291D3FB9724786587B6D1E3BCEA1"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\multiplayer-assessment-fixes-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/multiplayer-assessment-fixes-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 20341,
+    "sha256": "8240DC326F02C34621E6B1C7C8A3A45DDEF42329540814689C425BF77AD56D5B"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\offline-save-default-2026-10-19.md",
+    "bundled": "reference/wwmp/notes/offline-save-default-2026-10-19.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4074,
+    "sha256": "4C55D1518631458500C8933C78645BB91BC28B906B76CC67C186D0A0BE6C844F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\patch-crew-quest-restrictions.md",
+    "bundled": "reference/wwmp/notes/patch-crew-quest-restrictions.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3941,
+    "sha256": "D370AD9ADB6A4AA7DFC05308EE4372D7D1E439D9AFF8BBFE1C1E2C4BD13F6224"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\perf-audit-2026-10-15.md",
+    "bundled": "reference/wwmp/notes/perf-audit-2026-10-15.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 17507,
+    "sha256": "A9D51B15BFD5EE09D8FC36221717C5CAFD73D1E4C195F2F432EA855DA8903AA7"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\perf-handover.md",
+    "bundled": "reference/wwmp/notes/perf-handover.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 20580,
+    "sha256": "7B07DA95BE4B11F9CCEE0D8ABD83ED6014882D70ABB2173ACEFBCE7A86A9A49E"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\plan-Performance.md",
+    "bundled": "reference/wwmp/notes/plan-Performance.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 25933,
+    "sha256": "5E4D6755416E10722DA9F68104C9A881C95378BA0E414032D71BC2DD271A12C5"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\purchased-items-sync-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/purchased-items-sync-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4986,
+    "sha256": "B50299BD1F501187DFD6AF5E192156770EDDE76E45C229F5DA4760B07C3B0396"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\quest-ui-input-voices.md",
+    "bundled": "reference/wwmp/notes/quest-ui-input-voices.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3652,
+    "sha256": "31DA47B73A62D82BC3A2B8250A283485AADCB992BD419BB46E132DCB431B869A"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.12-RC9.md",
+    "bundled": "reference/wwmp/notes/release-0.1.12-RC9.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3686,
+    "sha256": "29B6FBE9F5604E09431416258F1982A4550C21DDA63E5133ED4344252CAE67A8"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.13-RC10.md",
+    "bundled": "reference/wwmp/notes/release-0.1.13-RC10.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4031,
+    "sha256": "BF335ADA41458ADFC3E4E03534AFD33C24588EC16EC8A640E3F8CDAA37A62799"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.14-RC11.md",
+    "bundled": "reference/wwmp/notes/release-0.1.14-RC11.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 1336,
+    "sha256": "6D2691B60BC5A8FD4C92A69380C4D8A7D97D2753771C1B8CF03F90ADA8C7945D"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.15-RC12.md",
+    "bundled": "reference/wwmp/notes/release-0.1.15-RC12.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2123,
+    "sha256": "290D09F57502FB5574807F77A3090FC68D1C6EC205D0E785A292358CA8AC2BC3"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.16-RC13.md",
+    "bundled": "reference/wwmp/notes/release-0.1.16-RC13.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 1880,
+    "sha256": "4DDC3C86D1F20BF6C0AE566F171167476C0516E80B92D6C299D11B0C97861E7F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.17-RC14.md",
+    "bundled": "reference/wwmp/notes/release-0.1.17-RC14.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2298,
+    "sha256": "E76F1A03DF499A2C046069817BDD8EE3B5D8D06D4F8A4A2DCED81B25E51B6152"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.18-RC15.md",
+    "bundled": "reference/wwmp/notes/release-0.1.18-RC15.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2563,
+    "sha256": "173114799839DAD585E3EA0301B5D9EC1B166DA3E8AC0F34A75D85568D185011"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.19-RC16.md",
+    "bundled": "reference/wwmp/notes/release-0.1.19-RC16.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3471,
+    "sha256": "7670FEAF9F47124E4E233C5631B8A0504FDF4BE919A2AF9BA6D8744E80E44666"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.20-RC17.md",
+    "bundled": "reference/wwmp/notes/release-0.1.20-RC17.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2297,
+    "sha256": "5A2F89FBA606600D25FAE91709B46FCB4CB1DE0CB44EE3E75788CEFA396D658F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.21-RC18.md",
+    "bundled": "reference/wwmp/notes/release-0.1.21-RC18.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2510,
+    "sha256": "813CABF22BC6E1624D87B41EFE6AEC30EDD58AC78A3FD866C556C09D1CAB392B"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.22-RC19.md",
+    "bundled": "reference/wwmp/notes/release-0.1.22-RC19.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3735,
+    "sha256": "1B86AB26E8CE9ED277A0B55792101C53184DE5B020D5D11C8295344D4D2C3D06"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.23-RC20.md",
+    "bundled": "reference/wwmp/notes/release-0.1.23-RC20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4857,
+    "sha256": "BA0C48B7376BDF77F294BAB23267960E0D9F86D9F2A092CD892621C4CE6AF2F4"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.24-RC21.md",
+    "bundled": "reference/wwmp/notes/release-0.1.24-RC21.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2176,
+    "sha256": "1191473B54E164171B7591B8426D30086193D2DDA34597CCA977E65366D122E9"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.26-RC23.md",
+    "bundled": "reference/wwmp/notes/release-0.1.26-RC23.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5644,
+    "sha256": "D9AF1C390A1E6C892C22D41F3E7456B6402E44ED35AEAA52DDE64569410CD207"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.32-RC29.md",
+    "bundled": "reference/wwmp/notes/release-0.1.32-RC29.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2681,
+    "sha256": "EC1EF27DEBC9B224433D2543D14305C94F123FCE6EA328E3780B0A337B0ED4E6"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.33-RC30.md",
+    "bundled": "reference/wwmp/notes/release-0.1.33-RC30.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4931,
+    "sha256": "34AB49BDE732E6E82C43553CBFA4131F54208B7742EAD6E2A40BFE168C3B8F56"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.34-RC31.md",
+    "bundled": "reference/wwmp/notes/release-0.1.34-RC31.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2737,
+    "sha256": "710AA4DA9ACEC6ABACE47FA8718C2B34AB87F3C8A4DD679F7B44677DFB6A8722"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.35-RC32.md",
+    "bundled": "reference/wwmp/notes/release-0.1.35-RC32.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2737,
+    "sha256": "535D5BCE1F0789946C62E81FFA20B65AB2A9E98C7428BAE4A6F8AD59D4AF704A"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.37-RC1.md",
+    "bundled": "reference/wwmp/notes/release-0.1.37-RC1.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3780,
+    "sha256": "E513921CEF6FE439BDB08CCD9BDA4B91F77AE99C3AEAB0FF22AE09473B9A6E16"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.38-RC2.md",
+    "bundled": "reference/wwmp/notes/release-0.1.38-RC2.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2192,
+    "sha256": "5205E7503B82296149ABF21936A685C2AF835EA1850866A1F353A95E5CA10C03"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.39-RC3.md",
+    "bundled": "reference/wwmp/notes/release-0.1.39-RC3.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2068,
+    "sha256": "22807F9EC46935FA2D24B5AD960CACA2CEA6EB8129F239F704D70C4B7C9E0878"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.40-RC4.md",
+    "bundled": "reference/wwmp/notes/release-0.1.40-RC4.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 1920,
+    "sha256": "EE142B6FD6FCE3C7526F90242C2D03F7D5E049E55806247CD872547CDAF28D7F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.41-RC5.md",
+    "bundled": "reference/wwmp/notes/release-0.1.41-RC5.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2370,
+    "sha256": "109EE3D1FD07D488D7F7EF6C0464083DABB79DEC61FA362CCC65764CFCCCDAF8"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.42-RC6.md",
+    "bundled": "reference/wwmp/notes/release-0.1.42-RC6.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2690,
+    "sha256": "4C14637D1B30610EA4D60F1D3C7AD86B9DCB567B24EAADE00A704C82B186EBDB"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.43-RC7.md",
+    "bundled": "reference/wwmp/notes/release-0.1.43-RC7.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 1877,
+    "sha256": "86B9BFDCBB799C54ECE08309423250588ACDDC39DA4435EC1167711A90A54016"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.44-RC8.md",
+    "bundled": "reference/wwmp/notes/release-0.1.44-RC8.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2882,
+    "sha256": "3BC44C63627CBCE16487ADB5E26B7E947B9B902570082C4503DBAE3C8E3734F7"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.45-RC9.md",
+    "bundled": "reference/wwmp/notes/release-0.1.45-RC9.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2220,
+    "sha256": "EA79D3BBEAC8145E0EBF3EE42572148456F037B5C6EDBB3FF4AB2C15C514C4B8"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.46-RC10.md",
+    "bundled": "reference/wwmp/notes/release-0.1.46-RC10.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3427,
+    "sha256": "D7CF228D971980C504F7301DA3D3E1C89CCAEF69F589075EB5F180D97F750D8F"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.47-RC11.md",
+    "bundled": "reference/wwmp/notes/release-0.1.47-RC11.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2442,
+    "sha256": "C3AB2B72B98A6BA99A5F7C87FC9C2DD4A72379573AC811AB1C1658AAC6464AAF"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.48-RC12.md",
+    "bundled": "reference/wwmp/notes/release-0.1.48-RC12.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3517,
+    "sha256": "3311722492DAD0787F6664F6E9581163E5A5CC24506109A997AA579E721A1D23"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.49-RC13.md",
+    "bundled": "reference/wwmp/notes/release-0.1.49-RC13.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3352,
+    "sha256": "79042C859F1176920937DEA385D785C713642AC3F35011ACD9B5878947C1FF44"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.50-RC14.md",
+    "bundled": "reference/wwmp/notes/release-0.1.50-RC14.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5497,
+    "sha256": "7DEC33D5C26A3690717A9D7E603FB5A2824930C5FF08DCB0298F40798F330F17"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.51-RC15.md",
+    "bundled": "reference/wwmp/notes/release-0.1.51-RC15.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2782,
+    "sha256": "3B4E146D8E04BE700ABF03594D3DBAD27B893BFCB119814A1226D25EE316A2D8"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.52-RC16.md",
+    "bundled": "reference/wwmp/notes/release-0.1.52-RC16.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3332,
+    "sha256": "C2359B39D8D28A828F478E992A35C33A52C91D6BD553D8CD53FF258124737A69"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.53-RC17.md",
+    "bundled": "reference/wwmp/notes/release-0.1.53-RC17.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3917,
+    "sha256": "47C4337748659244D4565B75972DD30BDBED62D1B32CF17B07A16D4EAC586768"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.54-RC18.md",
+    "bundled": "reference/wwmp/notes/release-0.1.54-RC18.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 1778,
+    "sha256": "61AC417ECA760488C2B3E89DD0193C9837E43B187D73DCDD15F22CFC55CBBB1D"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.6-RC3.md",
+    "bundled": "reference/wwmp/notes/release-0.1.6-RC3.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 2716,
+    "sha256": "E8E81F42F098669D341A69F7AE4C0E84F3F4DBE6AEB0E807E89A5E55D21BE42E"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\release-0.1.7-RC4.md",
+    "bundled": "reference/wwmp/notes/release-0.1.7-RC4.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3069,
+    "sha256": "7B2ED2504ECA0F71A86DA2F21830AE19025E90E76CFB0CB843E9FE0940703656"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\replacement-guard.md",
+    "bundled": "reference/wwmp/notes/replacement-guard.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3788,
+    "sha256": "EBDB415E6706A0A914DA71B69FD7B9734495FA45906F5B5DB9158EE5433B8EA2"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\save-sync-timeout-2026-10-21.md",
+    "bundled": "reference/wwmp/notes/save-sync-timeout-2026-10-21.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3506,
+    "sha256": "F6A7B408E43DE991EEE05AADEA1A4FDC9086F753EEF5A8293AF3E60430A87AC0"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\seated-melee-throws.md",
+    "bundled": "reference/wwmp/notes/seated-melee-throws.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 11199,
+    "sha256": "7DADE15E76FAB7FFFB43085CB4D1C33D330EC3AAD97213915107E983C949C416"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\SINGLEPLAYER-PORTING-2026-10-19.md",
+    "bundled": "reference/wwmp/notes/SINGLEPLAYER-PORTING-2026-10-19.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 40588,
+    "sha256": "D0C87E6BC528F4AF7B3E364D149CAE7992D0789127D0EB5AB1D25FE7A5890969"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\SP-PORT-CURRENT-SETTINGS-2026-10-19.md",
+    "bundled": "reference/wwmp/notes/SP-PORT-CURRENT-SETTINGS-2026-10-19.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 65751,
+    "sha256": "23C7970AEDDE1F0922A8EA5DE53823997F95376968CF6B49BA97161FC166BA53"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\SP-PORT-LOADING-SCREENS-2026-10-19.md",
+    "bundled": "reference/wwmp/notes/SP-PORT-LOADING-SCREENS-2026-10-19.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7071,
+    "sha256": "47EFF259D11A52C0A55248CE6CAF33C567D3D013D96026539533B9BA8CE6CE53"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\speaker-shout-gender-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/speaker-shout-gender-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 3311,
+    "sha256": "B22938B220F32B09FC5963020923889DEE62D3C70898D335C0F1CBAB142450F0"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\vehicle-melee-policy-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/vehicle-melee-policy-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5092,
+    "sha256": "660BD2B54F4687914A2975BDFD07C9E557888DF15637870F66CA02E4133228C8"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\vehicle-occupant-collision-damage-2026-10-20.md",
+    "bundled": "reference/wwmp/notes/vehicle-occupant-collision-damage-2026-10-20.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 4222,
+    "sha256": "0DD237BEABFED63F5FD7030F08B8A137CA6EC83C55CF4299F1804324FF0D3B47"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\vistas-mp-compat-2026-10-22.md",
+    "bundled": "reference/wwmp/notes/vistas-mp-compat-2026-10-22.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 7124,
+    "sha256": "5E50E7BF32FBC9DAC5D05D43FA2E94C78D3C457C08AAD1CF0D262E909383C6F0"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\notes\\weather-distance-haze.md",
+    "bundled": "reference/wwmp/notes/weather-distance-haze.md",
+    "kind": "WWMP historical evidence; latest dated correction wins",
+    "bytes": 5130,
+    "sha256": "92F64072171058D6C0C80D23E8AC5CCBA85BD8C87ACC8BF41656ECD053CBD901"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWastelandMP\\AGENTS.md",
+    "bundled": "reference/wwmp/AGENTS.md",
+    "kind": "WWMP rules and dated evidence at extraction",
+    "bytes": 276049,
+    "sha256": "47E6B054CF7FC126F8F9A45B7E2D7E75DCE4AC67147C0123ECE2358AC75E5B42"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWasteland2\\docs\\refactor\\README.md",
+    "bundled": "reference/ww2-refactor/README.md",
+    "kind": "WW2 amended plan; section 0 overrides older pasted plan",
+    "bytes": 63867,
+    "sha256": "EBB2A743398F08802870275B4A21F5A65636BF711E39175C2D33A93ADF530BDA"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWasteland2\\docs\\refactor\\core-modapi.md",
+    "bundled": "reference/ww2-refactor/core-modapi.md",
+    "kind": "WW2 amended plan; section 0 overrides older pasted plan",
+    "bytes": 23737,
+    "sha256": "2F1F343DE7FFD8F01774B0EB96ABC0E2BD1CEA7624A467F4DEBEB62F811E70F6"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWasteland2\\docs\\refactor\\work-packages.md",
+    "bundled": "reference/ww2-refactor/work-packages.md",
+    "kind": "WW2 amended plan; section 0 overrides older pasted plan",
+    "bytes": 35519,
+    "sha256": "D195F7110FA96B6FDF9F71015248731552F3B65DB2D08BCA7D706BC8ABF48D2C"
+  },
+  {
+    "source": "V:\\Repos\\Apocalypter\\WildWasteland2\\docs\\refactor\\STATUS.md",
+    "bundled": "reference/ww2-refactor/STATUS.md",
+    "kind": "WW2 amended plan; section 0 overrides older pasted plan",
+    "bytes": 1425,
+    "sha256": "6FB157B864DF2DBE9B3A65FE40E96BB9164C78AC7A45CD100BF6955E250F82EB"
+  },
+  {
+    "source": "C:\\Users\\chura\\.codex\\attachments\\82b5389c-c823-4563-8bb7-2efad137a1b7\\Pasted text.txt",
+    "bundled": "reference/pasted-plans/plan-1.txt",
+    "kind": "User-supplied planning context; not an instruction to execute refactor waves",
+    "bytes": 28271,
+    "sha256": "5F48589A96AAD84955A5EBFB849AC20B98643FFF457506FB9B275D8EF92660BF"
+  },
+  {
+    "source": "C:\\Users\\chura\\.codex\\attachments\\baabc684-ac4f-4218-8928-097da1ccf0ac\\Pasted text.txt",
+    "bundled": "reference/pasted-plans/plan-2.txt",
+    "kind": "User-supplied planning context; not an instruction to execute refactor waves",
+    "bytes": 12332,
+    "sha256": "FF8CF4345C282414E0B313EDBCF807ECAE14FFED0F3E2A6D7DA5CD6A78F5403E"
+  },
+  {
+    "source": "C:\\Users\\chura\\.codex\\attachments\\a6e0f39c-4547-4acd-b42d-edec25c0a8a7\\Pasted text.txt",
+    "bundled": "reference/pasted-plans/plan-3.txt",
+    "kind": "User-supplied planning context; not an instruction to execute refactor waves",
+    "bytes": 22819,
+    "sha256": "3A14F1F563733490B85BA2F361C057EB97F85114B3B27BCA9BFAFD6546223669"
+  }
+]

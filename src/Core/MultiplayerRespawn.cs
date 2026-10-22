@@ -161,7 +161,10 @@ namespace WildWasteland.Core
         static void Restored(Dictionary<string, float> __0)
         {
             if (!Multiplayer.Active || __0 == null) return;
-            float value; _selected = __0.TryGetValue(SelectedKey, out value) && value == 1; _setHasBed(null, _selected);
+            // Downing, revival and death apply partial vitals without respawn data.
+            float value;
+            if (__0.TryGetValue(SelectedKey, out value) || __0.ContainsKey("b.x"))
+            { _selected = value == 1; _setHasBed(null, _selected); }
             float x, y, z;
             if (!_hasCamp && __0.TryGetValue("ww.camp.x", out x) && __0.TryGetValue("ww.camp.y", out y) && __0.TryGetValue("ww.camp.z", out z))
             { _camp = new Vector3(x, y, z); _hasCamp = Finite(_camp); }

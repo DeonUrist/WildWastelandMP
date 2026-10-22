@@ -221,6 +221,7 @@ namespace WildWasteland.Core
                 MultiplayerNames.Install();
                 MultiplayerItems.Install();
                 MultiplayerSettings.Install();
+                VistasMultiplayer.Install();
                 MultiplayerCombat.Install();
                 MultiplayerParts.Install();
                 MultiplayerReliable.Install();

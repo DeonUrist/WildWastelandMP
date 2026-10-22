@@ -1,0 +1,13 @@
+# Wild Wasteland MP RC6 (0.1.42)
+
+The integrated save system is now the default during offline play even without ApocalypterMP installed. Save/Load opens the named screenshot library, with backups/restore, separate autosaves and countdown/combat safety. Native Continue/loading, save-and-quit, world history, optional cleanup and vehicle-load camera/standing correction use native game adapters when the dependency is absent.
+
+Common save hooks initialize outside optional bridge discovery. Only network/host-specific delegates require Multiplayer. Installed-versus-ready state preserves recovery access; standalone Apocasaver is suppressed only after successful replacement recovery, with idempotent retry handling. Shared mouse-look freeze retains the Quests dialogue guard without duplicate patches.
+
+Retains MP_sp save identities, metadata, backups, sidecars, settings and handshake24. No new config keys or inventory-drop expansion. The Multiplayer dependency is still required for hosting/joining; multiplayer snapshots are not offered as offline worlds without it. Standard WW is unchanged. Includes RC5's restored unarmed driver wheel grips.
+
+Requires BepInEx5 x64. Multiplayer players separately install [Apocalypter Multiplayer0.4.1](https://www.nexusmods.com/apocalypter/mods/10) and use matching WWMP builds. Extract the complete ZIP into BepInEx/plugins with standard WW disabled, preserving custom assets. The ZIP includes runtime assets/launchers and required license notice; excludes documentation/history, personal configs/saves and dependency DLLs.
+
+Gameplay, saves/recovery, network parity and performance remain Testing. The user's local0.1.41 test-build log confirms common saves initialize without the dependency, with no reported startup error; this is not complete runtime acceptance. See [implementation and manual checks](offline-save-default-2026-10-19.md).
+
+RC6 publication evidence (2026-10-19): Windows Release/Deploy=false zero warnings/errors; exact stage `V:/Repos/Apocalypter/_releases/WildWastelandMP_0.1.42-RC6a.dll`, DLL MD5 **9DDE5C0ACBEDE1791848A91FD28C3E6B**. ZIP287 files/236,668,727 bytes, SHA256 **5bfdcea7612cf539bfc628023d067fcfb63a0a9d2bfe73d2c73b588f8d047e5a**. Package validation checked CRC/unique paths/all source bytes/18 loading images/single DLL and156 unchanged baseline runtime entries; no docs/personal data/dependency DLLs. Game running, so release DLL not deployed; installed local test build remains A04CBCBB0215A358CBDD4BBCB4989774. No game launch/harness/live save/config edits. Denis explicitly authorized commit/push/release; publication supersedes the local-only/public-RC5 status in the implementation handover.

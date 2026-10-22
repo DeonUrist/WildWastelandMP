@@ -1,0 +1,25 @@
+# Motorcycle driving on clients
+
+2026-10-19, **Testing**. Denis reports host driving is good; guest-driven motorcycles circle, tip and have wheels sink through the ground. His clarification describes driving instability; a separate manual flip-control failure has not been established.
+
+Denis requested fix/commit/deployment. Windows Release/Deploy=false passed with zero warnings/errors. Built/unique stage/installed MD5 `B89B4550A2820EFCAE3A48E0F0D6258A`; stage `bin/Release/WildWastelandMP_guest-motorcycle_20261019_034731.dll`. Deployed the exact stage after both games closed; disabled WW manifest absent and local client's plugins junction shares this install. Build includes pending guest gun-drop and concurrent host-save/crawl/merchant work. This commit contains only the two motorcycle-related source files and this handover. No base/external DLL/config/save edits, game launch, harness, push or release. Gameplay/performance remain Testing.
+
+Confirmed source defect: ModuleHost stops the full Patrols module on guests and starts IMultiplayerPresentation instead. PatrolsModule.Shutdown sets Running=false; presentation intentionally leaves it false to suppress traffic/crew AI. MotorcycleBalance.FixedUpdate required Running=true, so a guest receiving native car ownership never ran the two-wheel lean controller or its existing tyre force-height correction. The same motorcycle works on the host, where Running=true. This is a concrete role asymmetry; the available local logs do not contain the reported guest-driving reproduction, and runtime resolution of the sinking/circling symptoms remains unverified.
+
+The guest presentation lifecycle now enables only MotorcycleBalance's physics eligibility. Its fixed step additionally checks native ownership through Multiplayer.OwnedElsewhere and retains initialization/controller/kinematic checks. Losing eligibility/authority resets lean and the one-time activation log state. Remote observers never apply balance torque; native car snapshots remain responsible for their pose. No new scheduler, scan, physics tuning, prefab, save, config or wire format is introduced.
+
+Ownership audit against the installed, previously inspected MP DLL (SHA256 BF0528817B0575A00E7A03F9E520DDACCBEE0322328369CE97351F433633CE2E):
+
+- ClientCarUpdate requests CarClaim only when seated; host OnCarClaim sets Tracked.Owner and calls MakeCarPassive. OnCarGrant sets OwnedLocally=true, removes interpolation snapshots and calls MakeCarActive. ReleaseCar clears OwnedLocally; host GiveCarBackToHost clears Owner and restores active physics. These flags are already carried by the native claim/grant/release control messages, which WW sends reliably.
+- NWH.Common.Vehicles.Vehicle.MultiplayerIsRemote exists, but its consumers in this game version are CameraChanger and LightsMananger. It does not gate VehicleController.FixedUpdate or WheelController.Step. Merely toggling that flag cannot replace the missing guest MotorcycleBalance execution. No speculative remote-flag or chassis-physics change is included.
+- Native ApplySpawn skips the generic MakeKinematic loop for Kind.Car, so MakeCarPassive retains the original root-body physics settings for MakeCarActive restoration. No evidence here establishes a motorcycle-specific kinematic restore failure.
+
+Sources: src/Core/ModuleHost.cs; src/Modules/Patrols/PatrolsModule.cs and MultiplayerPresentation.cs; Vehicles/Motorcycles/MotorcycleBalance.cs; external inspection ApocalypterMP.decompiled.cs WorldObjects.ClientCarUpdate/OnCarGrant/OnCarClaim/MakeCarPassive/MakeCarActive/ReleaseCar/GiveCarBackToHost; Sources/code/NWH.Common/NWH.Common.Vehicles/Vehicle.cs; NWH.VehiclePhysics2.Effects/LightsMananger.cs; NWH.Common.Cameras/CameraChanger.cs.
+
+Manual checks, same DLL on host and all guests:
+
+1. On a loaded flat surface, guest A takes the exact bike the host drives correctly. Drive straight without steering, turn both directions, brake and stop. Expect ordinary host-equivalent balance and tyre support, without sustained circling/tipping/sinking. Host and guest B must observe A's same trajectory.
+2. Swap host -> A -> B -> host, including getting off while moving slowly. Only the granted simulation owner applies balance. With global VerboseLog on, its log says `[Multiplayer] Motorcycle balance active on simulation owner: <bike>`. This confirms balance execution, not complete terrain/physics correctness.
+3. Reconnect, save/reload and repeat on flat terrain and across a loaded tile boundary. Verify ordinary cars and standalone/offline motorcycle driving, then test native automatic righting after a stationary tip. Runtime/performance testing belongs to Denis; no game launch or harness by the agent.
+
+If the exact symptom persists on this build with the owner activation line present, revert this attempted correction before another hypothesis and collect that run's host/client logs with global VerboseLog and native car diagnostics enabled. Existing logs do not establish wheel support or loaded-terrain state during the report.
