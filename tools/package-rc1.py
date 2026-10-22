@@ -6,8 +6,8 @@ from pathlib import Path, PurePosixPath
 import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
-VERSION = "0.1.53"
-RELEASE = "RC17"
+VERSION = "0.1.54"
+RELEASE = "RC18"
 BASE_SHA256 = "a8e96e62922435e3ae5da8b5d92493ec6e9c1da7bc092509461db94d4a468dda"
 
 

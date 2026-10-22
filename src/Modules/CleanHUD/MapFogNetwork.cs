@@ -145,7 +145,7 @@ namespace WildWasteland.Modules.CleanHUD
             if (Multiplayer.Client || SharedChunks.Count == 0) return;
             string path = SharedPath(slot);
             File.WriteAllBytes(path + ".tmp", Write(_seed, SharedChunks));
-            if (File.Exists(path)) File.Replace(path + ".tmp", path, null); else File.Move(path + ".tmp", path);
+            AtomicFile.Replace(path + ".tmp", path);
         }
     }
 }
